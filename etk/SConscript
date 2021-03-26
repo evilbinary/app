@@ -10,15 +10,19 @@ plt = platform.system()
 
 Import('env')
 
-env.Program('gui.elf', [
+env.Program('etk.elf', [
     'main.c',
-    '../libgui/libgui.a',
-    '../libgui/libimage.a',
+    'etk_app.c',
+    '../libetk/libetk.a',
     '../libjpeg/libjpeg.a',
+    '../libgui/libgui.a',
     '../../libs/libc/libc.a',
+
     ],
-    CFLAGS='$CFLAGS -Ilibs/include/c/ -Iapp/libgui/ -Iapp/libjpeg',
+    CFLAGS='$CFLAGS -Ilibs/include/c/ -Iapp/libgui/ -Iapp/libjpeg/ -Iapp/libetk/',
     LINKFLAGS= '$LINKFLAGS --entry main -Tuser.ld')
 
-# env.Objcopy('gui.elf','gui',OBJCOPYFLAGS='-S --strip-all')
-#env.Objcopy('gui.dbg','gui.elf',OBJCOPYFLAGS='--only-keep-debug')
+# env.Objcopy('etk.elf','etk',OBJCOPYFLAGS='-S')
+# env.Objcopy('etk.dbg','etk',OBJCOPYFLAGS='--only-keep-debug')
+
+

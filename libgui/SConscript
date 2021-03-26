@@ -10,15 +10,17 @@ plt = platform.system()
 
 Import('env')
 
-env.Program('gui.elf', [
-    'main.c',
-    '../libgui/libgui.a',
-    '../libgui/libimage.a',
-    '../libjpeg/libjpeg.a',
+env.Library('gui', [
+    'screen.c',
+    'event.c',
     '../../libs/libc/libc.a',
-    ],
-    CFLAGS='$CFLAGS -Ilibs/include/c/ -Iapp/libgui/ -Iapp/libjpeg',
-    LINKFLAGS= '$LINKFLAGS --entry main -Tuser.ld')
+],CFLAGS='$CFLAGS -Ilibs/include/c/')
+
+env.Library('image', [
+    'jpeg_decoder.c',
+    '../../libs/libc/libc.a',
+    '../libjpeg/libjpeg.a',
+],CFLAGS='$CFLAGS -Ilibs/include/c/ -Iapp/libjpeg')
 
 # env.Objcopy('gui.elf','gui',OBJCOPYFLAGS='-S --strip-all')
 #env.Objcopy('gui.dbg','gui.elf',OBJCOPYFLAGS='--only-keep-debug')
