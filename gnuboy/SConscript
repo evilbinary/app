@@ -27,18 +27,20 @@ libs = [
     'libjpeg.a',
     'libpng.a',
     'libzlib.a',
+    'libc.a'
 ]
 
 include = [
-    '../../eggs/libsdl2-image/',
-    '../../eggs/libsdl2-ttf/',
+    '../../eggs/libgui',
+    '../../eggs/libsdl2',
+    '../../eggs/libsdl2/include',
     '../../eggs/libjpeg/',
     '../../eggs/libfreetype/include',
-    '../../eggs/libzlib',
-
+    'sys/sdl2/',
     'include',
     '.',
-    'sys/sdl2/'
+    '../../eggs/include/c',
+    '../../eggs/include',
 ]
 
 libpath = [
@@ -46,14 +48,19 @@ libpath = [
     '../../eggs/libsdl2-image/',
     '../../eggs/libsdl2-ttf/',
     '../../eggs/libfreetype',
-
     '../../eggs/libwebp/',
+    '../../eggs/libgui',
+    '../../eggs/libimage',
+    '../../eggs/libjpeg',
+    '../../eggs/libpng',
+    '../../eggs/libc/',
+    '../../eggs/libzlib',
 
 ]
 
 env.Program('gnuboy', source,
             LIBS=libs+env.get('LIBS'),
-            LIBPATH=env.get('LIBPATH')+libpath,
-            CPPPATH=env.get('CPPPATH')+include,
+            LIBPATH=libpath,
+            CPPPATH=include,
             CFLAGS='$CFLAGS $LIBCFLAGS ',
             LINKFLAGS='$LINKFLAGS $USER')

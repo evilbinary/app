@@ -9,32 +9,50 @@ import os
 Import('env')
 
 
-source=[
+source = [
     'main.c',
-    '../libchez/libchez.a',
-    '../libzlib/libzlib.a',
-    '../liblz4/liblz4.a',
-    '../libuuid/libuuid.a',
-    ]
+]
+
+libs = [
+    'libchez.a',
+    'libzlib.a',
+    'liblz4.a',
+    'libuuid.a',
+]
+
+libpath = [
+    '../../eggs/libchez/',
+    '../../eggs/libzlib/',
+    '../../eggs/liblz4/',
+    '../../eggs/libuuid',
+]
 
 
 
+type = 'a6le'
+cflags = ''
 
-type='a6le'
-cflags=''
-
-if env['ARCHTYPE']=='arm':
-    type='arm32le'
-    cflags ='-DINLINES -DGC_MACROS -DARMV6 -DMB_LEN_MAX=8 -D_LARGEFILE64_SOURCE -DHAVE_HIDDEN'
-elif env['ARCHTYPE']=='x86':
-    type='i3le'
-    cflags ='-DI386 -DINLINES -DGC_MACROS  -DMB_LEN_MAX=8 -D_LARGEFILE64_SOURCE -DHAVE_HIDDEN'
+if env['ARCHTYPE'] == 'arm':
+    type = 'arm32le'
+    cflags = '-DINLINES -DGC_MACROS -DARMV6 -DMB_LEN_MAX=8 -D_LARGEFILE64_SOURCE -DHAVE_HIDDEN'
+elif env['ARCHTYPE'] == 'x86':
+    type = 'i3le'
+    cflags = '-DI386 -DINLINES -DGC_MACROS  -DMB_LEN_MAX=8 -D_LARGEFILE64_SOURCE -DHAVE_HIDDEN'
 else:
-    print('scheme not support ',env['ARCHTYPE'])
+    print('scheme not support ', env['ARCHTYPE'])
+
+
+include = [
+    'src',
+    'include',
+    '.',
+    '../../eggs/libchez/'+type
+]
+
 
 env.Program('scheme', source,
-    CFLAGS='$CFLAGS $LIBCFLAGS -Iapp/libchez/'+type+' -I. '+cflags,
-    LINKFLAGS= '$LINKFLAGS $USER')
-
-
-
+            LIBS=libs+env.get('LIBS'),
+            LIBPATH=env.get('LIBPATH')+libpath,
+            CPPPATH=env.get('CPPPATH')+include,
+            CFLAGS='$CFLAGS $LIBCFLAGS  '+cflags,
+            LINKFLAGS='$LINKFLAGS $USER')

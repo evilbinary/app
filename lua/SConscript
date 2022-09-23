@@ -20,7 +20,7 @@ source=[
     ]
 
 include = [
-    'src',
+    '../../eggs/liblua/src',
     'include',
     '.',
 ]
@@ -29,7 +29,7 @@ libs=[
     'liblua.a'
 ]
 libpath=[
-    '../../eggs/liblua/src/'
+    '../../eggs/liblua/'
 ]
 
 source2=[

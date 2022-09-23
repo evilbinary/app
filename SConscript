@@ -77,12 +77,12 @@ if env.get('APP'):
     SConscript(dirs=['infones'], exports='env')
     SConscript(dirs=['launcher'], exports='env')
     SConscript(dirs=['mgba'], exports='env')
-    # SConscript(dirs=['lua'], exports='env')
-    # SConscript(dirs=['scheme'], exports='env')
+    SConscript(dirs=['lua'], exports='env')
+    SConscript(dirs=['scheme'], exports='env')
 
     SConscript(dirs=['quickjs'], exports='env')
 
-    # SConscript(dirs=['gnuboy'], exports='env')
+    SConscript(dirs=['gnuboy'], exports='env')
 
 
     apps=['hello/hello',
@@ -115,14 +115,14 @@ if env.get('APP'):
             'sdl2/showfont',
             'mgba/mgba',
             'mgba/miniunz',
-            # 'gnuboy/gnuboy',
+            'gnuboy/gnuboy',
 
-            # 'lua/lua',
-            # 'lua/luat',
-            # 'lua/hello.lua',
-            # 'scheme/scheme',
-            # 'scheme/petite.boot',
-            # 'scheme/scheme.boot',
+            'lua/lua',
+            'lua/luat',
+            'lua/hello.lua',
+            'scheme/scheme',
+            'scheme/petite.boot',
+            'scheme/scheme.boot',
 
             'quickjs/qjs',
             'quickjs/qjsc',
