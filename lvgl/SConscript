@@ -38,4 +38,4 @@ source= [
 env.Program('lvgl', source,
     LIBS=libs+env.get('LIBS'),
     CFLAGS='$CFLAGS $LIBCFLAGS -DLV_LVGL_H_INCLUDE_SIMPLE=1',
-    LINKFLAGS= '$LINKFLAGS $USER')
+)

@@ -26,7 +26,7 @@ libs = [
 
 
 env.Program('test', source,
-            LIBS=env.get('LIBS')+libs,
+            LIBS=libs+env.get('LIBS'),
             CFLAGS='$CFLAGS $LIBCFLAGS',
             )
 
@@ -34,11 +34,8 @@ if env.get('DEFAULT_LIBC') == 'libmusl':
     source = [
         'test-musl.c',
     ]
-    if env.get('MYLIB'):
-        source.append(env.get('MYLIB'))
-
     env.Program('test-musl', source,
-                LIBS=env.get('LIBS')+libs,
+                LIBS=libs+env.get('LIBS'),
                 CFLAGS='$CFLAGS $LIBCFLAGS',
                 )
 
@@ -48,7 +45,7 @@ source = [
 ]
 
 env.Program('test-file', source,
-            LIBS=env.get('LIBS')+libs,
+            LIBS=libs+env.get('LIBS'),
             )
 
 
@@ -58,7 +55,7 @@ source = [
 
 
 env.Program('test-mem', source,
-            LIBS=env.get('LIBS')+libs
+            LIBS=libs+env.get('LIBS')
             )
 
 
@@ -70,7 +67,7 @@ source = [
 cflags = ''
 
 env.Program('test-uncompress', source,
-            LIBS=env.get('LIBS')+libs+[
+            LIBS=libs+env.get('LIBS')+[
                 'libzlib.a',
                 'liblz4.a',
                 'libuuid.a',
@@ -85,7 +82,7 @@ source = [
 ]
 
 env.Program('test-string', source,
-            LIBS=env.get('LIBS')+libs,
+            LIBS=libs+env.get('LIBS'),
             )
 
 
@@ -95,7 +92,7 @@ source = [
 
 
 env.Program('test-stdlib', source,
-            LIBS=env.get('LIBS')+libs)
+            LIBS=libs+env.get('LIBS'))
 
 
 source = [
@@ -103,5 +100,5 @@ source = [
 ]
 
 env.Program('test-stdio', source,
-            LIBS=env.get('LIBS')+libs
+            LIBS=libs+env.get('LIBS')
             )

@@ -1,6 +1,8 @@
 #include "terminal.h"
-
 #include "sys/ioctl.h"
+#include "fcntl.h"
+
+#define bool Bool
 
 #define IOC_PTY_MAGIC 'p'
 

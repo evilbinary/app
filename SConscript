@@ -26,19 +26,22 @@ env['LIBPATH'] += [
 
 
 if env.get('DEFAULT_LIBC') == 'libmusl':
-    env['CFLAGS'] += ' -D__LIB_MUSL__ '
+    env['CFLAGS'] += ' -D__LIB_MUSL__  -static '
     env['LIBPATH'] += ['../../eggs/libmusl/lib/']
     env['CPPPATH'] += [
-        '../../eggs/libmusl',
-        '../../eggs/libmusl/include',
-        '../../eggs/libmusl/obj/include/',
-        '../../eggs/libmusl/arch/generic/',
-        '../../eggs/libmusl/arch/generic/bits'
+        '#/eggs/libmusl',
+        '#/eggs/libmusl/include',
+        '#/eggs/libmusl/obj/include/',
+        '#/eggs/libmusl/arch/generic/',
+        '#/eggs/ibmusl/arch/generic/bits'
     ]
-    env['LIBC'] = ['libc.a','libm.a']
+    env['LIBC'] = ['libm.a','libmusl.a']
+    # env['LINKFLAGS']+='   '
 
     if env['ARCHTYPE'] == 'x86':
-        env['CPPPATH'] += ['../../eggs/libmusl/arch/i386/']
+        env['CPPPATH'] += [
+            '#/eggs/libmusl/arch/i386/',
+            '#/eggs/libmusl/arch/i386/bits']
     elif arch_type == 'arm':
         env['CPPPATH'] += ['../../eggs/libmusl/arch/arm/']
     else:
@@ -50,7 +53,9 @@ else:
         '../../eggs/include',
         '../../eggs/include/c'
     ]
+    env['CFLAGS'] += '  -DLIBYC '
 
+   
 env['CPPPCOMMON'] = [
     '../../eggs/libgui',
     '../../eggs/libjpeg',
@@ -82,10 +87,8 @@ env['LIBS'] += env['LIBC']
 env['CFLAGS'] += env['LIBCFLAGS']
 env['LINKFLAGS']+=env['USER']
 
-
 if env.get('MYLIB'):
     env['LIBS'].append(env.get('MYLIB'))
-
 
 def check_exit(apps):
     new_list = copy.deepcopy(apps)

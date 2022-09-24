@@ -30,5 +30,4 @@ libs=[
 
 env.Program('infones', source,
     LIBS=libs+env.get('LIBS'),
-    CFLAGS='$CFLAGS $LIBCFLAGS',
-    LINKFLAGS= '$LINKFLAGS $USER')
+    CFLAGS='$CFLAGS $LIBCFLAGS',)

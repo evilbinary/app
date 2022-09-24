@@ -21,7 +21,7 @@ libs = [
     'libzlib.a']
 
 env.Program('gui', source,
-            LIBS=env.get('LIBS')+libs,
+            LIBS=libs+env.get('LIBS'),
             CFLAGS='$CFLAGS $LIBCFLAGS',
             )
 

@@ -28,7 +28,7 @@ source=[
     ]
 
 env.Program('etk', source,
-    LIBS=env.get('LIBS')+libs)
+    LIBS=libs+env.get('LIBS'))
 
 # env.Objcopy('etk','etk',OBJCOPYFLAGS='-S')
 # env.Objcopy('etk.dbg','etk',OBJCOPYFLAGS='--only-keep-debug')

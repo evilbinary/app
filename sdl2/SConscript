@@ -27,9 +27,17 @@ libpath = [
     '../../eggs/libsdl2/',
 ]
 
+cflags='$CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT'
+
+if env.get('DEFAULT_LIBC') == 'libmusl':
+    cflags='$CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT -DHAVE_TRUNCF -DHAVE_ROUNDF -DHAVE_ROUND  -DHAVE_LRINT -DHAVE_LRINTF -DHAVE_CBRTF -DHAVE_COPYSIGN'
+
+
+
 env.Program('sdl2', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,
+            CFLAGS=cflags
             )
 
 
@@ -68,7 +76,7 @@ env.Program('player', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,
             CPPPATH=env.get('CPPPATH')+include,
-            CFLAGS='$CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT',
+            CFLAGS=cflags
             )
 
 
@@ -154,7 +162,6 @@ libpath = [
     '../../eggs/libffmpeg/libavutil/',
 ]
 
-# -Iapp/libsdl2/ -Iapp/libjpeg/ -Iapp/libpng/ -Iapp/libsdl2-ttf/ -Iapp/libsdl2/include -Iapp/libfreetype/include -Iapp/libsdl2-image/
 env.Program('showfont', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,

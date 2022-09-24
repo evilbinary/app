@@ -9,7 +9,7 @@ import os
 Import('env')
 
 
-cflags = ' -DUSE_FILE32API -DCONFIG_BIGNUM -Iapp/quickjs '
+cflags = ' -UCONFIG_PRINTF_RNDN -D_GNU_SOURCE -DUSE_FILE32API -DCONFIG_BIGNUM -Iapp/quickjs '
 
 
 env.Library('quickjs', [
@@ -54,7 +54,7 @@ libpath = [
 
 env.Program('qjsc', source,
             LIBS=libs+env.get('LIBS'),
-            LIBPATH=env.get('LIBPATH')+libpath,
+            LIBPATH=libpath+env.get('LIBPATH'),
             CFLAGS='$CFLAGS '+cflags,
             )
 
