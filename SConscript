@@ -36,7 +36,7 @@ if env.get('DEFAULT_LIBC') == 'libmusl':
         '#/eggs/ibmusl/arch/generic/bits'
     ]
     env['LIBC'] = ['libm.a','libmusl.a']
-    # env['LINKFLAGS']+='  eggs/libmusl/lib/crt1.o '
+    env['LINKFLAGS']+='  eggs/libmusl/lib/crt1.o '
 
     if env['ARCHTYPE'] == 'x86':
         env['CPPPATH'] += [
@@ -49,11 +49,13 @@ if env.get('DEFAULT_LIBC') == 'libmusl':
 else:
     env['LIBPATH'] += ['../../eggs/libc/']
     env['CPPPATH'] += [
+        '#/eggs/include/c',
         '../include/c',
         '../../eggs/include',
         '../../eggs/include/c'
     ]
     env['CFLAGS'] += '  -DLIBYC '
+    env['LINKFLAGS']+='  eggs/libc/crt/crt.o '
 
    
 env['CPPPCOMMON'] = [
