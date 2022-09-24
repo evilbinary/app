@@ -29,6 +29,8 @@ SECTIONS
                 *(COMMON)
                 *(.bss*)
         }
-        
+        /* Thread Local Storage sections  */
+        .tdata          : { *(.tdata .tdata.* .gnu.linkonce.td.*) }
+        .tbss           : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
        _end = .;
 }

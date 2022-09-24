@@ -36,7 +36,7 @@ if env.get('DEFAULT_LIBC') == 'libmusl':
         '#/eggs/ibmusl/arch/generic/bits'
     ]
     env['LIBC'] = ['libm.a','libmusl.a']
-    # env['LINKFLAGS']+='   '
+    # env['LINKFLAGS']+='  eggs/libmusl/lib/crt1.o '
 
     if env['ARCHTYPE'] == 'x86':
         env['CPPPATH'] += [
