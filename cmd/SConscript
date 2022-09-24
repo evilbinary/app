@@ -10,64 +10,51 @@ Import('env')
 
 
 env = env.Clone(
-  w=GetOption('w'),
-  ENV = os.environ,
-  PATH= [os.environ['PATH'],'/opt/local/bin' ],
-  )
+    w=GetOption('w'),
+    ENV=os.environ,
+    PATH=[os.environ['PATH'], '/opt/local/bin'],
+)
 
-source=[
+source = [
     'ls.c',
-    ]
+]
 
-env.Program('ls', source,
-    CFLAGS='$CFLAGS ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+env.Program('ls', source,)
 
 
-source=[
+source = [
     'echo.c',
-    ]
+]
 
-env.Program('echo', source,
-    CFLAGS='$CFLAGS',
-    LINKFLAGS= '$LINKFLAGS $USER')
+env.Program('echo', source)
 
 
-
-source=[
+source = [
     'cat.c',
-    ]
+]
 
 
-env.Program('cat', source,
-    CFLAGS='$CFLAGS ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+env.Program('cat', source)
 
 
-source=[
+source = [
     'hexdump.c',
-    ]
+]
 
 
-env.Program('hexdump', source,
-    CFLAGS='$CFLAGS ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+env.Program('hexdump', source)
 
 
-source=[
+source = [
     'touch.c',
-    ]
+]
 
 
-env.Program('touch', source,
-    CFLAGS='$CFLAGS  ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+env.Program('touch', source)
 
 
-source=[
+source = [
     'date.c',
-    ]
+]
 
-env.Program('date', source,
-    CFLAGS='$CFLAGS',
-    LINKFLAGS= '$LINKFLAGS $USER')
+env.Program('date', source)

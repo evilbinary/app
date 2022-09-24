@@ -5,17 +5,53 @@
 # * 邮箱: rootdebug@163.com
 # ********************************************************************
 import os
-import platform 
+import platform
 import copy
 plt = platform.system()
 
 Import('env')
 
 
-env['CPPPATH']+= [
-    '../../eggs/include',
-    '../../eggs/include/c',
-    '../../eggs/libc',
+env['CPPPATH'] += [
+    '../../eggs/',
+    '.',
+    '../libs/include/',
+    '../include/',
+    '../../duck/libs/include'
+]
+
+env['LIBPATH'] += [
+    '../../eggs/',
+]
+
+
+if env.get('DEFAULT_LIBC') == 'libmusl':
+    env['CFLAGS'] += ' -D__LIB_MUSL__ '
+    env['LIBPATH'] += ['../../eggs/libmusl/lib/']
+    env['CPPPATH'] += [
+        '../../eggs/libmusl',
+        '../../eggs/libmusl/include',
+        '../../eggs/libmusl/obj/include/',
+        '../../eggs/libmusl/arch/generic/',
+        '../../eggs/libmusl/arch/generic/bits'
+    ]
+    env['LIBC'] = ['libc.a','libm.a']
+
+    if env['ARCHTYPE'] == 'x86':
+        env['CPPPATH'] += ['../../eggs/libmusl/arch/i386/']
+    elif arch_type == 'arm':
+        env['CPPPATH'] += ['../../eggs/libmusl/arch/arm/']
+    else:
+        print('no support libmusl type %s' % (arch))
+else:
+    env['LIBPATH'] += ['../../eggs/libc/']
+    env['CPPPATH'] += [
+        '../include/c',
+        '../../eggs/include',
+        '../../eggs/include/c'
+    ]
+
+env['CPPPCOMMON'] = [
     '../../eggs/libgui',
     '../../eggs/libjpeg',
     '../../eggs/libzlib',
@@ -24,19 +60,9 @@ env['CPPPATH']+= [
     '../../eggs/libcmocka/include',
     '../../eggs/liblvgl',
     '../../eggs/libsdl2/include',
-
-    '../../eggs/',
-    '../include/c',
-    '.',
-    '../libs/include/',
-    '../include/c',
-    '../include/',
-    '../../duck/libs/include'
 ]
 
-env['LIBPATH']+=[
-    '../../eggs/',
-    '../../eggs/libc/',
+env['LIBCOMMON'] = [
     '../../eggs/libgui',
     '../../eggs/libimage',
     '../../eggs/libjpeg',
@@ -48,20 +74,26 @@ env['LIBPATH']+=[
     '../../eggs/libuuid',
     '../../eggs/liblvgl',
     '../../eggs/liblvqrcode',
-
 ]
 
-env['LIBS']+=env['LIBC']
+env['LIBPATH'] += env['LIBCOMMON']
+env['CPPPATH'] += env['CPPPCOMMON']
+env['LIBS'] += env['LIBC']
+env['CFLAGS'] += env['LIBCFLAGS']
+env['LINKFLAGS']+=env['USER']
+
 
 if env.get('MYLIB'):
     env['LIBS'].append(env.get('MYLIB'))
 
+
 def check_exit(apps):
     new_list = copy.deepcopy(apps)
     for app in new_list:
-        if os.path.exists(app)==False:
+        if os.path.exists(app) == False:
             print('ignore app '+app)
             apps.remove(app)
+
 
 if env.get('APP'):
 
@@ -84,8 +116,7 @@ if env.get('APP'):
 
     SConscript(dirs=['gnuboy'], exports='env')
 
-
-    apps=['hello/hello',
+    apps = ['hello/hello',
             'gui/gui',
             'microui/microui',
             'etk/etk',
@@ -97,7 +128,7 @@ if env.get('APP'):
             'test/test-stdlib',
             'test/test-stdio',
 
-            #'rust/test/test-rs',
+            # 'rust/test/test-rs',
             'cmd/ls',
             'cmd/echo',
             'cmd/cat',
@@ -130,41 +161,37 @@ if env.get('APP'):
             'quickjs/qjscalc.js',
             # 'quickjs/tests/test_builtin.js',
             'quickjs/examples/hello.js',
-            
+
             ]
-    apps+=Glob('resource/*')
-    if env.get('DEFAULT_LIBC')=='libmusl':
+    apps += Glob('resource/*')
+    if env.get('DEFAULT_LIBC') == 'libmusl':
         # SConscript(dirs=['libncurses'], exports='env')
-
         # SConscript(dirs=['toybox'], exports='env')
-
-        apps+=[
+        apps += [
             'test/test-musl',
             # 'toybox/toybox',
-            ]
+        ]
 
-    if plt=='Darwin':
-        env.Command('copyapp', 
-            apps,
-            ['hdid  image/disk.img &&  cp ${SOURCES} /Volumes/NO\ NAME/ && hdiutil eject /Volumes/NO\ NAME/'
-        ])
+    if plt == 'Darwin':
+        env.Command('copyapp',
+                    apps,
+                    ['hdid  image/disk.img &&  cp ${SOURCES} /Volumes/NO\ NAME/ && hdiutil eject /Volumes/NO\ NAME/'
+                     ])
         pass
-    elif plt=='Linux':
-        env.Command('copyapp', 
-            apps,
-            ['sudo losetup /dev/loop10 image/disk.img && sudo mount /dev/loop10 /mnt && sudo cp  ${SOURCES} /mnt && sudo umount /mnt && sudo losetup -d /dev/loop10'
-        ])
-    elif plt=='Windows':
+    elif plt == 'Linux':
+        env.Command('copyapp',
+                    apps,
+                    ['sudo losetup /dev/loop10 image/disk.img && sudo mount /dev/loop10 /mnt && sudo cp  ${SOURCES} /mnt && sudo umount /mnt && sudo losetup -d /dev/loop10'
+                     ])
+    elif plt == 'Windows':
         try:
-            ret=env.Command('copyapp', 
-            apps,
-            [
-                'cp ${SOURCES} app/bin/ & mcopy.exe -nmov  -i image/disk.img app/bin/* ::'
-            ])
+            ret = env.Command('copyapp',
+                              apps,
+                              [
+                                  'cp ${SOURCES} app/bin/ & mcopy.exe -nmov  -i image/disk.img app/bin/* ::'
+                              ])
         except:
-            print('please manual copy %s files to image/disk.img'%(apps))
+            print('please manual copy %s files to image/disk.img' % (apps))
         pass
 else:
     pass
-
-

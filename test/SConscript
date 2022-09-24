@@ -28,7 +28,7 @@ libs = [
 env.Program('test', source,
             LIBS=env.get('LIBS')+libs,
             CFLAGS='$CFLAGS $LIBCFLAGS',
-            LINKFLAGS='$LINKFLAGS $USER')
+            )
 
 if env.get('DEFAULT_LIBC') == 'libmusl':
     source = [
@@ -40,7 +40,7 @@ if env.get('DEFAULT_LIBC') == 'libmusl':
     env.Program('test-musl', source,
                 LIBS=env.get('LIBS')+libs,
                 CFLAGS='$CFLAGS $LIBCFLAGS',
-                LINKFLAGS='$LINKFLAGS $USER')
+                )
 
 
 source = [
@@ -49,9 +49,7 @@ source = [
 
 env.Program('test-file', source,
             LIBS=env.get('LIBS')+libs,
-
-            CFLAGS='$CFLAGS $LIBCFLAGS ',
-            LINKFLAGS='$LINKFLAGS $USER')
+            )
 
 
 source = [
@@ -60,10 +58,8 @@ source = [
 
 
 env.Program('test-mem', source,
-            LIBS=env.get('LIBS')+libs,
-
-            CFLAGS='$CFLAGS $LIBCFLAGS ',
-            LINKFLAGS='$LINKFLAGS $USER')
+            LIBS=env.get('LIBS')+libs
+            )
 
 
 source = [
@@ -75,13 +71,13 @@ cflags = ''
 
 env.Program('test-uncompress', source,
             LIBS=env.get('LIBS')+libs+[
-            'libzlib.a',
-            'liblz4.a',
-            'libuuid.a',
-            'libcmocka.a',
+                'libzlib.a',
+                'liblz4.a',
+                'libuuid.a',
+                'libcmocka.a',
             ],
             CFLAGS='$CFLAGS $LIBCFLAGS',
-            LINKFLAGS='$LINKFLAGS $USER')
+            )
 
 
 source = [
@@ -90,8 +86,7 @@ source = [
 
 env.Program('test-string', source,
             LIBS=env.get('LIBS')+libs,
-            CFLAGS='$CFLAGS $LIBCFLAGS ',
-            LINKFLAGS='$LINKFLAGS $USER')
+            )
 
 
 source = [
@@ -100,10 +95,7 @@ source = [
 
 
 env.Program('test-stdlib', source,
-            LIBS=env.get('LIBS')+libs,
-
-            CFLAGS='$CFLAGS $LIBCFLAGS',
-            LINKFLAGS='$LINKFLAGS $USER')
+            LIBS=env.get('LIBS')+libs)
 
 
 source = [
@@ -111,6 +103,5 @@ source = [
 ]
 
 env.Program('test-stdio', source,
-            LIBS=env.get('LIBS')+libs,
-            CFLAGS='$CFLAGS $LIBCFLAGS',
-            LINKFLAGS='$LINKFLAGS $USER')
+            LIBS=env.get('LIBS')+libs
+            )

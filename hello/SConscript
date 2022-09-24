@@ -19,18 +19,16 @@ AddOption(
     help='w image',
 )
 
-env = env.Clone(
-  w=GetOption('w'),
-  ENV = os.environ,
-  PATH= [os.environ['PATH'],'/opt/local/bin' ],
-  )
+# env = env.Clone(
+#   w=GetOption('w'),
+#   ENV = os.environ,
+#   PATH= [os.environ['PATH'],'/opt/local/bin' ],
+#   )
 
 
 source=[
     'hello.c',
     ]
 
-env.Program('hello', source,
-    CFLAGS='$CFLAGS $LIBCFLAGS ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+env.Program('hello', source)
 

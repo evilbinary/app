@@ -9,12 +9,12 @@ import os
 Import('env')
 
 
-cflags=' -DUSE_FILE32API '
+cflags = ' -DUSE_FILE32API '
 
 
-source=[]
+source = []
 
-source+=[
+source += [
     'src/platform/sdl/main.c',
     'src/platform/sdl/sw-sdl2.c',
     'src/platform/sdl/sdl-events.c',
@@ -22,48 +22,48 @@ source+=[
 
     'src/version.c',
 
-        ]
+]
 
-source+=Glob('src/arm/*.c')
-source+=Glob('src/arm/*/*.c')
-source+=Glob('src/core/*.c')
-source+=Glob('src/debugger/*.c')
+source += Glob('src/arm/*.c')
+source += Glob('src/arm/*/*.c')
+source += Glob('src/core/*.c')
+source += Glob('src/debugger/*.c')
 # source+=Glob('src/feature/*.c')
 
 # source+=Glob('src/feature/gui/*.c')
-source+=Glob('src/feature/video-logger.c')
-source+=Glob('src/feature/commandline.c')
+source += Glob('src/feature/video-logger.c')
+source += Glob('src/feature/commandline.c')
 
-source+=Glob('src/gb/*.c')
-source+=Glob('src/gb/*/*.c')
-source+=Glob('src/gba/*.c')
-source+=Glob('src/gba/*/*.c')
-source+=Glob('src/sm83/*.c')
-source+=Glob('src/sm83/debugger/*.c')
+source += Glob('src/gb/*.c')
+source += Glob('src/gb/*/*.c')
+source += Glob('src/gba/*.c')
+source += Glob('src/gba/*/*.c')
+source += Glob('src/sm83/*.c')
+source += Glob('src/sm83/debugger/*.c')
 
 # source+=Glob('src/util/gui/*.c')
 
-source+=Glob('src/util/vfs/*.c')
-source+=Glob('src/util/*.c')
+source += Glob('src/util/vfs/*.c')
+source += Glob('src/util/*.c')
 
-source+=Glob('src/libgba/*.c')
+source += Glob('src/libgba/*.c')
 
 
-source+=[
+source += [
     'src/third-party/zlib/contrib/minizip/ioapi.c',
     'src/third-party/zlib/contrib/minizip/unzip.c',
     'src/third-party/zlib/contrib/minizip/zip.c',
 
     # 'src/third-party/zlib/contrib/minizip/miniunz.c',
     # 'src/third-party/zlib/contrib/minizip/minizip.c',
-        ]
+]
 
-source+=Glob('src/third-party/inih/*.c')
+source += Glob('src/third-party/inih/*.c')
 
-source+=Glob('src/third-party/blip_buf/*.c')
-    
+source += Glob('src/third-party/blip_buf/*.c')
+
 libs = [
-    'libsdl2.a',  
+    'libsdl2.a',
     'libgui.a',
     'libimage.a',
     'libjpeg.a',
@@ -101,28 +101,26 @@ libpath = [
 
 
 env.Program('mgba', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=env.get('LIBPATH')+libpath,
-    CPPPATH=env.get('CPPPATH')+include,
-    CFLAGS='$CFLAGS $LIBCFLAGS '+cflags,
-    LINKFLAGS= '$LINKFLAGS $USER')
+            LIBS=libs+env.get('LIBS'),
+            LIBPATH=env.get('LIBPATH')+libpath,
+            CPPPATH=env.get('CPPPATH')+include,
+            CFLAGS='$CFLAGS '+cflags,
+            )
 
 # build miniunz
 
-source=[
+source = [
     'src/third-party/zlib/contrib/minizip/ioapi.c',
     'src/third-party/zlib/contrib/minizip/unzip.c',
     'src/third-party/zlib/contrib/minizip/zip.c',
     'src/third-party/zlib/contrib/minizip/miniunz.c',
     # 'src/third-party/zlib/contrib/minizip/minizip.c',
-        ]
-
-
+]
 
 
 env.Program('miniunz', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=env.get('LIBPATH')+libpath,
-    CPPPATH=env.get('CPPPATH')+include,
-    CFLAGS='$CFLAGS $LIBCFLAGS '+cflags,
-    LINKFLAGS= '$LINKFLAGS $USER')
+            LIBS=libs+env.get('LIBS'),
+            LIBPATH=env.get('LIBPATH')+libpath,
+            CPPPATH=env.get('CPPPATH')+include,
+            CFLAGS='$CFLAGS '+cflags,
+            )

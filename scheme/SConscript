@@ -54,5 +54,5 @@ env.Program('scheme', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,
             CPPPATH=env.get('CPPPATH')+include,
-            CFLAGS='$CFLAGS $LIBCFLAGS  '+cflags,
-            LINKFLAGS='$LINKFLAGS $USER')
+            CFLAGS='$CFLAGS'+cflags,
+            )

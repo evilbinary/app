@@ -20,7 +20,9 @@ env.Library('quickjs', [
     'quickjs-libc.c',
     'libbf.c',
 
-], CFLAGS='$CFLAGS $LIBCFLAGS '+cflags)
+],
+CFLAGS='$CFLAGS '+cflags,
+)
 
 
 # ./qjsc -c -o /repl.c -m repl.js ./qjsc -fbignum -c -o /qjscalc.c qjscalc.js
@@ -53,9 +55,8 @@ libpath = [
 env.Program('qjsc', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,
-
-            CFLAGS='$CFLAGS $LIBCFLAGS  '+cflags,
-            LINKFLAGS='$LINKFLAGS $USER')
+            CFLAGS='$CFLAGS '+cflags,
+            )
 
 
 source = []
@@ -80,5 +81,5 @@ if env['ARCHTYPE'] == 'x86':
     env.Program('qjs', source,
                 LIBS=libs+env.get('LIBS'),
                 LIBPATH=env.get('LIBPATH')+libpath,
-                CFLAGS='$CFLAGS $LIBCFLAGS '+cflags,
-                LINKFLAGS='$LINKFLAGS $USER')
+                CFLAGS='$CFLAGS '+cflags,
+                )

@@ -45,19 +45,15 @@ env.Program('lua', source,
     LIBS=libs+env.get('LIBS'),
     LIBPATH=env.get('LIBPATH')+libpath,
     CPPPATH=env.get('CPPPATH')+include,
-    CFLAGS='$CFLAGS $LIBCFLAGS  -frounding-math ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+    CFLAGS='$CFLAGS $LIBCFLAGS  -frounding-math ')
 
 env.Program('luac', source2,
     LIBS=libs+env.get('LIBS'),
     LIBPATH=env.get('LIBPATH')+libpath,
     CPPPATH=env.get('CPPPATH')+include,
-    CFLAGS='$CFLAGS $LIBCFLAGS  ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+    CFLAGS='$CFLAGS $LIBCFLAGS  ')
 
 env.Program('luat', source_luat,
     LIBS=libs+env.get('LIBS'),
     LIBPATH=env.get('LIBPATH')+libpath,
-    CPPPATH=env.get('CPPPATH')+include,
-    CFLAGS='$CFLAGS $LIBCFLAGS ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+    CPPPATH=env.get('CPPPATH')+include)

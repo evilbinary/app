@@ -27,11 +27,8 @@ source=[
     'status.c',
     ]
 
-
 env.Program('etk', source,
-    LIBS=env.get('LIBS')+libs,
-    CFLAGS='$CFLAGS $LIBCFLAGS ',
-    LINKFLAGS= '$LINKFLAGS $USER')
+    LIBS=env.get('LIBS')+libs)
 
 # env.Objcopy('etk','etk',OBJCOPYFLAGS='-S')
 # env.Objcopy('etk.dbg','etk',OBJCOPYFLAGS='--only-keep-debug')

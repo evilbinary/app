@@ -62,5 +62,4 @@ env.Program('gnuboy', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=libpath,
             CPPPATH=include,
-            CFLAGS='$CFLAGS $LIBCFLAGS ',
-            LINKFLAGS='$LINKFLAGS $USER')
+            )

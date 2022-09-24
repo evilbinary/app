@@ -30,8 +30,7 @@ libpath = [
 env.Program('sdl2', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,
-            CFLAGS='$CFLAGS $LIBCFLAGS ',
-            LINKFLAGS='$LINKFLAGS $USER')
+            )
 
 
 source = [
@@ -70,7 +69,7 @@ env.Program('player', source,
             LIBPATH=env.get('LIBPATH')+libpath,
             CPPPATH=env.get('CPPPATH')+include,
             CFLAGS='$CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT',
-            LINKFLAGS='$LINKFLAGS $USER')
+            )
 
 
 # showimage
@@ -111,8 +110,7 @@ env.Program('showimage', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,
             CPPPATH=env.get('CPPPATH')+include,
-            CFLAGS='$CFLAGS $LIBCFLAGS ',
-            LINKFLAGS='$LINKFLAGS $USER')
+            )
 
 
 # showfont
@@ -160,6 +158,5 @@ libpath = [
 env.Program('showfont', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,
-            CPPPATH=env.get('CPPPATH')+include,
-            CFLAGS='$CFLAGS $LIBCFLAGS  ',
-            LINKFLAGS='$LINKFLAGS $USER')
+            CPPPATH=env.get('CPPPATH')+include
+            )
