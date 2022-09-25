@@ -777,7 +777,6 @@ int InfoNES_HSync()
       {
         // Transfer the contents of work frame on the screen
         InfoNES_LoadFrame();
-        
 #if 0
         // Switching of the double buffer
         WorkFrameIdx = 1 - WorkFrameIdx;

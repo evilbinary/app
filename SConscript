@@ -9,8 +9,9 @@ import platform
 import copy
 plt = platform.system()
 
-Import('env')
+Import('appEnv')
 
+env=appEnv
 
 env['CPPPATH'] += [
     '../../eggs/',
@@ -50,9 +51,8 @@ else:
     env['LIBPATH'] += ['../../eggs/libc/']
     env['CPPPATH'] += [
         '#/eggs/include/c',
-        '../include/c',
-        '../../eggs/include',
-        '../../eggs/include/c'
+        '#/eggs/include/',
+        '.'
     ]
     env['CFLAGS'] += '  -DLIBYC '
     env['LINKFLAGS']+='  eggs/libc/crt/crt.o '
