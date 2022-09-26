@@ -55,8 +55,7 @@ else:
         '.'
     ]
     env['CFLAGS'] += '  -DLIBYC '
-    env['LINKFLAGS']+='  eggs/libc/crt/crt.o '
-    env['LIBC'] = ['libcrt.a','libc.a']
+    env['LIBC'] = ['libc.a']
 
    
 env['CPPPCOMMON'] = [

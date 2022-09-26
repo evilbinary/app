@@ -118,3 +118,5 @@ test/test-stdio
 test/test-stdlib
 test/test-string
 test/test-uncompress
+
+bin/**
