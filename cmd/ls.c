@@ -25,6 +25,7 @@ void ls(char* path) {
   struct dirent* ptr;
   struct stat mystat;
   int i;
+  int count=0;
   dir = opendir(path);
   while ((ptr = readdir(dir)) != NULL) {
     if (long_mode == 1) {
@@ -49,6 +50,11 @@ void ls(char* path) {
       }
       i++;
     }
+    if(ptr->d_name==NULL||strlen(ptr->d_name)==0|| count>10000){
+      count++;
+      break;
+    }
+    count++;
   }
   printf("\n");
   closedir(dir);
