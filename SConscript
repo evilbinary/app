@@ -171,7 +171,7 @@ if env.get('APP'):
             ]
     apps += Glob('resource/*')
     if env.get('DEFAULT_LIBC') == 'libmusl':
-        # SConscript(dirs=['libncurses'], exports='env')
+        SConscript(dirs=['libncurses'], exports='env')
         # SConscript(dirs=['toybox'], exports='env')
         apps += [
             'test/test-musl',

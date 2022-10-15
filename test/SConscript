@@ -21,8 +21,7 @@ source = [
 
 libs = [
     'libcmocka.a',
-    'libc.a'
-]
+]+env['LIBC']
 
 
 env.Program('test', source,

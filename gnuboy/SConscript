@@ -27,8 +27,7 @@ libs = [
     'libjpeg.a',
     'libpng.a',
     'libzlib.a',
-    'libc.a'
-]
+]+env['LIBC']
 
 include = [
     '../../eggs/libgui',

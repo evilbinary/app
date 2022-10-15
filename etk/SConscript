@@ -12,8 +12,7 @@ libs=[
     'libetk.a',
     'libjpeg.a',
     'libgui.a',
-    'libc.a'
-]
+]+env['LIBC']
 
 source=[
     'main.c',
