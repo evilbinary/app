@@ -212,12 +212,13 @@ int main(int argc, char **argv) {
   int tickets = 0;
   while (1) {
     // 先调用 lv_tick_inc 再调用 lv_task_handler
-    if (tickets % (TICK_RATE * LVGL_TICK)==0) {
-      lv_tick_inc(LVGL_TICK);
-      tickets = 0;
-    }
+    // if (tickets % (TICK_RATE * LVGL_TICK)==0) {
+    //   lv_tick_inc(LVGL_TICK);
+    //   tickets = 0;
+    // }
+    lv_tick_inc(LVGL_TICK);
     lv_task_handler();
-    usleep(5000);
+    usleep(5000);//5 ms
     // delay_ms(LVGL_TICK);
     tickets++;
   }

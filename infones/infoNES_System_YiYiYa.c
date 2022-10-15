@@ -705,7 +705,7 @@ void InfoNES_ReadJoypad() {
 /*            InfoNES_Wait() : Wait Emulation if required            */
 /*                                                                   */
 /*===================================================================*/
-void InfoNES_Wait() {}
+void InfoNES_Wait() { usleep(5000); }
 
 /*===================================================================*/
 /*                                                                   */
