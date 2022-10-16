@@ -10,7 +10,6 @@ SECTIONS
 		. = ALIGN(PAGE_SIZE);
                 *(.text*)
         }
-
         /* Read-only data. */
         .rodata BLOCK(4K) : ALIGN(4K)
         {
@@ -22,12 +21,15 @@ SECTIONS
         {
                 *(.data*)
         }
-
         /* Read-write data (uninitialized) and stack */
         .bss BLOCK(4K) : ALIGN(4K)
         {
                 *(COMMON)
                 *(.bss*)
+        }
+        .eh_frame BLOCK(4K) : ALIGN(4K)
+        {
+                *(.eh_frame)
         }
         /* Thread Local Storage sections  */
         .tdata          : { *(.tdata .tdata.* .gnu.linkonce.td.*) }
