@@ -46,9 +46,10 @@ void test_my_calloc(void** state) {
 static char* loadfile(FILE* f, int* len) {
   int c, l = 0, p = 0;
   char *d = 0, buf[512];
-
   for (;;) {
     c = fread(buf, 1, sizeof buf, f);
+    if(l % 10000==0)
+    printf("ret=%d len=%x %d\n",c,l,l);
     if (c <= 0) break;
     l += c;
     d = realloc(d, l);
