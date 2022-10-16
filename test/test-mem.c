@@ -42,21 +42,19 @@ void test_my_calloc(void** state) {
   free(a);
 }
 
-
 static char* loadfile(FILE* f, int* len) {
   int c, l = 0, p = 0;
   char *d = 0, buf[512];
   for (;;) {
     c = fread(buf, 1, sizeof buf, f);
-    if(l % 10000==0)
-    printf("ret=%d len=%x %d\n",c,l,l);
+    if (l % 10000 == 0) printf("ret=%d len=%x %d\n", c, l, l);
     if (c <= 0) break;
     l += c;
     d = realloc(d, l);
     assert_non_null(d);
     if (!d) return 0;
     assert_non_null(d + p);
-    char *pp=d+p;
+    char* pp = d + p;
     memcpy(d + p, buf, c);
     p += c;
   }
@@ -64,24 +62,22 @@ static char* loadfile(FILE* f, int* len) {
   return d;
 }
 
-
 void test_my_realloc_multi(void** state) {
   FILE* fp;
-  char* name="/mario.gba";
+  char* name = "/mario.gba";
   fp = fopen(name, "r+");
   assert_non_null(fp);
   printf("fd=%d\n", *fp);
-  int len=0;
-  loadfile(fp,&len);
+  int len = 0;
+  loadfile(fp, &len);
   printf("len=%d\n", len);
 }
 
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {
-      // cmocka_unit_test(test_malloc_free), cmocka_unit_test(test_my_realloc),
-      // cmocka_unit_test(test_my_calloc), cmocka_unit_test(test_malloc_large)
-    cmocka_unit_test(test_my_realloc_multi)
-  };
+      cmocka_unit_test(test_malloc_free), cmocka_unit_test(test_my_realloc),
+      cmocka_unit_test(test_my_calloc), cmocka_unit_test(test_malloc_large),
+      cmocka_unit_test(test_my_realloc_multi)};
 
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
