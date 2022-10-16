@@ -51,7 +51,7 @@ void sys_checkdir(char *path, int wr)
 
 void sys_initpath()
 {
-    char *buf = ".";
+    char *buf = "";
 
     if (rc_getstr("rcpath") == NULL)
         rc_setvar("rcpath", 1, &buf);
