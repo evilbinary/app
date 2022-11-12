@@ -101,3 +101,12 @@ source = [
 env.Program('test-stdio', source,
             LIBS=libs+env.get('LIBS')
             )
+
+
+source = [
+    'test-fork.c',
+]
+
+env.Program('test-fork', source,
+            LIBS=libs+env.get('LIBS')
+            )
