@@ -10,8 +10,11 @@ import copy
 plt = platform.system()
 
 Import('appEnv')
+cliEnv = appEnv.Clone()
+Export('cliEnv')
 
 env=appEnv
+
 
 env['CPPPATH'] += [
     '../../eggs/',
@@ -26,39 +29,47 @@ env['LIBPATH'] += [
 ]
 
 
-if env.get('DEFAULT_LIBC') == 'libmusl':
-    env['CFLAGS'] += ' -D__LIB_MUSL__  -static '
-    env['LIBPATH'] += ['../../eggs/libmusl/lib/']
-    env['CPPPATH'] += [
-        '#/eggs/libmusl',
-        '#/eggs/libmusl/include',
-        '#/eggs/libmusl/obj/include/',
-        '#/eggs/libmusl/arch/generic/',
-        '#/eggs/ibmusl/arch/generic/bits'
-    ]
-    env['LIBC'] = ['libm.a','libmusl.a']
-    env['LINKFLAGS']+='  eggs/libmusl/lib/crt1.o '
+def add_libc(e):
+    if e.get('DEFAULT_LIBC') == 'libmusl':
+        e['CFLAGS'] += ' -D__LIB_MUSL__  -static '
+        e['LIBPATH'] += ['../../eggs/libmusl/lib/']
+        e['CPPPATH'] += [
+            '#/eggs/libmusl',
+            '#/eggs/libmusl/include',
+            '#/eggs/libmusl/obj/include/',
+            '#/eggs/libmusl/arch/generic/',
+            '#/eggs/ibmusl/arch/generic/bits'
+        ]
+        e['LIBC'] = ['libm.a','libmusl.a']
+        e['LINKFLAGS']+='  eggs/libmusl/lib/crt1.o '
 
-    if env['ARCHTYPE'] == 'x86':
-        env['CPPPATH'] += [
-            '#/eggs/libmusl/arch/i386/',
-            '#/eggs/libmusl/arch/i386/bits']
-    elif arch_type == 'arm':
-        env['CPPPATH'] += ['../../eggs/libmusl/arch/arm/']
+        if e['ARCHTYPE'] == 'x86':
+            e['CPPPATH'] += [
+                '#/eggs/libmusl/arch/i386/',
+                '#/eggs/libmusl/arch/i386/bits']
+        elif arch_type == 'arm':
+            e['CPPPATH'] += ['../../eggs/libmusl/arch/arm/']
+        else:
+            print('no support libmusl type %s' % (arch))
     else:
-        print('no support libmusl type %s' % (arch))
-else:
-    env['LIBPATH'] += ['../../eggs/libc/']
-    env['CPPPATH'] += [
-        '#/eggs/include/c',
-        '#/eggs/include/',
-        '.'
-    ]
-    env['CFLAGS'] += '  -DLIBYC '
-    env['LINKFLAGS']+='  eggs/libc/crt/crt.o '
-    env['LIBC'] = ['libc.a']
+        e['LIBPATH'] += ['../../eggs/libc/']
+        e['CPPPATH'] += [
+            '#/eggs/include/c',
+            '#/eggs/include/',
+            '.'
+        ]
+        e['CFLAGS'] += '  -DLIBYC '
+        e['LINKFLAGS']+='  eggs/libc/crt/crt.o '
+        e['LIBC'] = ['libc.a']
 
-   
+add_libc(env)
+add_libc(cliEnv)
+cliEnv['LIBS'] += cliEnv['LIBC']
+cliEnv['CFLAGS'] += cliEnv['LIBCFLAGS']
+cliEnv['LINKFLAGS']+=cliEnv['USER']
+if cliEnv.get('MYLIB'):
+    cliEnv['LIBS'].append(cliEnv.get('MYLIB'))
+
 env['CPPPCOMMON'] = [
     '../../eggs/libgui',
     '../../eggs/libjpeg',

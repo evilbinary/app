@@ -6,20 +6,15 @@
 # ********************************************************************
 import os
 
-Import('env')
+Import('cliEnv')
+env=cliEnv
 
-
-env = env.Clone(
-    w=GetOption('w'),
-    ENV=os.environ,
-    PATH=[os.environ['PATH'], '/opt/local/bin'],
-)
 
 source = [
     'ls.c',
 ]
 
-env.Program('ls', source,)
+env.Program('ls', source)
 
 
 source = [
