@@ -7,6 +7,8 @@
 import os
 import platform
 import copy
+from xenv.env import add_libc
+
 plt = platform.system()
 
 Import('appEnv')
@@ -28,42 +30,9 @@ env['LIBPATH'] += [
     '../../eggs/',
 ]
 
-
-def add_libc(e):
-    if e.get('DEFAULT_LIBC') == 'libmusl':
-        e['CFLAGS'] += ' -D__LIB_MUSL__  -static '
-        e['LIBPATH'] += ['../../eggs/libmusl/lib/']
-        e['CPPPATH'] += [
-            '#/eggs/libmusl',
-            '#/eggs/libmusl/include',
-            '#/eggs/libmusl/obj/include/',
-            '#/eggs/libmusl/arch/generic/',
-            '#/eggs/ibmusl/arch/generic/bits'
-        ]
-        e['LIBC'] = ['libm.a','libmusl.a']
-        e['LINKFLAGS']+='  eggs/libmusl/lib/crt1.o '
-
-        if e['ARCHTYPE'] == 'x86':
-            e['CPPPATH'] += [
-                '#/eggs/libmusl/arch/i386/',
-                '#/eggs/libmusl/arch/i386/bits']
-        elif arch_type == 'arm':
-            e['CPPPATH'] += ['../../eggs/libmusl/arch/arm/']
-        else:
-            print('no support libmusl type %s' % (arch))
-    else:
-        e['LIBPATH'] += ['../../eggs/libc/']
-        e['CPPPATH'] += [
-            '#/eggs/include/c',
-            '#/eggs/include/',
-            '.'
-        ]
-        e['CFLAGS'] += '  -DLIBYC '
-        e['LINKFLAGS']+='  eggs/libc/crt/crt.o '
-        e['LIBC'] = ['libc.a']
-
 add_libc(env)
 add_libc(cliEnv)
+
 cliEnv['LIBS'] += cliEnv['LIBC']
 cliEnv['CFLAGS'] += cliEnv['LIBCFLAGS']
 cliEnv['LINKFLAGS']+=cliEnv['USER']
