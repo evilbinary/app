@@ -23,13 +23,13 @@ void test_read_large(void** state) {
   int offset = 0;
   for (;;) {
     int ret = fseek(fp, offset, SEEK_SET);
-    assert_int_equal(ret, offset);
+    assert_int_equal(ret, 0);
     ret = fread(buffer, READ_BUFFER, 1, fp);
     if (ret <= 0) {
       printf("read <=0\n");
       break;
     }
-    for (int i = 0; i < ret; i++) {
+    for (int i = 0; i < READ_BUFFER; i++) {
       if (i % PRINT_WIDTH == 0) {
         // printf("\n %07x   ", offset);
       }
@@ -70,7 +70,7 @@ void test_write(void** state) {
   int ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
   ret = fwrite("ABCDEF", strlen("ABCDEF"), 1, fp);
-  assert_int_equal(ret, 6);
+  assert_int_equal(ret, 1);
   ret = fclose(fp);
   assert_true(ret == 0);
 }
@@ -83,7 +83,7 @@ void test_write_read(void** state) {
   assert_true(ret == 0);
   for (int i = 0; i < 100; i++) {
     ret = fwrite("ABCDEF", strlen("ABCDEF"), 1, fp);
-    assert_int_equal(ret, 6);
+    assert_int_equal(ret, 1);
   }
   ret = fclose(fp);
   assert_true(ret == 0);
@@ -143,13 +143,13 @@ void test_seek(void** state) {
   assert_non_null(fp);
 
   int seek = fseek(fp, 1, SEEK_SET);
-  assert_int_equal(seek, 1);
+  assert_int_equal(seek, 0);
 
   seek = fseek(fp, 2, SEEK_SET);
-  assert_int_equal(seek, 2);
+  assert_int_equal(seek, 0);
 
   seek = fseek(fp, 2, SEEK_CUR);
-  assert_int_equal(seek, 4);
+  assert_int_equal(seek, 0);
 
   seek = fseek(fp, 2, SEEK_END);
 
@@ -168,7 +168,7 @@ void test_seek_read(void** state) {
   printf("fd=%d\n", *fp);
   int offset = 0x2a0;
   int ret = fseek(fp, offset, SEEK_SET);
-  assert_int_equal(ret, offset);
+  assert_int_equal(ret, 0);
   ret = fread(buffer, READ_BUFFER, 1, fp);
   if (ret <= 0) {
     printf("read <=0\n");
@@ -195,7 +195,7 @@ void test_fgetc(void** state) {
   assert_true(ret == 0);
   for (int i = 0; i < 100; i++) {
     ret = fwrite("ABC", 3, 1, fp);
-    assert_int_equal(ret, 3);
+    assert_int_equal(ret, 1);
   }
   fclose(fp);
 
