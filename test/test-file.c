@@ -95,7 +95,7 @@ void test_write_read(void** state) {
   for (int i = 0; i < 100; i++) {
     memset(buf, 0, 64);
     ret = fread(buf, strlen("ABCDEF"), 1, fp);
-    assert_int_equal(ret, 6);
+    assert_int_equal(ret, 1);
     assert_string_equal(buf, "ABCDEF");
   }
   ret = fclose(fp);

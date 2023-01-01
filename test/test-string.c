@@ -33,7 +33,7 @@ void test_memcmp(void **state) {
 }
 
 void test_memcpy(void **state) {
-  char str1[15];
+  char str1[15]={0};
   void *ret;
 
   ret = memcpy(str1, "abcdef", 6);
