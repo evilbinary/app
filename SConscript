@@ -114,6 +114,7 @@ if env.get('APP'):
             'test/test-stdlib',
             'test/test-stdio',
             'test/test-fork',
+            'test/test-free',
 
             # 'rust/test/test-rs',
             'cmd/ls',

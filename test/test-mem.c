@@ -1,7 +1,8 @@
+#include <errno.h>
 #include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
+
 #include "cmocka.h"
 
 void test_malloc_free(void** state) {
@@ -81,24 +82,23 @@ void test_mremap(void** state) {
   x = (unsigned int)x & 0xfffff000;
   s = (void*)mremap(x, 4000, 8, 0);
 
-  char *errstr = strerror(errno);
-  //expect mremap: Success
-  assert_string_equal(errstr,"No error information");
+  char* errstr = strerror(errno);
+  // expect mremap: Success
+  assert_string_equal(errstr, "No error information");
 
   printf("old 0x%x new 0x%x\n", x, s);
 
-  assert_ptr_equal(x,s);
-
+  assert_ptr_equal(x, s);
 }
 
 int main(int argc, char* argv[]) {
-  const struct CMUnitTest tests[] = {
-      // cmocka_unit_test(test_malloc_free),
-      //                                    cmocka_unit_test(test_my_realloc),
-      //                                    cmocka_unit_test(test_my_calloc),
-      //                                    cmocka_unit_test(test_malloc_large),
-      //                                    cmocka_unit_test(test_my_realloc_multi),
-      cmocka_unit_test(test_mremap)};
+  const struct CMUnitTest tests[] = {cmocka_unit_test(test_malloc_free),
+                                     cmocka_unit_test(test_my_realloc),
+                                     cmocka_unit_test(test_my_calloc),
+                                     cmocka_unit_test(test_malloc_large),
+                                     cmocka_unit_test(test_my_realloc_multi),
+                                     cmocka_unit_test(test_mremap)
+                                     };
 
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

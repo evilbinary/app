@@ -110,3 +110,12 @@ source = [
 env.Program('test-fork', source,
             LIBS=libs+env.get('LIBS')
             )
+
+
+source = [
+    'test-free.c',
+]
+
+env.Program('test-free', source,
+            LIBS=libs+env.get('LIBS')
+            )
