@@ -23,19 +23,19 @@
 // Addressing Op.
 // Address
 // (Indirect,X)
-#define AA_IX    K6502_ReadZpW( K6502_Read( IP++ ) + X )
+#define AA_IX    K6502_ReadZpW( K6502_Read( PC++ ) + X )
 // (Indirect),Y
-#define AA_IY    K6502_ReadZpW( K6502_Read( IP++ ) ) + Y
+#define AA_IY    K6502_ReadZpW( K6502_Read( PC++ ) ) + Y
 // Zero Page
-#define AA_ZP    K6502_Read( IP++ )
+#define AA_ZP    K6502_Read( PC++ )
 // Zero Page,X
-#define AA_ZPX   (BYTE)( K6502_Read( IP++ ) + X )
+#define AA_ZPX   (BYTE)( K6502_Read( PC++ ) + X )
 // Zero Page,Y
-#define AA_ZPY   (BYTE)( K6502_Read( IP++ ) + Y )
+#define AA_ZPY   (BYTE)( K6502_Read( PC++ ) + Y )
 // Absolute
-#define AA_ABS   ( K6502_Read( IP++ ) | (WORD)K6502_Read( IP++ ) << 8 )
-// Absolute2 ( IP-- )
-#define AA_ABS2  ( K6502_Read( IP++ ) | (WORD)K6502_Read( IP ) << 8 )
+#define AA_ABS   ( K6502_Read( PC++ ) | (WORD)K6502_Read( PC++ ) << 8 )
+// Absolute2 ( PC-- )
+#define AA_ABS2  ( K6502_Read( PC++ ) | (WORD)K6502_Read( PC ) << 8 )
 // Absolute,X
 #define AA_ABSX  AA_ABS + X
 // Absolute,Y
@@ -59,7 +59,7 @@
 // Absolute,Y
 #define A_ABSY  K6502_ReadAbsY()
 // Immediate
-#define A_IMM   K6502_Read( IP++ )
+#define A_IMM   K6502_Read( PC++ )
 
 // Flag Op.
 #define SETF(a)  F |= (a)
@@ -118,38 +118,16 @@
 #define ROR(a)  byD1 = F & FLAG_C; RSTF( FLAG_N | FLAG_Z | FLAG_C ); wA0 = a; byD0 = K6502_Read( wA0 ); SETF( g_RORTable[ byD1 ][ byD0 ].byFlag ); K6502_Write( wA0, g_RORTable[ byD1 ][ byD0 ].byValue )
 
 // Jump Op.
-#define JSR     wA0 = AA_ABS2; PUSHW( IP ); IP = wA0; 
-
-#if 0
-#define BRA(a)  if ( a ) { wA0 = IP; IP += (char)K6502_Read( IP ); CLK( 3 + ( ( wA0 & 0x0100 ) != ( IP & 0x0100 ) ) ); ++IP; } else { ++IP; CLK( 2 ); }
-#else
-#define BRA(a) { \
-  if ( a ) \
-  { \
-    wA0 = IP; \
-	byD0 = K6502_Read( IP ); \
-	IP += ( ( byD0 & 0x80 ) ? ( 0xFF00 | (WORD)byD0 ) : (WORD)byD0 ); \
-	CLK( 3 + ( ( wA0 & 0x0100 ) != ( IP & 0x0100 ) ) ); \
-    ++IP; \
-  } else { \
-	++IP; \
-	CLK( 2 ); \
-  } \
-}
-#endif
-
-
-#define JMP(a)  IP = a;
-
-
+#define JSR     wA0 = AA_ABS2; PUSHW( PC ); PC = wA0; 
+#define BRA(a)  if ( a ) { wA0 = PC; PC += (char)K6502_Read( PC ); CLK( 3 + ( ( wA0 & 0x0100 ) != ( PC & 0x0100 ) ) ); ++PC; } else { ++PC; CLK( 2 ); }
+#define JMP(a)  PC = a;
 
 /*-------------------------------------------------------------------*/
 /*  Global valiables                                                 */
 /*-------------------------------------------------------------------*/
 
 // 6502 Register
-WORD IP;
-
+WORD PC;
 BYTE SP;
 BYTE F;
 BYTE A;
@@ -321,7 +299,7 @@ void K6502_Reset()
  */
 
   // Reset Registers
-  IP = K6502_ReadW( VECTOR_RESET );
+  PC = K6502_ReadW( VECTOR_RESET );
   SP = 0xFF;
   A = X = Y = 0;
   F = FLAG_Z | FLAG_R | FLAG_I;
@@ -380,13 +358,13 @@ void K6502_Step( WORD wClocks )
     NMI_State = NMI_Wiring;
     CLK( 7 );
 
-    PUSHW( IP );
+    PUSHW( PC );
     PUSH( F & ~FLAG_B );
 
     RSTF( FLAG_D );
     SETF( FLAG_I );
 
-    IP = K6502_ReadW( VECTOR_NMI );
+    PC = K6502_ReadW( VECTOR_NMI );
   }
   else
   if ( IRQ_State != IRQ_Wiring )
@@ -398,13 +376,13 @@ void K6502_Step( WORD wClocks )
       IRQ_State = IRQ_Wiring;
       CLK( 7 );
 
-      PUSHW( IP );
+      PUSHW( PC );
       PUSH( F & ~FLAG_B );
 
       RSTF( FLAG_D );
       SETF( FLAG_I );
     
-      IP = K6502_ReadW( VECTOR_IRQ );
+      PC = K6502_ReadW( VECTOR_IRQ );
     }
   }
 
@@ -412,13 +390,13 @@ void K6502_Step( WORD wClocks )
   while ( g_wPassedClocks < wClocks )
   {
     // Read an instruction
-    byCode = K6502_Read( IP++ );
+    byCode = K6502_Read( PC++ );
 
     // Execute an instruction.
     switch ( byCode )
     {
       case 0x00:  // BRK
-        ++IP; PUSHW( IP ); SETF( FLAG_B ); PUSH( F ); SETF( FLAG_I ); RSTF( FLAG_D ); IP = K6502_ReadW( VECTOR_IRQ ); CLK( 7 );
+        ++PC; PUSHW( PC ); SETF( FLAG_B ); PUSH( F ); SETF( FLAG_I ); RSTF( FLAG_D ); PC = K6502_ReadW( VECTOR_IRQ ); CLK( 7 );
         break;
 
       case 0x01:  // ORA (Zpg,X)
@@ -562,7 +540,7 @@ void K6502_Step( WORD wClocks )
         break;
 
       case 0x40: // RTI
-        POP( F ); SETF( FLAG_R ); POPW( IP ); CLK( 6 );
+        POP( F ); SETF( FLAG_R ); POPW( PC ); CLK( 6 );
         break;
 
       case 0x41: // EOR (Zpg,X)
@@ -625,13 +603,13 @@ void K6502_Step( WORD wClocks )
           IRQ_State = IRQ_Wiring;          
           CLK( 7 );
 
-          PUSHW( IP );
+          PUSHW( PC );
           PUSH( F & ~FLAG_B );
 
           RSTF( FLAG_D );
           SETF( FLAG_I );
     
-          IP = K6502_ReadW( VECTOR_IRQ );
+          PC = K6502_ReadW( VECTOR_IRQ );
         }
         break;
 
@@ -648,7 +626,7 @@ void K6502_Step( WORD wClocks )
         break;
 
       case 0x60: // RTS
-        POPW( IP ); ++IP; CLK( 6 );
+        POPW( PC ); ++PC; CLK( 6 );
         break;
 
       case 0x61: // ADC (Zpg,X)
@@ -1053,14 +1031,14 @@ void K6502_Step( WORD wClocks )
 			case	0x89: // DOP (CYCLES 2)
 			case	0xC2: // DOP (CYCLES 2)
 			case	0xE2: // DOP (CYCLES 2)
-				IP++;
+				PC++;
 				CLK( 2 );
 				break;
 
 			case	0x04: // DOP (CYCLES 3)
 			case	0x44: // DOP (CYCLES 3)
 			case	0x64: // DOP (CYCLES 3)
-				IP++;
+				PC++;
 				CLK( 3 );
 				break;
 
@@ -1070,7 +1048,7 @@ void K6502_Step( WORD wClocks )
 			case	0x74: // DOP (CYCLES 4)
 			case	0xD4: // DOP (CYCLES 4)
 			case	0xF4: // DOP (CYCLES 4)
-        IP++; 
+        PC++; 
         CLK( 4 );
         break;
 
@@ -1081,7 +1059,7 @@ void K6502_Step( WORD wClocks )
 			case	0x7C: // TOP
 			case	0xDC: // TOP
 			case	0xFC: // TOP
-				IP+=2;
+				PC+=2;
 				CLK( 4 );
 				break;
 
@@ -1107,7 +1085,7 @@ static inline BYTE K6502_ReadAbsX(){ WORD wA0, wA1; wA0 = AA_ABS; wA1 = wA0 + X;
 // Absolute,Y
 static inline BYTE K6502_ReadAbsY(){ WORD wA0, wA1; wA0 = AA_ABS; wA1 = wA0 + Y; CLK( ( wA0 & 0x0100 ) != ( wA1 & 0x0100 ) ); return K6502_Read( wA1 ); };
 // (Indirect),Y
-static inline BYTE K6502_ReadIY(){ WORD wA0, wA1; wA0 = K6502_ReadZpW( K6502_Read( IP++ ) ); wA1 = wA0 + Y; CLK( ( wA0 & 0x0100 ) != ( wA1 & 0x0100 ) ); return K6502_Read( wA1 ); };
+static inline BYTE K6502_ReadIY(){ WORD wA0, wA1; wA0 = K6502_ReadZpW( K6502_Read( PC++ ) ); wA1 = wA0 + Y; CLK( ( wA0 & 0x0100 ) != ( wA1 & 0x0100 ) ); return K6502_Read( wA1 ); };
 
 /*===================================================================*/
 /*                                                                   */

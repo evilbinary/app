@@ -9,26 +9,28 @@
 #ifndef K6502_H_INCLUDED
 #define K6502_H_INCLUDED
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include "InfoNES_Types.h"
+#undef PC
 
+// Type definition
+#ifndef DWORD
+typedef unsigned long  DWORD;
+#endif
 
-// // Type definition
-// #ifndef DWORD
-// typedef unsigned long  DWORD;
-// #endif
+#ifndef WORD
+typedef unsigned short WORD;
+#endif
 
-// #ifndef WORD
-// typedef unsigned short WORD;
-// #endif
+#ifndef BYTE
+typedef unsigned char  BYTE;
+#endif
 
-// #ifndef BYTE
-// typedef unsigned char  BYTE;
-// #endif
-
-// #ifndef NULL
-// #define NULL 0
-// #endif
+#ifndef NULL
+#define NULL 0
+#endif
 
 /* 6502 Flags */
 #define FLAG_C 0x01
@@ -82,9 +84,8 @@ extern BYTE NMI_State;
 // The number of the clocks that it passed
 extern WORD g_wPassedClocks;
 
-
-
-
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !K6502_H_INCLUDED */

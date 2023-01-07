@@ -62,7 +62,7 @@ static int lcd_fb_display_px(WORD color, int x, int y) {
 static int lcd_fb_init() {
   screen_init();
   screen_info_t *screen = screen_info();
-  fb_mem = screen->fb.frambuffer;
+  fb_mem = (unsigned char*)screen->fb.frambuffer;
   fb_fd = screen->fd;
   lcd_height = NES_DISP_HEIGHT;
   lcd_width = NES_DISP_WIDTH;
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
   make_zoom_tab();
 
   /* If a rom name specified, start it */
-  if (argc == 2) {
+  if (argc >= 2) {
     start_application(argv[1]);
   }
   printf("exit\n");
@@ -497,12 +497,12 @@ void InfoNES_ReleaseRom() {
 
   if (ROM) {
     free(ROM);
-    ROM = NULL;
+    ROM = (unsigned char*)NULL;
   }
 
   if (VROM) {
     free(VROM);
-    VROM = NULL;
+    VROM = (unsigned char*)NULL;
   }
 }
 
@@ -576,12 +576,21 @@ void InfoNES_LoadFrame() {
       line_width = zoom_y_tab[y] * NES_DISP_WIDTH;
       for (x = 0; x < lcd_width; x++) {
         wColor = WorkFrame[line_width + zoom_x_tab[x]];
-        u32 color = ((wColor & 0x7c00) << 9) | ((wColor & 0x03e0) << 6) |
+        WORD color = ((wColor & 0x7c00) << 9) | ((wColor & 0x03e0) << 6) |
                     ((wColor & 0x001f) << 3) | (0xff << 24);
         screen_put_pixel(x, y,color);
       }
     }
     screen_flush();
+  }                                                                    
+}
+
+void InfoNES_ReadJoypad() {
+  int ret = GetJoypadInput();
+  if (ret >= 0) {
+    dwKeyPad1 = ret;
+    // dwKeyPad2=ret;
+    // dwKeySystem=ret;
   }
 }
 
@@ -689,15 +698,6 @@ void InfoNES_SoundOutput(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3,
   //   }
   // }
   return;
-}
-
-void InfoNES_ReadJoypad() {
-  int ret = GetJoypadInput();
-  if (ret >= 0) {
-    dwKeyPad1 = ret;
-    // dwKeyPad2=ret;
-    // dwKeySystem=ret;
-  }
 }
 
 /*===================================================================*/

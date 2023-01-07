@@ -159,7 +159,7 @@ WORD DoubleFrame[ 2 ][ NES_DISP_WIDTH * NES_DISP_HEIGHT ];
 WORD *WorkFrame;
 WORD WorkFrameIdx;
 #else
-WORD WorkFrame[ NES_DISP_WIDTH * NES_DISP_HEIGHT];
+WORD WorkFrame[ NES_DISP_WIDTH * NES_DISP_HEIGHT ];
 #endif
 
 /* Character Buffer */
@@ -436,7 +436,7 @@ int InfoNES_Reset()
   if ( MapperTable[ nIdx ].nMapperNo == -1 )
   {
     // Non support mapper
-    InfoNES_MessageBox( "Mapper #%d is unsupported.\n", MapperNo );
+    InfoNES_MessageBox( "Mapper #%d is unsupported.\n" );
     return -1;
   }
 
@@ -587,11 +587,9 @@ void InfoNES_Cycle()
  *
  */
 
-#if 0
   // Set the PPU adress to the buffered value
   if ( ( PPU_R1 & R1_SHOW_SP ) || ( PPU_R1 & R1_SHOW_SCR ) )
 		PPU_Addr = PPU_Temp;
-#endif
 
   // Emulation loop
   for (;;)
@@ -640,79 +638,9 @@ void InfoNES_Cycle()
     // A function in H-Sync
     if ( InfoNES_HSync() == -1 )
       return;  // To the menu screen
-
     // HSYNC Wait
     InfoNES_Wait();
   }
-}
-
-
-/*===================================================================*/
-/*                                                                   */
-/*              InfoNES_Cycle_1() : The loop of emulation 1 time     */
-/*                                                                   */
-/*===================================================================*/
-void InfoNES_Cycle_1()
-{
-/*
- *  The loop of emulation
- *
- */
-
-#if 0
-  // Set the PPU adress to the buffered value
-  if ( ( PPU_R1 & R1_SHOW_SP ) || ( PPU_R1 & R1_SHOW_SCR ) )
-		PPU_Addr = PPU_Temp;
-#endif
-
-    int nStep;
-
-    // Set a flag if a scanning line is a hit in the sprite #0
-    if ( SpriteJustHit == PPU_Scanline &&
-      PPU_ScanTable[ PPU_Scanline ] == SCAN_ON_SCREEN )
-    {
-      // # of Steps to execute before sprite #0 hit
-      nStep = SPRRAM[ SPR_X ] * STEP_PER_SCANLINE / NES_DISP_WIDTH;
-
-      // Execute instructions
-      K6502_Step( nStep );
-
-      // Set a sprite hit flag
-      if ( ( PPU_R1 & R1_SHOW_SP ) && ( PPU_R1 & R1_SHOW_SCR ) )
-        PPU_R2 |= R2_HIT_SP;
-
-      // NMI is required if there is necessity
-      if ( ( PPU_R0 & R0_NMI_SP ) && ( PPU_R1 & R1_SHOW_SP ) )
-        NMI_REQ;
-
-      // Execute instructions
-      K6502_Step( STEP_PER_SCANLINE - nStep );
-    }
-    else
-    {
-      // Execute instructions
-      K6502_Step( STEP_PER_SCANLINE );
-    }
-
-    // Frame IRQ in H-Sync
-    FrameStep += STEP_PER_SCANLINE;
-    if ( FrameStep > STEP_PER_FRAME && FrameIRQ_Enable )
-    {
-      FrameStep %= STEP_PER_FRAME;
-      IRQ_REQ;
-      APU_Reg[ 0x4015 ] |= 0x40;
-    }
-
-    // A mapper function in H-Sync
-    MapperHSync();
-    
-    // A function in H-Sync
-    if ( InfoNES_HSync() == -1 )
-      return;  // To the menu screen
-
-    // HSYNC Wait
-    InfoNES_Wait();
-
 }
 
 /*===================================================================*/
@@ -777,6 +705,7 @@ int InfoNES_HSync()
       {
         // Transfer the contents of work frame on the screen
         InfoNES_LoadFrame();
+        
 #if 0
         // Switching of the double buffer
         WorkFrameIdx = 1 - WorkFrameIdx;
@@ -798,7 +727,7 @@ int InfoNES_HSync()
       // pAPU Sound function in V-Sync
       if ( !APU_Mute )
         InfoNES_pAPUVsync();
-        
+
       // A mapper function in V-Sync
       MapperVSync();
 
@@ -928,6 +857,7 @@ void InfoNES_DrawLine()
       pPoint[ 5 ] = pPalTbl[ pbyChrData[ 5 ] ];
       pPoint[ 6 ] = pPalTbl[ pbyChrData[ 6 ] ];
       pPoint[ 7 ] = pPalTbl[ pbyChrData[ 7 ] ];
+
       pPoint += 8;
 
       // Callback at PPU read/write
@@ -1124,7 +1054,6 @@ void InfoNES_DrawLine()
       pPointTop = &WorkFrame[ PPU_Scanline * NES_DISP_WIDTH ];
       InfoNES_MemorySet( pPointTop, 0, 8 << 1 );
     }
-
     if ( nSprCnt >= 8 )
       PPU_R2 |= R2_MAX_SP;  // Set a flag of maximum sprites on scanline
   }

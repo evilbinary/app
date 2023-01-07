@@ -1,4 +1,5 @@
 #include "screen.h"
+#include "stdio.h"
 
 int input_fd;
 

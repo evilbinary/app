@@ -6,7 +6,8 @@
 #include "cmocka.h"
 
 void test_malloc_free(void** state) {
-  void* p = malloc(412);
+  void* p = malloc(1024);
+  memset(p,0xf,512);
   assert_non_null(p);
   free(p);
 }
@@ -48,7 +49,7 @@ static char* loadfile(FILE* f, int* len) {
   char *d = 0, buf[512];
   for (;;) {
     c = fread(buf, 1, sizeof buf, f);
-    if (l % 10000 == 0) printf("ret=%d len=%x %d\n", c, l, l);
+    if (l % 10000 == 0) printf("ret=%d len=%x %d addr=%x\n", c, l, l, d);
     if (c <= 0) break;
     l += c;
     d = realloc(d, l);
@@ -91,14 +92,27 @@ void test_mremap(void** state) {
   assert_ptr_equal(x, s);
 }
 
+void test_realloc_large() {
+  void* p = malloc(1024 * 1024);
+  assert_non_null(p);
+  free(p);
+  int l = 512;
+  void* d = 0;
+  for (int i = 0; i < 512; i++) {
+    d = realloc(d, l);
+    printf("i=>%d addr=%x len=%d\n", i, d, l);
+    assert_non_null(d);
+  }
+}
+
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {cmocka_unit_test(test_malloc_free),
                                      cmocka_unit_test(test_my_realloc),
                                      cmocka_unit_test(test_my_calloc),
                                      cmocka_unit_test(test_malloc_large),
                                      cmocka_unit_test(test_my_realloc_multi),
-                                     cmocka_unit_test(test_mremap)
-                                     };
+                                     cmocka_unit_test(test_mremap),
+                                     cmocka_unit_test(test_realloc_large)};
 
   return cmocka_run_group_tests(tests, NULL, NULL);
 }
