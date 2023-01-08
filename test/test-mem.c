@@ -7,7 +7,7 @@
 
 void test_malloc_free(void** state) {
   void* p = malloc(1024);
-  memset(p,0xf,512);
+  memset(p, 0xf, 512);
   assert_non_null(p);
   free(p);
 }
@@ -45,6 +45,7 @@ void test_my_calloc(void** state) {
 }
 
 static char* loadfile(FILE* f, int* len) {
+  int i = 0;
   int c, l = 0, p = 0;
   char *d = 0, buf[512];
   for (;;) {
@@ -59,6 +60,15 @@ static char* loadfile(FILE* f, int* len) {
     char* pp = d + p;
     memcpy(d + p, buf, c);
     p += c;
+
+    if (i >= 32 && i <= 36) {
+      printf("==>%d %x\n", i, l);
+      for (int j = 0; j < c; j++) {
+        printf("%02x ", buf[j] & 0xff);
+      }
+      printf("\n");
+    }
+    i++;
   }
   *len = l;
   return d;
@@ -66,12 +76,15 @@ static char* loadfile(FILE* f, int* len) {
 
 void test_my_realloc_multi(void** state) {
   FILE* fp;
-  char* name = "/mario.gba";
+  // char* name = "/mario.gba";
+  char* name = "/01.gb";
+
   fp = fopen(name, "r+");
   assert_non_null(fp);
   printf("fd=%d\n", *fp);
   int len = 0;
   loadfile(fp, &len);
+
   printf("len=%d\n", len);
 }
 
@@ -105,6 +118,24 @@ void test_realloc_large() {
   }
 }
 
+void test_brk() {
+  void* b = sbrk(0);
+  int* p = (int*)b;
+  /* Move it 2 ints forward */
+  brk(p + 2);
+
+  /* Use the ints. */
+  *p = 1;
+  *(p + 1) = 2;
+  assert_true(*p == 1);
+  assert_true(*(p + 1) == 2);
+
+  /* Deallocate back. */
+  brk(b);
+
+  return 0;
+}
+
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {cmocka_unit_test(test_malloc_free),
                                      cmocka_unit_test(test_my_realloc),
@@ -112,7 +143,10 @@ int main(int argc, char* argv[]) {
                                      cmocka_unit_test(test_malloc_large),
                                      cmocka_unit_test(test_my_realloc_multi),
                                      cmocka_unit_test(test_mremap),
-                                     cmocka_unit_test(test_realloc_large)};
+                                     cmocka_unit_test(test_realloc_large),
+                                     cmocka_unit_test(test_brk)
+
+  };
 
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

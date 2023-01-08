@@ -1,5 +1,6 @@
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <float.h>
 #include <setjmp.h>
 #include <stdarg.h>
@@ -101,15 +102,28 @@ void test_stdio(void **state) {
 
   char str[64];
   fp = fopen("/file-pos.txt", "r");
-  fgets(str,64,fp);
-  assert_string_equal(str,"hahaha evil gaga");
+  fgets(str, 64, fp);
+  assert_string_equal(str, "hahaha evil gaga");
 
   fclose(fp);
+}
+
+void test_open() {
+  int fd = open("/dev/fb", O_RDWR);
+  printf("screen init fd:%d\n", fd);
+}
+
+void test_float() {
+  float a = 10.0;
+  float b = a / 2.0;
+  assert_true(b == 5.0);
 }
 
 int main(int argc, char *argv[]) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_stdio),
+      cmocka_unit_test(test_open),
+      cmocka_unit_test(test_float),
 
   };
 
