@@ -454,10 +454,10 @@ int main(int argc, char **argv)
             help();
         }
     }
-
+#ifdef CONFIG_BIGNUM
     if (load_jscalc)
         bignum_ext = 1;
-
+#endif
     if (trace_memory) {
         js_trace_malloc_init(&trace_data);
         rt = JS_NewRuntime2(&trace_mf, &trace_data);

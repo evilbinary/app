@@ -9,7 +9,7 @@ import os
 Import('env')
 
 
-cflags = ' -UCONFIG_PRINTF_RNDN -D_GNU_SOURCE -DUSE_FILE32API -DCONFIG_BIGNUM -Iapp/quickjs '
+cflags = ' -UCONFIG_PRINTF_RNDN -D_GNU_SOURCE -DUSE_FILE32API  -Iapp/quickjs -DCONFIG_BIGNUM' #-DCONFIG_BIGNUM for qjscalc
 
 
 env.Library('quickjs', [
@@ -65,21 +65,13 @@ source += [
     'qjs.c',
 ]
 
-if env['ARCHTYPE'] == 'arm':
-    source += [
-        'arm/qjscalc.c',
-        'arm/repl.c'
-    ]
-elif env['ARCHTYPE'] == 'x86':
-    source += [
-        'i386/qjscalc.c',
-        'i386/repl.c'
-    ]
+source += [
+    'qjscalc.c',
+    'repl.c'
+]
 
-
-if env['ARCHTYPE'] == 'x86':
-    env.Program('qjs', source,
-                LIBS=libs+env.get('LIBS'),
-                LIBPATH=env.get('LIBPATH')+libpath,
-                CFLAGS='$CFLAGS '+cflags,
-                )
+env.Program('qjs', source,
+            LIBS=libs+env.get('LIBS'),
+            LIBPATH=env.get('LIBPATH')+libpath,
+            CFLAGS='$CFLAGS '+cflags,
+            )

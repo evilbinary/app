@@ -143,7 +143,7 @@ if env.get('APP'):
             'scheme/petite.boot',
             'scheme/scheme.boot',
 
-            # 'quickjs/qjs',
+            'quickjs/qjs',
             'quickjs/qjsc',
             'quickjs/repl.js',
             'quickjs/qjscalc.js',
