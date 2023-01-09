@@ -1,6 +1,6 @@
 ENTRY(_start)
-K_VIR_ADDR = 0x200000;
-K_PHY_ADDR = 0x200000;
+K_VIR_ADDR = 0x40000000;
+K_PHY_ADDR = 0x40000000;
 PAGE_SIZE    = 0x1000;
 SECTIONS
 {
@@ -10,7 +10,6 @@ SECTIONS
 		. = ALIGN(PAGE_SIZE);
                 *(.text*)
         }
-
         /* Read-only data. */
         .rodata BLOCK(4K) : ALIGN(4K)
         {
@@ -22,13 +21,18 @@ SECTIONS
         {
                 *(.data*)
         }
-
         /* Read-write data (uninitialized) and stack */
         .bss BLOCK(4K) : ALIGN(4K)
         {
                 *(COMMON)
                 *(.bss*)
         }
-        
+        .eh_frame BLOCK(4K) : ALIGN(4K)
+        {
+                *(.eh_frame)
+        }
+        /* Thread Local Storage sections  */
+        .tdata          : { *(.tdata .tdata.* .gnu.linkonce.td.*) }
+        .tbss           : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
        _end = .;
 }

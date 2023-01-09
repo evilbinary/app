@@ -1,5 +1,45 @@
+[target.arm-unknown-linux-musleabi]
+linker = "arm-none-eabi-gcc"
+rustflags = [   "-C", "link-arg=-Tuser-arm.ld" ,
+                "-C","link-args=-nostdlib",
+                "-C","link-args=-nostdinc",
+                "-C","link-args=-nostartfiles",
+                "-C","link-args=-lmusl",
+                "-C","link-args=-lgcc",
+
+                "-C", "link-arg=-g",
+
+                "-C", "link-arg=-mcpu=cortex-a7",
+                "-C", "link-arg=-mtune=cortex-a7",
+                "-C", "link-arg=-mfpu=vfpv4",
+                "-C", "link-arg=-mfloat-abi=softfp",
+
+                # "-C","target-feature=-crt-static",
+
+                # "-C", "target-cpu=cortex-a7",
+                # "-C", "target-feature=+soft-float,-neon,+v7,+vfp3,+d16",
+                # "-C", "link-arg=-mcpu=cortex-a9",
+                # "-C", "link-arg=-mfloat-abi=softfp",
+                # "-C", "link-arg=-mfpu=vfpv3-d16",
+
+                # "-C", "link-arg=-L ../../../eggs/libmusl/lib",
+                # "-C", "link-arg=-L /opt/local/lib/gcc/arm-none-eabi/9.2.0/",
+
+                # "-L","../../../eggs/libmusl/lib",
+                # "-L","/opt/local/lib/gcc/arm-none-eabi/9.2.0/"
+                ]
+               
+# [target.arm-unknown-linux-musleabi.links]
+# rustc-link-search =[ "../../../eggs/libmusl/lib"] 
+# rustc-link-lib = ["musl"]
+
+
+
 [target.armv7a-none-eabi]
 rustflags = [   "-C", "link-arg=-Tuser-arm.ld" ,
+                "-C","link-args=-nostdlib",
+                "-C","link-args=-nostdinc",
+                "-C","link-args=-nostartfiles"
                 ]
 [target.i686-unknown-linux-musl]
 rustflags = [   "-C", "link-arg=-Tuser.ld",
@@ -31,8 +71,8 @@ rustflags = [   "-C", "link-arg=-Tuser.ld",
 
 
 [build]
-#target = "armv7a-none-eabi"
+target = "arm-unknown-linux-musleabi"
 # target = "i686-unknown-linux-musl"
-dtarget = "i586-unknown-linux-gnu"
+# dtarget = "i586-unknown-linux-gnu"
 # target = "i686-unknown-freebsd"
 # target="i686-unknown-haiku"

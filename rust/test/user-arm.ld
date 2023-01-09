@@ -1,6 +1,6 @@
 ENTRY(_start)
-K_VIR_ADDR = 0x4000000;
-K_PHY_ADDR = 0x4000000;
+K_VIR_ADDR = 0x71000000;
+K_PHY_ADDR = 0x71000000;
 PAGE_SIZE    = 0x1000;
 SECTIONS
 {
@@ -12,34 +12,27 @@ SECTIONS
         }
 
         /* Read-only data. */
-        .rodata  : ALIGN(4K)
+        .rodata BLOCK(4K) : ALIGN(4K)
         {
                 *(.rodata*)
         }
 
         /* Read-write data (initialized) */
-        .data  : ALIGN(4K)
+        .data BLOCK(4K) : ALIGN(4K)
         {
                 *(.data*)
         }
 
         /* Read-write data (uninitialized) and stack */
-        .bss  : ALIGN(4K)
+        .bss BLOCK(4K) : ALIGN(4K)
         {
                 *(COMMON)
                 *(.bss*)
         }
-        .eh_frame  : ALIGN(4K)
+
+        .eh_frame BLOCK(4K) : ALIGN(4K)
         {
-                *(.eh_frame*)
+                *(.eh_frame)
         }
-        .debug  : ALIGN(4K)
-        {
-                *(.debug*)
-        }
-        .ARM.extab   : { *(.ARM.extab*) }
-        .ARM.exidx   : { *(.ARM.exidx*) }
-        .tdata             : { *(.tdata .tdata.*) }
-        .tbss              : { *(.tbss .tbss.*) }
        _end = .;
 }

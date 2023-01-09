@@ -12,6 +12,9 @@ fn main() {
     //                   .current_dir(&Path::new(&out_dir))
     //                   .status().unwrap();
     println!("out dir {}",out_dir);
-    println!("cargo:rustc-link-search=native=../../../libs/libc/");
+    // println!("cargo:rustc-link-search=native=../../eggs/libc/");
+    // println!("cargo:rustc-link-lib=static=c");
+
+    println!("cargo:rustc-link-search=native=../../../eggs/libmusl/lib");
     println!("cargo:rustc-link-lib=static=c");
 }

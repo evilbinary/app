@@ -2,6 +2,8 @@ use std::process::Command;
 use std::env;
 use std::path::Path;
 
+
+
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
 
@@ -13,9 +15,12 @@ fn main() {
     //                   .status().unwrap();
     println!("out dir {}",out_dir);
 
-    // println!("cargo:rustc-link-search=native=../../../libs/libc/");
+    // println!("cargo:rustc-link-search=native=../../../eggs/libs/libc/");
     // println!("cargo:rustc-link-lib=static=c");
 
-    // println!("cargo:rustc-link-search=native=../../libmusl/lib/");
-    // println!("cargo:rustc-link-lib=static=c");
+    println!("cargo:rustc-link-search=native=../../../eggs/libmusl/lib");
+    println!("cargo:rustc-link-lib=static=musl");
+    // println!("cargo:rustc-link-lib=musl"); //指定库
+
+    
 }

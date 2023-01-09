@@ -62,7 +62,7 @@ static int lcd_fb_display_px(WORD color, int x, int y) {
 static int lcd_fb_init() {
   screen_init();
   screen_info_t *screen = screen_info();
-  fb_mem = (unsigned char*)screen->fb.frambuffer;
+  fb_mem = (unsigned char *)screen->fb.frambuffer;
   fb_fd = screen->fd;
   lcd_height = NES_DISP_HEIGHT;
   lcd_width = NES_DISP_WIDTH;
@@ -143,6 +143,15 @@ int SaveSRAM();
 
 /* Palette data */
 WORD NesPalette[64] = {
+  // 0x738E,0x88C4,0xA800,0x9808,0x7011,0x1015,0x0014,0x004F,
+  // 0x0148,0x0200,0x0280,0x11C0,0x59C3,0x0000,0x0000,0x0000,
+  // 0xBDD7,0xEB80,0xE9C4,0xF010,0xB817,0x581C,0x015B,0x0A59,
+  // 0x0391,0x0480,0x0540,0x3C80,0x8C00,0x0000,0x0000,0x0000,
+  // 0xFFDF,0xFDC7,0xFC8B,0xFC48,0xFBDE,0xB39F,0x639F,0x3CDF,
+  // 0x3DDE,0x1690,0x4EC9,0x9FCB,0xDF40,0x0000,0x0000,0x0000,
+  // 0xFFDF,0xFF15,0xFE98,0xFE5A,0xFE1F,0xDE1F,0xB5DF,0xAEDF,
+  // 0xA71F,0xA7DC,0xBF95,0xCFD6,0xF7D3,0x0000,0x0000,0x0000,
+
     0x39ce, 0x1071, 0x0015, 0x2013, 0x440e, 0x5402, 0x5000, 0x3c20,
     0x20a0, 0x0100, 0x0140, 0x00e2, 0x0ceb, 0x0000, 0x0000, 0x0000,
     0x5ef7, 0x01dd, 0x10fd, 0x401e, 0x5c17, 0x700b, 0x6ca0, 0x6521,
@@ -184,7 +193,7 @@ int main(int argc, char **argv) {
 
   lcd_fb_init();
 
-  //初始化 zoom 缩放表
+  // 初始化 zoom 缩放表
   make_zoom_tab();
 
   /* If a rom name specified, start it */
@@ -497,12 +506,12 @@ void InfoNES_ReleaseRom() {
 
   if (ROM) {
     free(ROM);
-    ROM = (unsigned char*)NULL;
+    ROM = (unsigned char *)NULL;
   }
 
   if (VROM) {
     free(VROM);
-    VROM = (unsigned char*)NULL;
+    VROM = (unsigned char *)NULL;
   }
 }
 
@@ -576,13 +585,15 @@ void InfoNES_LoadFrame() {
       line_width = zoom_y_tab[y] * NES_DISP_WIDTH;
       for (x = 0; x < lcd_width; x++) {
         wColor = WorkFrame[line_width + zoom_x_tab[x]];
+        /* 16-bit to 24-bit  RGB565 to RGB888*/
         WORD color = ((wColor & 0x7c00) << 9) | ((wColor & 0x03e0) << 6) |
-                    ((wColor & 0x001f) << 3) | (0xff << 24);
-        screen_put_pixel(x, y,color);
+                     ((wColor & 0x001f) << 3) | (0xff << 24);
+        screen_put_pixel(x, y, color);
+        // lcd_fb_display_px(wColor, x, y);
       }
     }
     screen_flush();
-  }                                                                    
+  }
 }
 
 void InfoNES_ReadJoypad() {
@@ -622,8 +633,8 @@ void InfoNES_PadState(DWORD *pdwPad1, DWORD *pdwPad2, DWORD *pdwSystem) {
   *pdwPad2 = dwKeyPad2;
   *pdwSystem = bThread == FALSE ? PAD_SYS_QUIT : 0;
 
-  //取消重置手柄 在 输入函数中自行处理
-  // dwKeyPad1 = 0;
+  // 取消重置手柄 在 输入函数中自行处理
+  //  dwKeyPad1 = 0;
 }
 
 /*===================================================================*/
