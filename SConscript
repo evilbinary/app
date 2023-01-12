@@ -15,7 +15,7 @@ Import('appEnv')
 cliEnv = appEnv.Clone()
 Export('cliEnv')
 
-env=appEnv
+env = appEnv
 
 
 env['CPPPATH'] += [
@@ -35,7 +35,7 @@ add_libc(cliEnv)
 
 cliEnv['LIBS'] += cliEnv['LIBC']
 cliEnv['CFLAGS'] += cliEnv['LIBCFLAGS']
-cliEnv['LINKFLAGS']+=cliEnv['USER']
+cliEnv['LINKFLAGS'] += cliEnv['USER']
 if cliEnv.get('MYLIB'):
     cliEnv['LIBS'].append(cliEnv.get('MYLIB'))
 
@@ -68,10 +68,11 @@ env['LIBPATH'] += env['LIBCOMMON']
 env['CPPPATH'] += env['CPPPCOMMON']
 env['LIBS'] += env['LIBC']
 env['CFLAGS'] += env['LIBCFLAGS']
-env['LINKFLAGS']+=env['USER']
+env['LINKFLAGS'] += env['USER']
 
 if env.get('MYLIB'):
     env['LIBS'].append(env.get('MYLIB'))
+
 
 def check_exit(apps):
     new_list = copy.deepcopy(apps)
@@ -81,104 +82,103 @@ def check_exit(apps):
             apps.remove(app)
 
 
+returns=[]
+
+
 if env.get('APP'):
+    build_app = ['hello', 'gui', 'microui', 'test', 'etk', 'cmd', 'lvgl', 'track',
+                 'sdl2', 'infones', 'launcher', 'mgba', 'lua', 'scheme', 'quickjs', 'gnuboy']
 
-    SConscript(dirs=['hello'], exports='env')
-    SConscript(dirs=['gui'], exports='env')
-    SConscript(dirs=['microui'], exports='env')
-    SConscript(dirs=['test'], exports='env')
-    SConscript(dirs=['etk'], exports='env')
-    SConscript(dirs=['cmd'], exports='env')
-    SConscript(dirs=['lvgl'], exports='env')
-    SConscript(dirs=['track'], exports='env')
-    SConscript(dirs=['sdl2'], exports='env')
-    SConscript(dirs=['infones'], exports='env')
-    SConscript(dirs=['launcher'], exports='env')
-    SConscript(dirs=['mgba'], exports='env')
-    SConscript(dirs=['lua'], exports='env')
-    SConscript(dirs=['scheme'], exports='env')
+    all = SConscript(dirs=build_app, exports='env')
+    
+    for i in filter(None, all):
+        for j in i:
+            returns+=j
 
-    SConscript(dirs=['quickjs'], exports='env')
+    apps_file = [
+        # 'hello/hello',
+        # 'gui/gui',
+        # 'microui/microui',
+        # 'etk/etk',
+        # 'test/test',
+        # 'test/test-file',
+        # 'test/test-mem',
+        # 'test/test-uncompress',
+        # 'test/test-string',
+        # 'test/test-stdlib',
+        # 'test/test-stdio',
+        # 'test/test-fork',
+        # 'test/test-free',
 
-    SConscript(dirs=['gnuboy'], exports='env')
+        # 'rust/test/test-rs',
+        'cmd/ls',
+        'cmd/echo',
+        'cmd/cat',
+        'cmd/hexdump',
+        'cmd/touch',
+        'cmd/date',
 
-    apps = ['hello/hello',
-            'gui/gui',
-            'microui/microui',
-            'etk/etk',
-            'test/test',
-            'test/test-file',
-            'test/test-mem',
-            'test/test-uncompress',
-            'test/test-string',
-            'test/test-stdlib',
-            'test/test-stdio',
-            'test/test-fork',
-            'test/test-free',
+        # 'lvgl/lvgl',
+        # 'track/track',
+        # 'launcher/launcher',
+        # 'infones/infones',
+        # 'sdl2/sdl2',
+        # 'sdl2/player',
+        # 'sdl2/showimage',
+        # 'sdl2/showfont',
+        # 'mgba/mgba',
+        # 'mgba/miniunz',
+        # 'gnuboy/gnuboy',
 
-            # 'rust/test/test-rs',
-            'cmd/ls',
-            'cmd/echo',
-            'cmd/cat',
-            'cmd/hexdump',
-            'cmd/touch',
-            'cmd/date',
+        # 'lua/lua',
+        # 'lua/luat',
+        # 'lua/hello.lua',
+        # 'scheme/scheme',
+        # 'scheme/petite.boot',
+        # 'scheme/scheme.boot',
 
-            'lvgl/lvgl',
-            'track/track',
-            'launcher/launcher',
-            'infones/infones',
-            'sdl2/sdl2',
-            'sdl2/player',
-            'sdl2/showimage',
-            'sdl2/showfont',
-            'mgba/mgba',
-            'mgba/miniunz',
-            'gnuboy/gnuboy',
+        # 'quickjs/qjs',
+        # 'quickjs/qjsc',
+        # 'quickjs/repl.js',
+        # 'quickjs/qjscalc.js',
+        # # 'quickjs/tests/test_builtin.js',
+        # 'quickjs/examples/hello.js',
 
-            'lua/lua',
-            'lua/luat',
-            'lua/hello.lua',
-            'scheme/scheme',
-            'scheme/petite.boot',
-            'scheme/scheme.boot',
-
-            'quickjs/qjs',
-            'quickjs/qjsc',
-            'quickjs/repl.js',
-            'quickjs/qjscalc.js',
-            # 'quickjs/tests/test_builtin.js',
-            'quickjs/examples/hello.js',
-
-            ]
-    apps += Glob('resource/*')
+    ]
+    # apps += Glob('resource/*')
     if env.get('DEFAULT_LIBC') == 'libmusl':
-        # SConscript(dirs=['toybox'], exports='env')
-        apps += [
-            'test/test-musl',
-            # 'toybox/toybox',
+        SConscript(dirs=['toybox'], exports='env')
+        SConscript(dirs=['meui'], exports='env')
+
+        apps_file += [
+            # 'test/test-musl',
+            'toybox/toybox',
+            'meui/packages/examples/dist/index.js',
+            'meui/meui'
         ]
 
     if plt == 'Darwin':
         env.Command('copyapp',
-                    apps,
+                    apps_file,
                     ['hdid  image/disk.img &&  cp ${SOURCES} /Volumes/NO\ NAME/ && hdiutil eject /Volumes/NO\ NAME/'
                      ])
         pass
     elif plt == 'Linux':
         env.Command('copyapp',
-                    apps,
+                    apps_file,
                     ['sudo losetup /dev/loop10 image/disk.img && sudo mount /dev/loop10 /mnt && sudo cp  ${SOURCES} /mnt && sudo umount /mnt && sudo losetup -d /dev/loop10'
                      ])
     elif plt == 'Windows':
         try:
             ret = env.Command('copyapp',
-                              apps,
+                              apps_file,
                               [
                                   'cp ${SOURCES} app/bin/ & mcopy.exe -nmov  -i image/disk.img app/bin/* ::'
                               ])
         except:
-            print('please manual copy %s files to image/disk.img' % (apps))
+            print('please manual copy %s files to image/disk.img' % (apps_file))
         pass
 else:
     pass
+
+Return('returns')

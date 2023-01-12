@@ -14,14 +14,13 @@ source = [
     'ls.c',
 ]
 
-env.Program('ls', source)
-
+ls=env.Program('ls', source)
 
 source = [
     'echo.c',
 ]
 
-env.Program('echo', source)
+echo=env.Program('echo', source)
 
 
 source = [
@@ -29,15 +28,14 @@ source = [
 ]
 
 
-env.Program('cat', source)
-
+cat=env.Program('cat', source)
 
 source = [
     'hexdump.c',
 ]
 
 
-env.Program('hexdump', source)
+hexdump=env.Program('hexdump', source)
 
 
 source = [
@@ -45,11 +43,16 @@ source = [
 ]
 
 
-env.Program('touch', source)
+touch=env.Program('touch', source)
 
 
 source = [
     'date.c',
 ]
 
-env.Program('date', source)
+date=env.Program('date', source)
+
+
+returns=[ls]
+
+Return('returns')

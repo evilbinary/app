@@ -16,9 +16,17 @@ source= [
 
 source+= Glob('lib/*.c')
 
+
+# source+= Glob('toys/posix/*.c')
+# source+= Glob('toys/example/*.c')
+# source+= Glob('toys/lsb/*.c')
+# source+= Glob('toys/net/*.c')
+# source+= Glob('toys/other/*.c')
+# source+= Glob('toys/pending/*.c')
+
 source+= [
-    'toys/posix/cat.c',
-    'toys/posix/wc.c',
+    'toys/example/hello.c',
+    'toys/posix/ls.c',
 ]
 
 source+=[ 
@@ -30,4 +38,4 @@ source+=[
 
 env.Program('toybox', source,
     CFLAGS='$CFLAGS  $LIBCFLAGS  -Iapp/toybox -D__linux__ -DCFG_TOYBOX',
-    LINKFLAGS= '$LINKFLAGS $USER')
+    LINKFLAGS= '$LINKFLAGS')
