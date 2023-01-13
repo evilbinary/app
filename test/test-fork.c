@@ -3,9 +3,9 @@
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include "fcntl.h"
 
 #include "cmocka.h"
+#include "fcntl.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "sys/ioctl.h"
@@ -95,6 +95,8 @@ void test_read_write() {
   if (fd_ptm < 0) {
     printf("error get ptm \n");
   }
+  assert_true(fd_ptm>0);
+  
   u32 i = 0;
   pid_t fpid = fork();
   printf("fork end %d\n", fpid);
@@ -139,10 +141,11 @@ void test_read_write() {
 void test_dup_pty() {
   printf("test dup pty\n");
   u32 fd_ptm, fd_pts;
-  fd_ptm = open("/dev/ptm", "r");
+  fd_ptm = open("/dev/ptm", O_RDONLY);
   if (fd_ptm < 0) {
     printf("error get ptm \n");
   }
+  assert_true(fd_ptm > 0);
   printf("test dup pty start fork\n");
   u32 i = 0;
   pid_t fpid = fork();
@@ -152,7 +155,7 @@ void test_dup_pty() {
     u32 pts = ioctl(fd_ptm, IOC_SLAVE);
     char buf[20];
     sprintf(buf, "/dev/pts/%d", pts);
-    fd_pts = open(buf, "r");
+    fd_pts = open(buf, O_RDONLY);
     if (fd_pts < 0) {
       printf("error get pts \n");
     }
@@ -245,9 +248,9 @@ int main(int argc, char* argv[]) {
 
       // cmocka_unit_test(test_pipe), //have free bug?
 
-      cmocka_unit_test(test_dup_pty),  // fork reboot?
+      // cmocka_unit_test(test_dup_pty),
 
-      // cmocka_unit_test(test_read_write),
+      cmocka_unit_test(test_read_write),
 
   };
 
