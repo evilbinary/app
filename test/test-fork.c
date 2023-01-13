@@ -96,7 +96,7 @@ void test_read_write() {
     printf("error get ptm \n");
   }
   assert_true(fd_ptm>0);
-  
+
   u32 i = 0;
   pid_t fpid = fork();
   printf("fork end %d\n", fpid);
@@ -243,13 +243,10 @@ void test_pc() {
 
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {
-      // cmocka_unit_test(test_fork),
-      // cmocka_unit_test(test_fork2),
-
-      // cmocka_unit_test(test_pipe), //have free bug?
-
-      // cmocka_unit_test(test_dup_pty),
-
+      cmocka_unit_test(test_fork),
+      cmocka_unit_test(test_fork2),
+      cmocka_unit_test(test_pipe), //have free bug?
+      cmocka_unit_test(test_dup_pty),
       cmocka_unit_test(test_read_write),
 
   };
