@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <float.h>
+#include <math.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -37,22 +38,34 @@ void test_stdlib(void **state) {
   assert_float_equal(ret, 13.234, DBL_EPSILON);
   assert_string_equal(ptr, " gaga haha");
 
-
   // assert_int_equal(system("ls"), 1);
   // assert_int_equal(rename("ls"),1);
 
   char str2[120] = "123414 gaga haha";
-  long ret1 = strtol(str2, &ptr,10);
-  assert_true(ret1==123414);
+  long ret1 = strtol(str2, &ptr, 10);
+  assert_true(ret1 == 123414);
   assert_string_equal(ptr, " gaga haha");
+}
 
+void test_init_var() {
+  static int initialized;
+  assert_int_equal(initialized, 0);
+  initialized = 1;
+  assert_int_equal(initialized, 1);
+}
 
+void test_math() {
+  double pi = 3.1416;
+  float ret = sin(pi / 2);
+  float ret2 = log(1.0);
+  printf("sin(pi/2)=%f\nln1=%f\n", ret, ret2);
 }
 
 int main(int argc, char *argv[]) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_stdlib),
-
+      cmocka_unit_test(test_init_var),
+      cmocka_unit_test(test_math),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);

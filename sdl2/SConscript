@@ -30,7 +30,7 @@ libpath = [
 cflags='$CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT'
 
 if env.get('DEFAULT_LIBC') == 'libmusl':
-    cflags='$CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT -DHAVE_TRUNCF -DHAVE_ROUNDF -DHAVE_ROUND  -DHAVE_LRINT -DHAVE_LRINTF -DHAVE_CBRTF -DHAVE_COPYSIGN'
+    cflags='-lstdatomic $CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT -DHAVE_TRUNCF -DHAVE_ROUNDF -DHAVE_ROUND  -DHAVE_LRINT -DHAVE_LRINTF -DHAVE_CBRTF -DHAVE_COPYSIGN'
 
 
 
@@ -56,6 +56,7 @@ libpath = [
     '../../eggs/libffmpeg/libswscale/',
     '../../eggs/libffmpeg/libavcodec/',
     '../../eggs/libffmpeg/libavutil/',
+    '../../eggs/libffmpeg/libswresample/',
 ]
 libs = [
     'libsdl2.a',
@@ -65,6 +66,7 @@ libs = [
     'libavformat.a',
     'libswscale.a',
     'libavcodec.a',
+    'libswresample.a',
     'libavutil.a',
 ]
 

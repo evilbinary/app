@@ -174,13 +174,13 @@ int etk_app_main(int argc, char* argv[]) {
   // wins[7]=etk_game_mine(160, 230, 10, 10, 14);
   // etk_game_mine(340, 30, 16, 16, 20);
 
-#ifdef X86
-  printf("create terminal\n");
-  EtkWidget* terminal = etk_terminal(340, 140, 420, 340);
-  wins[8] = terminal;
+// #ifdef X86
+//   printf("create terminal\n");
+//   EtkWidget* terminal = etk_terminal(340, 140, 420, 340);
+//   wins[8] = terminal;
 
-  etk_wnd_manager_set_active_widget(etk_get_wnd_manager(), terminal);
-#endif
+//   etk_wnd_manager_set_active_widget(etk_get_wnd_manager(), terminal);
+// #endif
 
   etk_widget_show_all(desktop);
 
