@@ -598,10 +598,10 @@ void InfoNES_LoadFrame() {
       for (x = 0; x < lcd_width; x++) {
         wColor = WorkFrame[line_width + zoom_x_tab[x]];
         /* 16-bit to 24-bit  RGB565 to RGB888*/
-        // WORD color = ((wColor & 0x7c00) << 9) | ((wColor & 0x03e0) << 6) |
-        //              ((wColor & 0x001f) << 3) | (0xff << 24);
-        // screen_put_pixel(x, y, color);
-        lcd_fb_display_px(wColor, x, y);
+        WORD color = ((wColor & 0x7c00) << 9) | ((wColor & 0x03e0) << 6) |
+                     ((wColor & 0x001f) << 3) | (0xff << 24);
+        screen_put_pixel(x, y, color);
+        // lcd_fb_display_px(wColor, x, y);
       }
     }
     screen_flush();

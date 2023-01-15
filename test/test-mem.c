@@ -1,7 +1,11 @@
 #include <errno.h>
+#include <limits.h>
 #include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "cmocka.h"
 
@@ -136,6 +140,95 @@ void test_brk() {
   return 0;
 }
 
+#define MAP_ARRAY_SIZE 9
+#define MAP_FLAGS (MAP_ANONYMOUS | MAP_PRIVATE)
+#define PAGE_SIZE 4096
+
+static const struct {
+  void* addr;
+  int ret;
+  unsigned int flags;
+} gmmap_test[MAP_ARRAY_SIZE] = {
+    {(void*)0, 0, MAP_FLAGS},
+    {(void*)1, -1, MAP_FLAGS | MAP_FIXED},
+    {(void*)(PAGE_SIZE - 1), -1, MAP_FLAGS | MAP_FIXED},
+    {(void*)PAGE_SIZE, -1, MAP_FLAGS | MAP_FIXED},
+    {(void*)-1, 0, MAP_FLAGS},
+    {(void*)(-PAGE_SIZE), -1, MAP_FLAGS | MAP_FIXED},
+    {(void*)(-1 - PAGE_SIZE), -1, MAP_FLAGS | MAP_FIXED},
+    {(void*)(-1 - PAGE_SIZE - 1), -1, MAP_FLAGS | MAP_FIXED},
+    {(void*)(0x1000 * PAGE_SIZE), 0, MAP_FLAGS | MAP_FIXED},
+};
+
+void test_mmap() {
+  void* p = NULL;
+  int i;
+  int ret;
+  int count = sizeof(gmmap_test) / sizeof(gmmap_test[0]);
+  void* array[MAP_ARRAY_SIZE] = {NULL};
+
+  for (i = 0; i < count; i++) {
+    p = mmap((void*)gmmap_test[i].addr, PAGE_SIZE,
+             PROT_READ | PROT_WRITE | PROT_EXEC, gmmap_test[i].flags, -1, 0);
+    ret = (p == MAP_FAILED) ? -1 : 0;
+    printf("=>%d %x %x\n", i, gmmap_test[i].ret, ret);
+    assert_int_equal(gmmap_test[i].ret, ret);
+    array[i] = p;
+  }
+
+  for (i = 0; i < count; i++) {
+    if (array[i] == MAP_FAILED) {
+      continue;
+    }
+    ret = munmap(array[i], PAGE_SIZE);
+    assert_int_equal(ret, 0);
+  }
+}
+
+#define MAP_TEST_FILE "/dev/stdin"
+
+void test_mmap1() {
+  char* p1 = NULL;
+  char* p2 = NULL;
+  char* p3 = NULL;
+  int fd, page_size;
+  int ret;
+
+  page_size = getpagesize();
+  fd = open(MAP_TEST_FILE, O_RDONLY);
+  assert_int_not_equal(fd, -1);
+
+  p1 = (char*)mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+  assert_int_not_equal(p1, MAP_FAILED);
+  (void)memset(p1, page_size, 0, page_size);
+
+  p2 = (char*)mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+  assert_int_not_equal(p2, MAP_FAILED);
+  (void)memset(p2, page_size, 0, page_size);
+
+  ret = memcmp(p1, p2, page_size);
+  assert_int_equal(ret, 0);
+
+  p1[0] = 1;
+  assert_int_equal(p2[0], 0);
+
+  p2[0] = 2;
+  assert_int_equal(p1[0], 1);
+
+  p3 = (char*)mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+  assert_int_not_equal(p3, MAP_FAILED);
+  assert_int_equal(p3[0], 0xf);
+
+  ret = munmap(p1, page_size);
+  assert_int_equal(ret, 0);
+  ret = munmap(p2, page_size);
+  assert_int_equal(ret, 0);
+  ret = munmap(p3, page_size);
+  assert_int_equal(ret, 0);
+  ret = close(fd);
+  assert_int_equal(ret, 0);
+}
+
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {cmocka_unit_test(test_malloc_free),
                                      cmocka_unit_test(test_my_realloc),
@@ -144,7 +237,9 @@ int main(int argc, char* argv[]) {
                                      cmocka_unit_test(test_my_realloc_multi),
                                      cmocka_unit_test(test_mremap),
                                      cmocka_unit_test(test_realloc_large),
-                                     cmocka_unit_test(test_brk)
+                                     cmocka_unit_test(test_brk),
+                                     cmocka_unit_test(test_mmap),
+                                     cmocka_unit_test(test_mmap1)
 
   };
 
