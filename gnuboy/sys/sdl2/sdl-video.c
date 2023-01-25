@@ -170,7 +170,7 @@ void vid_end()
 	fb.ptr = pix;
 	if(fb.enabled)
 	{
-		SDL_RenderClear(renderer);
+		//SDL_RenderClear(renderer);
 		SDL_UpdateTexture(texture, NULL, pix, vmode[0] * sizeof(uint32_t));
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		SDL_RenderPresent(renderer);
