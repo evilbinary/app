@@ -119,3 +119,12 @@ source = [
 env.Program('test-free', source,
             LIBS=libs+env.get('LIBS')
             )
+
+
+source = [
+    'test-sound.c',
+]
+
+env.Program('test-sound', source,
+            LIBS=libs+env.get('LIBS')
+            )
