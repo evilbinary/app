@@ -19,7 +19,8 @@ int ffplayer(int argc, char *argv[]) {
   int i, videoindex;
   AVCodecContext *pCodecCtx;
   AVCodec *pCodec;
-  char filepath[] = "/test.wmv";
+  // char filepath[] = "/test.wmv";
+  char filepath[] = "/test.mp4";
 
   av_log_set_level(AV_LOG_TRACE);  // AV_LOG_TRACE AV_LOG_VERBOSE
   //   char rtspUrl[] = "rtsp://admin:12345@192.168.10.76:522";
@@ -27,14 +28,18 @@ int ffplayer(int argc, char *argv[]) {
   avformat_network_init();                // 支持网络流
   pFormatCtx = avformat_alloc_context();  // 初始化AVFormatContext
 
-  AVInputFormat* iformat=av_find_input_format("h264");
+  AVInputFormat *iformat = av_find_input_format("h264");
 
-  int err = avformat_open_input(&pFormatCtx, filepath /*rtspUrl*/, iformat, NULL);
+  iformat = NULL;
+
+  int err =
+      avformat_open_input(&pFormatCtx, filepath /*rtspUrl*/, iformat, NULL);
   if (err != 0) {  // 打开文件或网络流
     av_strerror(err, errstr, sizeof(errstr));
-    printf("无法打开文件 %x %s\n", err, errstr);
+    printf("无法打开文件 %d %s\n", err, errstr);
     return -1;
   }
+
   if (avformat_find_stream_info(pFormatCtx, NULL) < 0)  // 查找流信息
   {
     printf("Couldn't find stream information.\n");
@@ -56,11 +61,20 @@ int ffplayer(int argc, char *argv[]) {
     printf("Codec not found.\n");
     return -1;
   }
+
+  printf("1 width:%d height:%d\n", pCodecCtx->width, pCodecCtx->height);
+
   if (avcodec_open2(pCodecCtx, pCodec, NULL) < 0)  // 打开解码器
   {
     printf("Could not open codec.\n");
     return -1;
   }
+  printf("width:%d height:%d\n", pCodecCtx->width, pCodecCtx->height);
+  if (pCodecCtx->width == 0) {
+    pCodecCtx->width = 320;
+    pCodecCtx->height = 240;
+  }
+
   AVFrame *pFrame, *pFrameYUV;
   pFrame = av_frame_alloc();     // 存储解码后AVFrame
   pFrameYUV = av_frame_alloc();  // 存储转换后AVFrame
@@ -72,14 +86,14 @@ int ffplayer(int argc, char *argv[]) {
                  pCodecCtx->width, pCodecCtx->height);  // 填充AVFrame
 
   //------------SDL初始化--------
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
+  if (SDL_Init(SDL_INIT_VIDEO)) {  //| SDL_INIT_AUDIO | SDL_INIT_TIMER
     printf("Could not initialize SDL - %s\n", SDL_GetError());
     return -1;
   }
   SDL_Window *screen = SDL_CreateWindow(
       "RTSP Client Demo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
       pCodecCtx->width, pCodecCtx->height,
-      SDL_WINDOW_RESIZABLE /* SDL_WINDOW_HIDDEN*/ | SDL_WINDOW_OPENGL);
+      SDL_WINDOW_RESIZABLE /* SDL_WINDOW_HIDDEN*/);  //| SDL_WINDOW_OPENGL
   if (!screen) {
     printf("SDL: could not set video mode - exiting\n");
     return -1;
@@ -101,7 +115,7 @@ int ffplayer(int argc, char *argv[]) {
   av_new_packet(packet, y_size);
   // 输出一下信息-----------------------------
   printf("文件信息-----------------------------------------\n");
-  // av_dump_format(pFormatCtx,0,filepath,0);
+  av_dump_format(pFormatCtx, 0, filepath, 0);
   printf("-------------------------------------------------\n");
   //------------------------------
   while (av_read_frame(pFormatCtx, packet) >= 0)  // 循环获取压缩数据包AVPacket
@@ -111,7 +125,7 @@ int ffplayer(int argc, char *argv[]) {
           avcodec_decode_video2(pCodecCtx, pFrame, &got_picture,
                                 packet);  // 解码。输入为AVPacket，输出为AVFrame
       if (ret < 0) {
-        printf("解码错误\n");
+        printf("解码错误 %d\n", ret);
         return -1;
       }
       if (got_picture) {
