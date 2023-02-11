@@ -19,21 +19,17 @@ int ffplayer(int argc, char *argv[]) {
   int i, videoindex;
   AVCodecContext *pCodecCtx;
   AVCodec *pCodec;
-  // char filepath[] = "/test.wmv";
-  char filepath[] = "/test.mp4";
+  char filepath[] = "/test.wmv";
+  // char filepath[] = "/test.mp4";
 
-  av_log_set_level(AV_LOG_TRACE);  // AV_LOG_TRACE AV_LOG_VERBOSE
+  //av_log_set_level(AV_LOG_TRACE);  // AV_LOG_TRACE AV_LOG_VERBOSE
   //   char rtspUrl[] = "rtsp://admin:12345@192.168.10.76:522";
   av_register_all();                      // 注册组件
   avformat_network_init();                // 支持网络流
   pFormatCtx = avformat_alloc_context();  // 初始化AVFormatContext
 
-  AVInputFormat *iformat = av_find_input_format("h264");
-
-  iformat = NULL;
-
   int err =
-      avformat_open_input(&pFormatCtx, filepath /*rtspUrl*/, iformat, NULL);
+      avformat_open_input(&pFormatCtx, filepath /*rtspUrl*/, NULL, NULL);
   if (err != 0) {  // 打开文件或网络流
     av_strerror(err, errstr, sizeof(errstr));
     printf("无法打开文件 %d %s\n", err, errstr);

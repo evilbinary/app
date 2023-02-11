@@ -72,6 +72,7 @@ libs = [
 
 include = [
     '../../eggs/libffmpeg/',
+    '#/eggs/libffmpeg/',
 ]
 
 env.Program('player', source,

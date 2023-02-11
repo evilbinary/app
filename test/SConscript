@@ -128,3 +128,12 @@ source = [
 env.Program('test-sound', source,
             LIBS=libs+env.get('LIBS')
             )
+
+
+source = [
+    'test-sys.c',
+]
+
+env.Program('test-sys', source,
+            LIBS=libs+env.get('LIBS')
+            )
