@@ -27,6 +27,8 @@ static void btn_event_cb(lv_event_t *e) {
   }
 }
 
+#if (LVGL_VERSION_MAJOR == 8 && LVGL_VERSION_MINOR == 0)
+
 void lv_example_get_started_1(void) {
   lv_obj_t *btn =
       lv_btn_create(lv_scr_act()); /*Add a button the current screen*/
@@ -194,6 +196,8 @@ uint32_t custom_tick_get(void) {
   uint32_t time_ms = now_ms - start_ms;
   return time_ms;
 }
+
+#endif
 
 int main(int argc, char **argv) {
   lv_init();

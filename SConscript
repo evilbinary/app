@@ -87,7 +87,9 @@ returns=[]
 
 if env.get('APP'):
     build_app = ['hello', 'gui', 'microui', 'test', 'etk', 'cmd', 'lvgl', 'track',
-                 'sdl2', 'infones', 'launcher', 'mgba', 'lua', 'scheme', 'quickjs', 'gnuboy']
+                 'sdl2', 'infones', 'launcher', 'mgba', 'lua', 'scheme', 'quickjs', 'gnuboy',
+                 'watch'
+                 ]
 
     all = SConscript(dirs=build_app, exports='env')
     
@@ -96,19 +98,21 @@ if env.get('APP'):
             returns+=j
 
     apps_file = [
-        # 'hello/hello',
-        # 'gui/gui',
-        # 'microui/microui',
-        # 'etk/etk',
-        # 'test/test',
-        # 'test/test-file',
-        # 'test/test-mem',
-        # 'test/test-uncompress',
-        # 'test/test-string',
-        # 'test/test-stdlib',
-        # 'test/test-stdio',
-        # 'test/test-fork',
-        # 'test/test-free',
+        'hello/hello',
+        'gui/gui',
+        'microui/microui',
+        'etk/etk',
+        'test/test',
+        'test/test-file',
+        'test/test-mem',
+        'test/test-uncompress',
+        'test/test-string',
+        'test/test-stdlib',
+        'test/test-stdio',
+        'test/test-fork',
+        'test/test-free',
+        'test/test-sound',
+        'test/test-sys',
 
         # 'rust/test/test-rs',
         'cmd/ls',
@@ -118,24 +122,24 @@ if env.get('APP'):
         'cmd/touch',
         'cmd/date',
 
-        # 'lvgl/lvgl',
-        # 'track/track',
-        # 'launcher/launcher',
-        # 'infones/infones',
-        # 'sdl2/sdl2',
-        # 'sdl2/player',
-        # 'sdl2/showimage',
-        # 'sdl2/showfont',
-        # 'mgba/mgba',
-        # 'mgba/miniunz',
-        # 'gnuboy/gnuboy',
+        'lvgl/lvgl',
+        'track/track',
+        'launcher/launcher',
+        'infones/infones',
+        'sdl2/sdl2',
+        'sdl2/player',
+        'sdl2/showimage',
+        'sdl2/showfont',
+        'mgba/mgba',
+        'mgba/miniunz',
+        'gnuboy/gnuboy',
 
-        # 'lua/lua',
-        # 'lua/luat',
-        # 'lua/hello.lua',
-        # 'scheme/scheme',
-        # 'scheme/petite.boot',
-        # 'scheme/scheme.boot',
+        'lua/lua',
+        'lua/luat',
+        'lua/hello.lua',
+        'scheme/scheme',
+        'scheme/petite.boot',
+        'scheme/scheme.boot',
 
         # 'quickjs/qjs',
         # 'quickjs/qjsc',
@@ -143,9 +147,10 @@ if env.get('APP'):
         # 'quickjs/qjscalc.js',
         # # 'quickjs/tests/test_builtin.js',
         # 'quickjs/examples/hello.js',
+        'watch/watch',
 
     ]
-    # apps += Glob('resource/*')
+    apps_file += Glob('resource/*')
     if env.get('DEFAULT_LIBC') == 'libmusl':
         SConscript(dirs=['toybox'], exports='env')
         SConscript(dirs=['meui'], exports='env')
