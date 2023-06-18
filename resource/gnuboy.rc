@@ -15,7 +15,7 @@ bind tab +select
 bind ins savestate
 bind del loadstate
 set joy 1
-set scale 1
+set scale 2
 set sound 1
 set density 4
 set fullscreen 0

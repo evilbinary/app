@@ -104,8 +104,8 @@ void yiyiya_bitmap() {
 
 int main(int argc, char* argv[]) {
   printf(buf);
-  yiyiya_gui();
-  // yiyiya_display();
+  // yiyiya_gui();
+  yiyiya_display();
   // yiyiya_bitmap();
 
   return 0;

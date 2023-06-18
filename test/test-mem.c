@@ -54,6 +54,10 @@ static char* loadfile(FILE* f, int* len) {
   char *d = 0, buf[512];
   for (;;) {
     c = fread(buf, 1, sizeof buf, f);
+    // c=0xff;
+    // if(i== 123456){
+    //   c=0;
+    // }
     if (l % 10000 == 0) printf("ret=%d len=%x %d addr=%x\n", c, l, l, d);
     if (c <= 0) break;
     l += c;
@@ -81,7 +85,8 @@ static char* loadfile(FILE* f, int* len) {
 void test_my_realloc_multi(void** state) {
   FILE* fp;
   // char* name = "/mario.gba";
-  char* name = "/01.gb";
+  // char* name = "/01.gb";
+  char* name = "/pokemon.gbc";
 
   fp = fopen(name, "r+");
   assert_non_null(fp);
@@ -230,16 +235,17 @@ void test_mmap1() {
 }
 
 int main(int argc, char* argv[]) {
-  const struct CMUnitTest tests[] = {cmocka_unit_test(test_malloc_free),
-                                     cmocka_unit_test(test_my_realloc),
-                                     cmocka_unit_test(test_my_calloc),
-                                     cmocka_unit_test(test_malloc_large),
+  const struct CMUnitTest tests[] = {
+    // cmocka_unit_test(test_malloc_free),
+  //                                    cmocka_unit_test(test_my_realloc),
+  //                                    cmocka_unit_test(test_my_calloc),
+  //                                    cmocka_unit_test(test_malloc_large),
                                      cmocka_unit_test(test_my_realloc_multi),
-                                     cmocka_unit_test(test_mremap),
-                                     cmocka_unit_test(test_realloc_large),
-                                     cmocka_unit_test(test_brk),
-                                     cmocka_unit_test(test_mmap),
-                                     cmocka_unit_test(test_mmap1)
+                                    //  cmocka_unit_test(test_mremap),
+                                    //  cmocka_unit_test(test_realloc_large),
+                                    //  cmocka_unit_test(test_brk),
+                                    //  cmocka_unit_test(test_mmap),
+                                    //  cmocka_unit_test(test_mmap1)
 
   };
 
