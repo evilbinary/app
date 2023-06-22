@@ -53,6 +53,12 @@ source = [
 date=env.Program('date', source)
 
 
+source = [
+    'kill.c',
+]
+
+kill=env.Program('kill', source)
+
 returns=[ls]
 
 Return('returns')
