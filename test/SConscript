@@ -7,6 +7,7 @@
 import os
 
 Import('env')
+Import('cppEnv')
 
 
 env = env.Clone(
@@ -136,4 +137,19 @@ source = [
 
 env.Program('test-sys', source,
             LIBS=libs+env.get('LIBS')
+            )
+
+
+source = [
+    'test-cpp.cpp',
+]
+
+libpath=[]
+
+include=[]
+
+cppEnv.Program('test-cpp', source,
+    # LIBPATH=libpath+env.get('LIBPATH'),
+    # CPPPATH=include+env.get('CPPPATH'),
+    # LIBS=libs+env.get('LIBS')
             )

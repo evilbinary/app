@@ -17,7 +17,6 @@ Export('cliEnv')
 
 env = appEnv
 
-
 env['CPPPATH'] += [
     '../../eggs/',
     '.',
@@ -74,6 +73,28 @@ if env.get('MYLIB'):
     env['LIBS'].append(env.get('MYLIB'))
 
 
+# config cpp env
+cppEnv = appEnv.Clone()
+
+
+cppEnv['LIBS'] += ['libcxx.a','libcxxabi.a']+ env['LIBC']
+cppEnv['LIBPATH']+=env['LIBCOMMON']+[
+    '../../eggs/libcxx/',
+    '../../eggs/libcxxabi/',
+
+    ] 
+cppEnv['CPPPATH']+=['#/eggs/libcxx',
+                    '#/eggs/libcxx/include',
+                    '#/eggs/libcxxabi',
+                    '#/eggs/libcxxabi/include'
+                    ]
+cxxflags=' -g -fno-use-cxa-atexit -fno-threadsafe-statics -D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_HAS_NO_MONOTONIC_CLOCK -D_LIBCPP_HAS_MUSL_LIBC -D_LIBCPP_HAS_NO_LIBRARY_ALIGNED_ALLOCATION    -D_LIBCPP_BUILDING_LIBRARY -D_POSIX_C_SOURCE -D_LIBCXXABI_HAS_NO_THREADS -D_GNU_SOURCE  '
+
+cppEnv['CXXFLAGS'] += env['LIBCFLAGS']+cxxflags
+
+Export('cppEnv')
+
+
 def check_exit(apps):
     new_list = copy.deepcopy(apps)
     for app in new_list:
@@ -113,7 +134,7 @@ if env.get('APP'):
         'test/test-free',
         'test/test-sound',
         'test/test-sys',
-
+        'test/test-cpp',
         # 'rust/test/test-rs',
         'cmd/ls',
         'cmd/echo',
@@ -121,13 +142,14 @@ if env.get('APP'):
         'cmd/hexdump',
         'cmd/touch',
         'cmd/date',
+        'cmd/kill',
 
         'lvgl/lvgl',
         'track/track',
         'launcher/launcher',
         'infones/infones',
         'sdl2/sdl2',
-        'sdl2/player',
+        # 'sdl2/player',
         'sdl2/showimage',
         'sdl2/showfont',
         'mgba/mgba',
@@ -141,8 +163,8 @@ if env.get('APP'):
         'scheme/petite.boot',
         'scheme/scheme.boot',
 
-        # 'quickjs/qjs',
-        # 'quickjs/qjsc',
+        'quickjs/qjs',
+        'quickjs/qjsc',
         # 'quickjs/repl.js',
         # 'quickjs/qjscalc.js',
         # # 'quickjs/tests/test_builtin.js',

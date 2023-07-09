@@ -20,6 +20,20 @@ SECTIONS
         .data BLOCK(4K) : ALIGN(4K)
         {
                 *(.data*)
+
+                PROVIDE_HIDDEN (__init_array_start = .);
+		KEEP(*(SORT(.init_array.*)))
+                KEEP(*(.init_array))
+		PROVIDE_HIDDEN (__init_array_end = .);
+
+                PROVIDE (__preinit_array_start = .);
+	        KEEP (*(.preinit_array))
+	        PROVIDE (__preinit_array_end = .);
+
+                PROVIDE (__fini_array_start = .);
+		KEEP (*(.fini_array))
+		KEEP (*(SORT(.fini_array.*)))
+		PROVIDE (__fini_array_end = .);
         }
         /* Read-write data (uninitialized) and stack */
         .bss BLOCK(4K) : ALIGN(4K)
