@@ -1,7 +1,11 @@
 #include <dirent.h>
+#include <fcntl.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "cmocka.h"
 #include "stdio.h"
@@ -206,18 +210,18 @@ void test_fgetc(void** state) {
     perror("Error in opening file");
     return (-1);
   }
-  int i=0;
+  int i = 0;
   do {
     c = fgetc(fp);
     if (feof(fp)) {
       break;
     }
-    //printf("i=%d c= %c\n",i,c);
-    if (i %3==0) {
+    // printf("i=%d c= %c\n",i,c);
+    if (i % 3 == 0) {
       assert_int_equal(c, 'A');
-    } else if (i %3== 1) {
+    } else if (i % 3 == 1) {
       assert_int_equal(c, 'B');
-    } else if (i%3 == 2) {
+    } else if (i % 3 == 2) {
       assert_int_equal(c, 'C');
     }
     i++;
@@ -226,12 +230,127 @@ void test_fgetc(void** state) {
   fclose(fp);
 }
 
+void test_read_dir_file(void* state) {
+  int c;
+  int n = 0;
+  int fp = fopen("/file/fgetc.txt", "r");
+  if (fp == NULL) {
+    perror("Error in opening file");
+    return (-1);
+  }
+  int i = 0;
+  do {
+    c = fgetc(fp);
+    if (feof(fp)) {
+      break;
+    }
+    // printf("i=%d c= %c\n",i,c);
+    if (i % 3 == 0) {
+      assert_int_equal(c, 'A');
+    } else if (i % 3 == 1) {
+      assert_int_equal(c, 'B');
+    } else if (i % 3 == 2) {
+      assert_int_equal(c, 'C');
+    }
+    i++;
+  } while (1);
+}
+
+void test_write_dir_file(void** state) {
+  FILE* fp = fopen("/file/test.txt", "w+");
+  assert_non_null(fp);
+  int ret = fseek(fp, 0, SEEK_SET);
+  assert_true(ret == 0);
+  for (int i = 0; i < 100; i++) {
+    ret = fwrite("ABC", 3, 1, fp);
+    assert_int_equal(ret, 1);
+  }
+  fclose(fp);
+
+  int c;
+  int n = 0;
+  fp = fopen("/file/test.txt", "r");
+  if (fp == NULL) {
+    perror("Error in opening file");
+    return (-1);
+  }
+  int i = 0;
+  do {
+    c = fgetc(fp);
+    if (feof(fp)) {
+      break;
+    }
+    // printf("i=%d c= %c\n",i,c);
+    if (i % 3 == 0) {
+      assert_int_equal(c, 'A');
+    } else if (i % 3 == 1) {
+      assert_int_equal(c, 'B');
+    } else if (i % 3 == 2) {
+      assert_int_equal(c, 'C');
+    }
+    i++;
+  } while (1);
+}
+
+void test_read_dir_file_opened(void* state) {
+  int c;
+  int n = 0;
+
+  int fp = fopen("/dtm/", "r");
+  fp = fopen("/dtm/100.dtm", "r");
+  if (fp == NULL) {
+    perror("Error in opening file");
+    return (-1);
+  }
+  int i = 0;
+  do {
+    c = fgetc(fp);
+    if (feof(fp)) {
+      break;
+    }
+    printf("%c", i, c);
+    if (i % 3 == 0) {
+      assert_int_equal(c, 'A');
+    } else if (i % 3 == 1) {
+      assert_int_equal(c, 'B');
+    } else if (i % 3 == 2) {
+      assert_int_equal(c, 'C');
+    }
+    i++;
+  } while (1);
+  printf("\n");
+}
+
+void test_stat_mode(void* state) {
+  int c;
+  int n = 0;
+  struct stat buf;
+
+  int fp = fopen("/dtm/100.dtm", "r");
+  assert_non_null(fp);
+
+  int ret = stat("/dtm/100.dtm", &buf);
+  assert_true(ret < 0);
+
+  assert_true(S_ISREG(buf.st_mode));
+
+  fclose(fp);
+}
+
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {
-      cmocka_unit_test(test_read_large), cmocka_unit_test(test_seek_read),
-      cmocka_unit_test(test_write),      cmocka_unit_test(test_write_read),
-      cmocka_unit_test(test_read_dir),   cmocka_unit_test(test_seek),
-      cmocka_unit_test(test_read_byte),  cmocka_unit_test(test_fgetc),
+      cmocka_unit_test(test_read_large),
+      cmocka_unit_test(test_seek_read),
+      cmocka_unit_test(test_write),
+      cmocka_unit_test(test_write_read),
+      cmocka_unit_test(test_read_dir),
+      cmocka_unit_test(test_seek),
+      cmocka_unit_test(test_read_byte),
+      cmocka_unit_test(test_fgetc),
+      cmocka_unit_test(test_read_dir_file),
+      cmocka_unit_test(test_read_dir_file_opened),
+      cmocka_unit_test(test_stat_mode),
+      cmocka_unit_test(test_write_dir_file),
 
   };
 

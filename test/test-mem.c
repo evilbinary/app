@@ -1,11 +1,11 @@
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 #include "cmocka.h"
 
@@ -235,17 +235,16 @@ void test_mmap1() {
 }
 
 int main(int argc, char* argv[]) {
-  const struct CMUnitTest tests[] = {
-    // cmocka_unit_test(test_malloc_free),
-  //                                    cmocka_unit_test(test_my_realloc),
-  //                                    cmocka_unit_test(test_my_calloc),
-  //                                    cmocka_unit_test(test_malloc_large),
+  const struct CMUnitTest tests[] = {cmocka_unit_test(test_malloc_free),
+                                     cmocka_unit_test(test_my_realloc),
+                                     cmocka_unit_test(test_my_calloc),
+                                     cmocka_unit_test(test_malloc_large),
                                      cmocka_unit_test(test_my_realloc_multi),
-                                    //  cmocka_unit_test(test_mremap),
-                                    //  cmocka_unit_test(test_realloc_large),
-                                    //  cmocka_unit_test(test_brk),
-                                    //  cmocka_unit_test(test_mmap),
-                                    //  cmocka_unit_test(test_mmap1)
+                                     cmocka_unit_test(test_mremap),
+                                     cmocka_unit_test(test_realloc_large),
+                                     cmocka_unit_test(test_brk),
+                                     cmocka_unit_test(test_mmap),
+                                     cmocka_unit_test(test_mmap1)
 
   };
 
