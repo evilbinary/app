@@ -77,7 +77,10 @@ include = [
     '../../eggs/libjpeg/',
     '../../eggs/libfreetype/include',
     '../../eggs/ibzlib',
-
+    '../../eggs/libsdl2/include',
+    '../../eggs/libsdl2/src',
+    '../../eggs/libsdl2/',
+    
     'include/mgba-util',
     'src/third-party/zlib/contrib/',
     'src/third-party/zlib/contrib/minizip/',

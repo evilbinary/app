@@ -148,8 +148,18 @@ libpath=[]
 
 include=[]
 
-cppEnv.Program('test-cpp', source,
-    # LIBPATH=libpath+env.get('LIBPATH'),
-    # CPPPATH=include+env.get('CPPPATH'),
-    # LIBS=libs+env.get('LIBS')
+# cppEnv.Program('test-cpp', source,
+#     # LIBPATH=libpath+env.get('LIBPATH'),
+#     # CPPPATH=include+env.get('CPPPATH'),
+#     # LIBS=libs+env.get('LIBS')
+#             )
+
+
+source = [
+    'test-thread.c',
+]
+
+env.Program('test-thread', source,
+            LIBS=libs+env.get('LIBS')
             )
+

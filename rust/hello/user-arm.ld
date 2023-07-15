@@ -12,34 +12,57 @@ SECTIONS
         }
 
         /* Read-only data. */
-        .rodata  : ALIGN(4K)
+        .rodata BLOCK(4K) : ALIGN(4K)
         {
                 *(.rodata*)
         }
 
         /* Read-write data (initialized) */
-        .data  : ALIGN(4K)
+        .data BLOCK(4K) : ALIGN(4K)
         {
                 *(.data*)
+
+                PROVIDE_HIDDEN (__init_array_start = .);
+		KEEP(*(SORT(.init_array.*)))
+                KEEP(*(.init_array))
+		PROVIDE_HIDDEN (__init_array_end = .);
+
+                PROVIDE (__preinit_array_start = .);
+	        KEEP (*(.preinit_array))
+	        PROVIDE (__preinit_array_end = .);
+
+                PROVIDE (__fini_array_start = .);
+		KEEP (*(.fini_array))
+		KEEP (*(SORT(.fini_array.*)))
+		PROVIDE (__fini_array_end = .);
         }
 
+
         /* Read-write data (uninitialized) and stack */
-        .bss  : ALIGN(4K)
+        .bss BLOCK(4K) : ALIGN(4K)
         {
                 *(COMMON)
-                *(.bss)
+                *(.bss*)
         }
-        .eh_frame  : ALIGN(4K)
+  
+
+        .eh_frame BLOCK(4K) : ALIGN(4K)
         {
-                *(.eh_frame*)
+                *(.eh_frame)
         }
-        .debug  : ALIGN(4K)
-        {
-                *(.debug*)
+       
+        .ARM.exidx ALIGN(0x8) : { 
+                __exidx_start = .;
+                *(.ARM.exidx.* )
+                *(.gnu.linkonce.armexidx.*)
+                __exidx_end = .;
         }
-        .ARM.extab   : { *(.ARM.extab*) }
-        .ARM.exidx   : { *(.ARM.exidx*) }
-        .tdata             : { *(.tdata .tdata.*) }
-        .tbss              : { *(.tbss .tbss.*) }
+       
+         ARM.extab ALIGN(0x8) : { 
+                *(.ARM.extab.*)
+        }
+        .note.GNU-stack ALIGN(0x8) :{
+                *(.note.*)
+        }
        _end = .;
 }

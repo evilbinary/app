@@ -23,21 +23,29 @@ libs = [
     'libzlib.a',
 ]
 
+include = [
+    '../../eggs/libsdl2/include',
+    '../../eggs/libsdl2/src',
+    '../../eggs/libsdl2/',
+]
+
+
 libpath = [
     '../../eggs/libsdl2/',
 ]
 
-cflags='$CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT'
+cflags=' -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT'
 
 if env.get('DEFAULT_LIBC') == 'libmusl':
-    cflags='-lstdatomic $CFLAGS $LIBCFLAGS -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT -DHAVE_TRUNCF -DHAVE_ROUNDF -DHAVE_ROUND  -DHAVE_LRINT -DHAVE_LRINTF -DHAVE_CBRTF -DHAVE_COPYSIGN'
+    cflags='-lstdatomic  -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT -DHAVE_TRUNCF -DHAVE_ROUNDF -DHAVE_ROUND  -DHAVE_LRINT -DHAVE_LRINTF -DHAVE_CBRTF -DHAVE_COPYSIGN'
 
 
 
 env.Program('sdl2', source,
             LIBS=libs+env.get('LIBS'),
             LIBPATH=env.get('LIBPATH')+libpath,
-            CFLAGS=cflags
+            CPPPATH=env.get('CPPPATH')+include,
+            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
             )
 
 
@@ -73,14 +81,15 @@ libs = [
 include = [
     '../../eggs/libffmpeg/',
     '#/eggs/libffmpeg/',
+    '../../eggs/libsdl2/include',
 ]
 
-env.Program('player', source,
-            LIBS=libs+env.get('LIBS'),
-            LIBPATH=env.get('LIBPATH')+libpath,
-            CPPPATH=env.get('CPPPATH')+include,
-            CFLAGS=cflags
-            )
+# env.Program('player', source,
+#             LIBS=libs+env.get('LIBS'),
+#             LIBPATH=env.get('LIBPATH')+libpath,
+#             CPPPATH=env.get('CPPPATH')+include,
+#             CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+#             )
 
 
 # showimage
@@ -102,6 +111,9 @@ libs = [
 ]
 include = [
     '../../eggs/libsdl2-image/',
+    '../../eggs/libsdl2/include',
+    '../../eggs/libsdl2/src',
+    '../../eggs/libsdl2/',
 ]
 
 libpath = [
@@ -146,7 +158,7 @@ include = [
     '../../eggs/libsdl2-image/',
     '../../eggs/libsdl2-ttf/',
     '../../eggs/libfreetype/include',
-
+  '../../eggs/libsdl2/include',
 ]
 
 libpath = [

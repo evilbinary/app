@@ -16,7 +16,7 @@ char* buf = "hello,file\n";
 #define READ_BUFFER 24 * 20
 
 void test_read_large(void** state) {
-  char* name = "/duck.png";
+  char* name = "/res/duck.png";
   int succes = 1;
   char* buffer = malloc(READ_BUFFER);
   memset(buffer, 0, READ_BUFFER);
@@ -162,7 +162,7 @@ void test_seek(void** state) {
 }
 
 void test_seek_read(void** state) {
-  char* name = "/duck.png";
+  char* name = "/res/duck.png";
   int succes = 1;
   char* buffer = malloc(READ_BUFFER);
   memset(buffer, 0, READ_BUFFER);
@@ -256,6 +256,26 @@ void test_read_dir_file(void* state) {
   } while (1);
 }
 
+void test_read_more_dir_file(void* state) {
+  int c;
+  int n = 0;
+  int fp = fopen("/gmenu2x/skins/480x272/Default/skin.conf", "r");
+  assert_non_null(fp);
+  if (fp == NULL) {
+    perror("Error in opening file");
+    return (-1);
+  }
+  int i = 0;
+  do {
+    c = fgetc(fp);
+    if (feof(fp)) {
+      break;
+    }
+    printf("%c",i,c);
+    i++;
+  } while (1);
+}
+
 void test_write_dir_file(void** state) {
   FILE* fp = fopen("/file/test.txt", "w+");
   assert_non_null(fp);
@@ -326,10 +346,10 @@ void test_stat_mode(void* state) {
   int n = 0;
   struct stat buf;
 
-  int fp = fopen("/dtm/100.dtm", "r");
+  int fp = fopen("/res/duck.png", "r");
   assert_non_null(fp);
 
-  int ret = stat("/dtm/100.dtm", &buf);
+  int ret = stat("/res/duck.png", &buf);
   assert_true(ret < 0);
 
   assert_true(S_ISREG(buf.st_mode));
@@ -351,6 +371,7 @@ int main(int argc, char* argv[]) {
       cmocka_unit_test(test_read_dir_file_opened),
       cmocka_unit_test(test_stat_mode),
       cmocka_unit_test(test_write_dir_file),
+      cmocka_unit_test(test_read_more_dir_file),
 
   };
 

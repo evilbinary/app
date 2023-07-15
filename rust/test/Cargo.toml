@@ -12,10 +12,13 @@ edition = "2018"
 
 [profile.dev]
 panic = "abort"
-opt-level = 3
-debug = false
-lto = true
+# opt-level = 3
+debug = true
+# lto = true
 
 
 [profile.release]
 panic = "abort"
+
+[build]
+# target-dir = ".."

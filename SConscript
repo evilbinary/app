@@ -46,7 +46,6 @@ env['CPPPCOMMON'] = [
     '../../eggs/libetk',
     '../../eggs/libcmocka/include',
     '../../eggs/liblvgl',
-    '../../eggs/libsdl2/include',
 ]
 
 env['LIBCOMMON'] = [
@@ -109,7 +108,12 @@ returns=[]
 if env.get('APP'):
     build_app = ['hello', 'gui', 'microui', 'test', 'etk', 'cmd', 'lvgl', 'track',
                  'sdl2', 'infones', 'launcher', 'mgba', 'lua', 'scheme', 'quickjs', 'gnuboy',
-                 'watch'
+                 'watch',
+                 'gmenu2x',
+                 'monogui',
+                #  'sdlmine',
+                 'sdl',
+                 'unitest',
                  ]
 
     all = SConscript(dirs=build_app, exports='env')
@@ -134,8 +138,11 @@ if env.get('APP'):
         'test/test-free',
         'test/test-sound',
         'test/test-sys',
-        'test/test-cpp',
-        # 'rust/test/test-rs',
+        # 'test/test-cpp',
+        'rust/test/test-rs',
+        'test/test-thread',
+
+
         'cmd/ls',
         'cmd/echo',
         'cmd/cat',
@@ -171,29 +178,50 @@ if env.get('APP'):
         # 'quickjs/examples/hello.js',
         'watch/watch',
 
+        'gmenu2x/gmenu',
+        # 'sdlmine/sdlmine',
+        'sdl/testwm',
+        'sdl/testoverlay2',
+        'sdl/testbitmap',
+        'sdl/testoverlay',
+
+        'monogui/monogui',
+
+        'unitest/pngtest',
+        
+        # 'monogui/demo/asc12.bin',
+        # 'monogui/demo/gb12song',
+        # 'monogui/demo/gb16song',
+        # 'monogui/demo/KeyMap.txt',
+        # 'monogui/demo/lx.db',
+        # 'monogui/demo/lx.idx',
+        # 'monogui/demo/ex.db',
+        # 'monogui/demo/ex.idx',
+        # 'monogui/demo/py.db',
+        # 'monogui/demo/py.idx',
     ]
     apps_file += Glob('resource/*')
     if env.get('DEFAULT_LIBC') == 'libmusl':
         SConscript(dirs=['toybox'], exports='env')
-        SConscript(dirs=['meui'], exports='env')
+        # SConscript(dirs=['meui'], exports='env')
 
         apps_file += [
             # 'test/test-musl',
             'toybox/toybox',
-            'meui/packages/examples/dist/index.js',
-            'meui/meui'
+            # 'meui/packages/examples/dist/index.js',
+            # 'meui/meui'
         ]
 
     if plt == 'Darwin':
         env.Command('copyapp',
                     apps_file,
-                    ['hdid  image/disk.img &&  cp ${SOURCES} /Volumes/NO\ NAME/ && hdiutil eject /Volumes/NO\ NAME/'
+                    ['hdid  image/disk.img &&  cp -r ${SOURCES} /Volumes/NO\ NAME/ && hdiutil eject /Volumes/NO\ NAME/'
                      ])
         pass
     elif plt == 'Linux':
         env.Command('copyapp',
                     apps_file,
-                    ['sudo losetup /dev/loop10 image/disk.img && sudo mount /dev/loop10 /mnt && sudo cp  ${SOURCES} /mnt && sudo umount /mnt && sudo losetup -d /dev/loop10'
+                    ['sudo losetup /dev/loop10 image/disk.img && sudo mount /dev/loop10 /mnt && sudo cp -r ${SOURCES} /mnt && sudo umount /mnt && sudo losetup -d /dev/loop10'
                      ])
     elif plt == 'Windows':
         try:

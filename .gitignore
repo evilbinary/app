@@ -120,6 +120,9 @@ test/test-string
 test/test-uncompress
 test/test-fork
 test/test-free
+test/test-sound
+test/test-sys
+test/test-thread
 
 scheme/*.boot
 
@@ -129,3 +132,18 @@ rust/test/target
 
 *.gb
 
+gmenu2x/gmenu
+monogui/monogui
+sdl/testbitmap
+sdl/testoverlay
+sdl/testwm
+sdl/testoverlay2
+watch/watch
+
+**/.DS_Store 
+
+cmd/kill
+rust/test/test-rs
+sdlmine/sdlmine
+
+unitest/pngtest

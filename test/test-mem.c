@@ -234,6 +234,45 @@ void test_mmap1() {
   assert_int_equal(ret, 0);
 }
 
+typedef unsigned int png_uint_16;
+typedef unsigned char png_byte;
+
+typedef struct png_color_16_struct {
+  png_byte index;  /* used for palette files */
+  png_uint_16 red; /* for use in red green blue files */
+  png_uint_16 green;
+  png_uint_16 blue;
+  png_uint_16 gray; /* for use in grayscale files */
+} png_color_16;
+
+typedef struct png_struct_def {
+  png_color_16 background;
+  png_color_16 background_1;
+} png_struct;
+
+void test_memset() {
+  png_struct p;
+  p.background = p.background_1;
+
+  png_struct* pp = malloc(sizeof(png_struct));
+  pp->background = pp->background_1;
+}
+
+
+struct test_align_t {
+    char a;
+    int  b;
+} __attribute__((packed));
+
+int get_b(struct test_align_t *p){
+    return p->b;
+}
+
+void test_mem_align() {
+  struct test_align_t * p = malloc(sizeof(struct test_align_t));
+  get_b(p);
+}
+
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {cmocka_unit_test(test_malloc_free),
                                      cmocka_unit_test(test_my_realloc),
@@ -244,7 +283,9 @@ int main(int argc, char* argv[]) {
                                      cmocka_unit_test(test_realloc_large),
                                      cmocka_unit_test(test_brk),
                                      cmocka_unit_test(test_mmap),
-                                     cmocka_unit_test(test_mmap1)
+                                     cmocka_unit_test(test_mmap1),
+                                     cmocka_unit_test(test_memset),
+                                     cmocka_unit_test(test_mem_align)
 
   };
 

@@ -62,7 +62,6 @@ void ls(char* path) {
 int main(int argc, char* argv[]) {
   char* path = "/";
   path = getcwd(buf, 512);
-  printf("pwd:%s\n", path);
   if (argc > 1) {
     int c;
     while ((c = getopt(argc, argv, "ahl?")) != -1) {

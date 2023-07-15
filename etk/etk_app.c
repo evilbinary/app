@@ -37,7 +37,7 @@ int etk_app_main(int argc, char* argv[]) {
   // b=etk_image_jpeg_decoder_decode(jpeg_decoder,"duck.jpg");
 
   // b=etk_image_bmp_decoder(bmp_decoder,"bg.bmp");
-  b = etk_image_jpeg_decoder_decode(jpeg_decoder, "/home.jpg");
+  b = etk_image_jpeg_decoder_decode(jpeg_decoder, "/res/home.jpg");
   printf("pp=>%p %p\n", jpeg_decoder, bmp_decoder);
 
   printf("load bmp b:%x\n", b);
@@ -157,20 +157,20 @@ int etk_app_main(int argc, char* argv[]) {
   // etk_widget_append_child(desktop, wins[2]);
 
   printf("create temhum\n");
-  wins[3] = etk_temhum_create(10, 250, 200, 290);
+  wins[3] = etk_temhum_create(10, 50, 200, 290);
   etk_widget_append_child(desktop, wins[3]);
 
   printf("create status\n");
-  wins[4] = etk_status_create(200, 300, 200, 150);
+  wins[4] = etk_status_create(200, 30, 200, 150);
   etk_widget_append_child(desktop, wins[4]);
 
   printf("create clock\n");
   // clock
-  wins[6] = etk_app_clock(840, 40, 180, 180);
+  wins[6] = etk_app_clock(etkglobal.display->width-180, 40, 180, 180);
 
   //mine
   printf("create mine\n");
-  wins[7] = etk_game_mine(210, 230, 8, 8, 10);
+  wins[7] = etk_game_mine(210, 30, 8, 8, 10);
   // wins[7]=etk_game_mine(160, 230, 10, 10, 14);
   // etk_game_mine(340, 30, 16, 16, 20);
 
