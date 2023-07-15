@@ -1,0 +1,72 @@
+# coding:utf-8
+# *******************************************************************
+# * Copyright 2021-2080 evilbinary
+# * 作者: evilbinary on 01/01/20
+# * 邮箱: rootdebug@163.com
+# ********************************************************************
+import os
+
+Import('env')
+Import('cppEnv')
+
+cflags='  -DLIBYC -DIS_LITTLE_ENDIAN  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -fpermissive -DRUN_ENVIRONMENT_LINUX -DCHINESE_SUPPORT -DMOUSE_SUPPORT -DRESMGT_SUPPORT -DMODE_DEBUG ' #RUN_ENVIRONMENT_WIN32 RUN_ENVIRONMENT_LINUX 
+
+libs = [
+    'libsdl2.a',
+    'libgui.a',
+    'libimage.a',
+    'libjpeg.a',
+    'libpng.a',
+    'libzlib.a',
+    'libsdl2-ttf.a',
+    'libcxx.a',
+    'libcxxabi.a',
+
+]+env['LIBC']
+
+include = [
+    '../../eggs/libcxx/include',
+    '../../eggs/libcxxabi/include',
+
+    '../../eggs/libgui',
+    '../../eggs/libsdl2',
+    '../../eggs/libsdl2-ttf',
+    '../../eggs/libsdl2/include',
+    '../../eggs/libjpeg/',
+    '../../eggs/libfreetype/include',
+    'sys/sdl2/',
+    'include',
+    '.',
+    '../../eggs/include',
+]
+
+libpath = [
+    '../../eggs/libcxx/',
+    '../../eggs/libcxxabi/',
+    '../../eggs/libsdl2/',
+    '../../eggs/libsdl2-image/',
+    '../../eggs/libsdl2-ttf/',
+    '../../eggs/libfreetype',
+    '../../eggs/libwebp/',
+    '../../eggs/libgui',
+    '../../eggs/libimage',
+    '../../eggs/libjpeg',
+    '../../eggs/libpng',
+    '../../eggs/libc/',
+    '../../eggs/libzlib',
+
+]
+
+source = []
+
+source += Glob('tgui/*.cpp')
+
+source += Glob('demo/*.cpp')
+
+cppEnv.Program('monogui', source,
+    LIBS=libs+env.get('LIBS'),
+    LIBPATH=libpath +env['LIBPATH'],
+    CPPPATH=include+ env['CPPPATH'] ,
+    # CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
+            )
