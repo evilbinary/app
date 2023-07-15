@@ -147,3 +147,6 @@ rust/test/test-rs
 sdlmine/sdlmine
 
 unitest/pngtest
+
+resource/*.wmv
+resource/*.mp4
