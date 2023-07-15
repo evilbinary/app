@@ -21,6 +21,9 @@ void show_usage(int argc, char* argv[]) {
 }
 
 void ls(char* path) {
+  if (path == NULL) {
+    return;
+  }
   DIR* dir;
   struct dirent* ptr;
   struct stat mystat;
@@ -56,9 +59,10 @@ void ls(char* path) {
   printf("\n");
   closedir(dir);
 }
-
 int main(int argc, char* argv[]) {
   char* path = "/";
+  path = getcwd(buf, 512);
+  printf("pwd:%s\n", path);
   if (argc > 1) {
     int c;
     while ((c = getopt(argc, argv, "ahl?")) != -1) {
