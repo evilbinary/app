@@ -59,6 +59,10 @@ void ls(char* path) {
   printf("\n");
   closedir(dir);
 }
+
+extern char* optarg;
+extern int optind, opterr, optopt;
+
 int main(int argc, char* argv[]) {
   char* path = "/";
   path = getcwd(buf, 512);
@@ -80,6 +84,7 @@ int main(int argc, char* argv[]) {
           return 0;
       }
     }
+    path = argv[optind];
   }
   ls(path);
 
