@@ -122,6 +122,7 @@ if env.get('APP'):
         for j in i:
             returns+=j
 
+    resource_file=  Glob('resource/*')
     apps_file = [
         'hello/hello',
         'gui/gui',
@@ -200,7 +201,6 @@ if env.get('APP'):
         # 'monogui/demo/py.db',
         # 'monogui/demo/py.idx',
     ]
-    apps_file += Glob('resource/*')
     if env.get('DEFAULT_LIBC') == 'libmusl':
         SConscript(dirs=['toybox'], exports='env')
         # SConscript(dirs=['meui'], exports='env')
@@ -215,20 +215,29 @@ if env.get('APP'):
     if plt == 'Darwin':
         env.Command('copyapp',
                     apps_file,
-                    ['hdid  image/disk.img &&  cp -r ${SOURCES} /Volumes/NO\ NAME/ && hdiutil eject /Volumes/NO\ NAME/'
+                    [
+                    'cp ${SOURCES} app/resource/bin/ ' \
+                    '&& hdid  image/disk.img '\
+                    '&& cp -r app/resource/ /Volumes/NO\ NAME/ ' \
+                    '&& hdiutil eject /Volumes/NO\ NAME/'
                      ])
         pass
     elif plt == 'Linux':
         env.Command('copyapp',
                     apps_file,
-                    ['sudo losetup /dev/loop10 image/disk.img && sudo mount /dev/loop10 /mnt && sudo cp -r ${SOURCES} /mnt && sudo umount /mnt && sudo losetup -d /dev/loop10'
+                    ['cp ${SOURCES} app/resource/bin/ '\
+                     '&& sudo losetup /dev/loop10 image/disk.img ' \
+                     '&& sudo mount /dev/loop10 /mnt '\
+                     '&& sudo cp -r app/resource/ /mnt '\
+                     '&& sudo umount /mnt ' \
+                     '&& sudo losetup -d /dev/loop10'
                      ])
     elif plt == 'Windows':
         try:
             ret = env.Command('copyapp',
                               apps_file,
                               [
-                                  'cp ${SOURCES} app/bin/ & mcopy.exe -nmov  -i image/disk.img app/bin/* ::'
+                                  'cp ${SOURCES} app/resource/bin/ & mcopy.exe -nmov  -i image/disk.img app/resource/* ::'
                               ])
         except:
             print('please manual copy %s files to image/disk.img' % (apps_file))

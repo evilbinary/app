@@ -32,9 +32,9 @@
 #define MENU_BG_SQURE_WIDTH         180
 #define MENU_BG_SQUREE_HEIGHT       140
 
-#define MENU_FONT_NAME_TITLE        "/usr/games/menu_resources/OpenSans-Bold.ttf"
+#define MENU_FONT_NAME_TITLE        "/2font/Roboto-Bold.ttf"
 #define MENU_FONT_SIZE_TITLE        22
-#define MENU_FONT_NAME_INFO         "/usr/games/menu_resources/OpenSans-Bold.ttf"
+#define MENU_FONT_NAME_INFO         "/2font/Roboto-Bold.ttf"
 #define MENU_FONT_SIZE_INFO         16
 #define MENU_FONT_NAME_SMALL_INFO   "/usr/games/menu_resources/OpenSans-Regular.ttf"
 #define MENU_FONT_SIZE_SMALL_INFO   13

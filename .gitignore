@@ -150,3 +150,4 @@ unitest/pngtest
 
 resource/*.wmv
 resource/*.mp4
+resource/bin

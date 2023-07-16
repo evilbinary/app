@@ -18,6 +18,8 @@ cflags='  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -DLOG_LEVEL=4 ' # -DI
 #         -DLOAD_JPG  -DFAST_IS_JPEG\
 #         '
 
+cflags+=' -DENABLE_CLOCK '
+
 libs = [
     'libsdl.a',
     'libgui.a',

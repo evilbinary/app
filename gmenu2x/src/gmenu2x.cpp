@@ -72,11 +72,11 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#define DEFAULT_FONT_PATH "/font/RobotoMono-Regular.ttf"
+#define DEFAULT_FONT_PATH "/font/RobotoMono-Regular.ttf" // "/gmenu2x/font/font.ttf"
 #define DEFAULT_FONT_SIZE 12
 
 #ifndef DEFAULT_FALLBACK_FONTS
-#define DEFAULT_FALLBACK_FONTS ,{"/font/RobotoMono-RegularFallback.ttf",13} //,{"/usr/share/fonts/truetype/droid/DroidSansFallback.ttf",13}
+#define DEFAULT_FALLBACK_FONTS ,{"/2gmenu2x/font/font.ttf"}  // ,{"/font/RobotoMono-RegularFallback.ttf",13} //,{"/usr/share/fonts/truetype/droid/DroidSansFallback.ttf",13}
 #endif
 
 using namespace std;
