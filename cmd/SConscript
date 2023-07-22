@@ -59,6 +59,6 @@ source = [
 
 kill=env.Program('kill', source)
 
-returns=[ls]
+returns=[ls,echo,date,kill,touch,hexdump,cat]
 
 Return('returns')

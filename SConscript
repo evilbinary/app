@@ -89,7 +89,8 @@ cppEnv['CPPPATH']+=['#/eggs/libcxx',
                     ]
 cxxflags=' -g -fno-use-cxa-atexit -fno-threadsafe-statics -D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_HAS_NO_MONOTONIC_CLOCK -D_LIBCPP_HAS_MUSL_LIBC -D_LIBCPP_HAS_NO_LIBRARY_ALIGNED_ALLOCATION    -D_LIBCPP_BUILDING_LIBRARY -D_POSIX_C_SOURCE -D_LIBCXXABI_HAS_NO_THREADS -D_GNU_SOURCE  '
 
-cppEnv['CXXFLAGS'] += env['LIBCFLAGS']+cxxflags
+cppEnv['CXXFLAGS'] += env['LIBCFLAGS']
+cppEnv['CXXFLAGS'] += cxxflags
 
 Export('cppEnv')
 
@@ -105,24 +106,12 @@ def check_exit(apps):
 returns=[]
 
 
-if env.get('APP'):
-    build_app = ['hello', 'gui', 'microui', 'test', 'etk', 'cmd', 'lvgl', 'track',
-                 'sdl2', 'infones', 'launcher', 'mgba', 'lua', 'scheme', 'quickjs', 'gnuboy',
-                 'watch',
-                 'gmenu2x',
-                 'monogui',
-                #  'sdlmine',
-                 'sdl',
-                 'unitest',
-                 ]
-
+if env.get('APP') and len(env.get('APP'))>0 :
+    build_app = env.get('APP')
     all = SConscript(dirs=build_app, exports='env')
     
-    for i in filter(None, all):
-        for j in i:
-            returns+=j
-
     resource_file=  Glob('resource/*')
+
     apps_file = [
         'hello/hello',
         'gui/gui',
@@ -140,7 +129,7 @@ if env.get('APP'):
         'test/test-sound',
         'test/test-sys',
         # 'test/test-cpp',
-        'rust/test/test-rs',
+        # 'rust/test/test-rs',
         'test/test-thread',
 
 
@@ -228,7 +217,7 @@ if env.get('APP'):
                     ['cp ${SOURCES} app/resource/bin/ '\
                      '&& sudo losetup /dev/loop10 image/disk.img ' \
                      '&& sudo mount /dev/loop10 /mnt '\
-                     '&& sudo cp -r app/resource/ /mnt '\
+                     '&& sudo cp -r app/resource/* /mnt '\
                      '&& sudo umount /mnt ' \
                      '&& sudo losetup -d /dev/loop10'
                      ])
