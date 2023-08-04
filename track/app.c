@@ -45,8 +45,8 @@ int main(int argc, char **argv) {
   lv_port_indev_init();
   // lv_port_fs_init();
 
-  // lv_obj_remove_style_all(lv_scr_act());
-  // lv_disp_set_bg_color(lv_disp_get_default(), lv_color_black());
+  lv_obj_remove_style_all(lv_scr_act());
+  lv_disp_set_bg_color(lv_disp_get_default(), lv_color_black());
 
   status_bar_create(lv_layer_top());
   // lv_example_get_started_1();
@@ -55,10 +55,10 @@ int main(int argc, char **argv) {
   int tickets = 0;
   while (1) {
     // 先调用 lv_tick_inc 再调用 lv_task_handler
-    if (tickets % (TICK_RATE * LVGL_TICK) == 0) {
-      lv_tick_inc(LVGL_TICK);
-      tickets = 0;
-    }
+    // if (tickets % (TICK_RATE * LVGL_TICK) == 0) {
+    //   lv_tick_inc(LVGL_TICK);
+    //   tickets = 0;
+    // }
     lv_task_handler();
     usleep(5000);
     // delay_ms(LVGL_TICK);

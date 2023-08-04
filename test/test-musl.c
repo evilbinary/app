@@ -1,9 +1,18 @@
 #include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <math.h>
+#include <setjmp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
+#include "cmocka.h"
 #include "stdio.h"
 
-void test_malloc() {
+void test_malloc2(void* state) {
   for (int i = 0; i < 100; i++) {
     void* p = malloc(4096);
     printf("%d addr:%x\n", i, p);
@@ -16,7 +25,7 @@ int test_float(void) {
   return 0;
 }
 
-void test_getenv() {
+void test_getenv(void* state) {
   char* p;
   if ((p = getenv("USER"))) printf("USER =%s\n", p);
   setenv("USER", "test", 1);
@@ -27,26 +36,25 @@ void test_getenv() {
   // return USER = root　USER = test　USER = (null)
 }
 
-void test_read_root() {
+void test_read_root(void* state) {
   DIR* dir;
   struct dirent* ptr;
   dir = opendir("/");
   while ((ptr = readdir(dir)) != NULL) {
     printf("name : %s type: %d   ", ptr->d_name, ptr->d_type);
-
   }
   closedir(dir);
 }
 
 static char get_u8(int fd) {
-  char buf[1]={0xff};
+  char buf[1] = {0xff};
   printf("get fd %d\n", fd);
   if (read(fd, &buf, 1) != 1) return -1;
   printf("  ret=>%x\n", buf[0]);
   return buf[0];
 }
 
-void test_read_byte() {
+void test_read_byte(void* state) {
   char* path = "scheme.boot";
   int fd = open(path, 0);
   if (get_u8(fd) != 0 || get_u8(fd) != 0 || get_u8(fd) != 0 ||
@@ -58,11 +66,15 @@ void test_read_byte() {
 
 int main(int argc, char* argv[]) {
   printf("hello musl\n");
-  // test_malloc();
-  // test_float();
-  // test_getenv();
-  // test_read_root();
-  test_read_byte();
+
+  const struct CMUnitTest tests[] = {
+      cmocka_unit_test(test_getenv),    cmocka_unit_test(test_malloc2),
+      cmocka_unit_test(test_float),     cmocka_unit_test(test_read_root),
+      cmocka_unit_test(test_read_byte),
+
+  };
+
+  return cmocka_run_group_tests(tests, NULL, NULL);
 
   return 0;
 }

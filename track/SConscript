@@ -9,35 +9,31 @@ import os
 Import('env')
 
 
-env = env.Clone(
-  w=GetOption('w'),
-  ENV = os.environ,
-  PATH= [os.environ['PATH'],'/opt/local/bin' ],
-  )
-
-
 source=[ 
 ]
 
 source+= Glob('*.c')
 
 libs=[
-    'liblvgl.a',
+    'liblvgl-8.0.0.a',
     'libgui.a',
     'libimage.a',
     'libpng.a',
 ]
 
 libpath=[
- 
+    '#/eggs/liblvqrcode',
+    '#eggs/liblvgl-8.0.0'
 ]
 include=[
+    '#/eggs/liblvgl-8.0.0',
+    '#/eggs/liblvqrcode',
     '.',
     'xtrack/Pages',
     'xtrack/Pages/Config',
     'xtrack/Pages/Resource',
     'xtrack/'
-]+libpath
+]
 
 
 cflags='  -DLV_LVGL_H_INCLUDE_SIMPLE=1 '

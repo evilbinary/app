@@ -19,6 +19,9 @@ app/etk/etk
 **/*.jpg
 **/*.bmp
 
+**.so
+**.os
+
 image/disk.vdi
 app/gui/gui.elf
 image/disk.vmdk
@@ -151,3 +154,7 @@ unitest/pngtest
 resource/*.wmv
 resource/*.mp4
 resource/bin
+xtrack/xtrack
+launcher/SConscript
+test/test-dl
+test/test-call-so

@@ -163,3 +163,74 @@ env.Program('test-thread', source,
             LIBS=libs+env.get('LIBS')
             )
 
+
+source = [
+    'test-so.c',
+]
+
+env.SharedLibrary('test-so', source,
+            SHLIBSUFFIX = '.so',
+            LIBS=libs+env.get('LIBS')
+            )
+
+
+source = [
+    'test-call-so.c',
+]
+
+
+include=['.']
+libpath=['.']
+
+libs = [
+    'test-so',
+]+env['LIBC']
+
+env.Program('test-call-so', source,
+            CPPPATH=include+env.get('CPPPATH'),
+            LIBPATH=libpath+env['LIBPATH'],
+            LIBS=libs+env.get('LIBS'),
+            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+            )
+
+
+source = [
+    'test-dl.c'
+]
+    
+include=['.']
+libpath=['.']
+
+libs = [
+
+]+env['LIBC']
+
+env.Program('test-dl', source,
+            CPPPATH=include+env.get('CPPPATH'),
+            LIBPATH=libpath+env['LIBPATH'],
+            LIBS=libs+env.get('LIBS'),
+            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+            )
+
+
+
+include=['.']
+libpath=['.']
+
+libs = [
+
+]+env['LIBC']
+
+source = [
+]
+
+env.SharedLibrary('ld-musl-arm', source,
+            SHLIBPREFIX = '',
+            SHLIBSUFFIX = '.so.1',
+            CPPPATH=include+env.get('CPPPATH'),
+            LIBPATH=libpath+env['LIBPATH'],
+            LIBS=libs+env.get('LIBS'),
+            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+            )
+
+

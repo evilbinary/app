@@ -1,0 +1,106 @@
+# coding:utf-8
+# *******************************************************************
+# * Copyright 2021-2080 evilbinary
+# * 作者: evilbinary on 01/01/20
+# * 邮箱: rootdebug@163.com
+# ********************************************************************
+import os
+
+Import('env')
+Import('cppEnv')
+
+cflags=' -D_POSIX_C_SOURCE -DLV_LVGL_H_INCLUDE_SIMPLE=1  ' # -DIS_LITTLE_ENDIAN 
+
+cflags+='  -D_GLIBCPP_USE_C99 -DLIBYC -DIS_LITTLE_ENDIAN  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -fpermissive -DRUN_ENVIRONMENT_LINUX -DCHINESE_SUPPORT -DMOUSE_SUPPORT -DRESMGT_SUPPORT -DMODE_DEBUG  '
+
+
+cflags+=' -DENABLE_CLOCK '
+
+libs = [
+    'libgui.a',
+    # 'libimage.a',
+    # 'libjpeg.a',
+    # 'libpng.a',
+    'libzlib.a',
+    # 'libsdl-ttf.a',
+    # 'libsdl-image.a',
+    'libcxx.a',
+    'libcxxabi.a',
+    # 'libfreetype.a',
+    # 'libsdl.a',
+    # 'libwebp.a',
+    # 'libjpeg.a',
+    'liblvgl.a',
+    'libgui.a',
+
+]+env['LIBC']
+
+include = [
+    '#/eggs/libmusl/include',
+    '#/eggs/libcxx/include',
+    '#/eggs/libcxxabi/include',
+    '#/eggs/liblvgl',
+    '#/eggs/libgui',
+    # '#/eggs/libsdl-ttf',
+    # '#/eggs/libsdl-image',
+    # '#/eggs/libjpeg',
+    # '#/eggs/libfreetype/include',
+    'include',
+    '#/eggs/include/SDL',
+
+    '.',
+    'APP',
+    'APP/Utils/Time/',
+    'App/Utils/ArduinoJson',
+    'App/Utils/ArduinoJson/src',
+    'App/Utils/GPX_Parser/',
+
+]
+
+libpath = [
+    '#/eggs/libcxx/',
+    '#/eggs/libcxxabi/',
+    '#/eggs/liblvgl/',
+
+    '#/eggs/libsdl/',
+    '#/eggs/libsdl-image/',
+    '#/eggs/libsdl-ttf/',
+    '#/eggs/libfreetype',
+    '#/eggs/libwebp/',
+    '#/eggs/libgui',
+    '#/eggs/libimage',
+    '#/eggs/libjpeg',
+    '#/eggs/libpng',
+    '#/eggs/libc/',
+    '#/eggs/libzlib',
+
+]
+
+source = ['main.cpp']
+
+source += Glob('APP/Pages/*.cpp')
+
+source += Glob('APP/**/**/*.cpp')
+source += Glob('APP/**/**/*.c')
+
+source += Glob('App/Utils/lv_img_png/PNGdec/src/*.cpp')
+source += Glob('App/Utils/MapConv/GPS_Transform/*.c')
+source += Glob('App/Utils/MapConv/TileSystem/*.cpp')
+source += Glob('App/Utils/DataCenter/PingPongBuffer/*.c')
+
+source += Glob('App/*.cpp')
+source += Glob('App/Resource/*.cpp')
+
+
+
+source += Glob('HAL/*.cpp')
+source += Glob('MillisTaskManager/*.cpp')
+
+
+cppEnv.Program('xtrack', source,
+    LIBS=libs+env.get('LIBS'),
+    LIBPATH=libpath +env['LIBPATH'],
+    CPPPATH=include +env['CPPPATH'],
+    CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
+            )

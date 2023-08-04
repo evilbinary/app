@@ -15,6 +15,18 @@ libs=[
     'libpng.a',
 ]
 
+libpath=[
+    '#/eggs/liblvqrcode',
+    '#eggs/liblvgl'
+]
+
+include=[
+    '#/eggs/liblvgl',
+    '#/eggs/liblvqrcode',
+    '.',
+]
+
+
 source= [
     'lvgl.c',
     'lv_demo_widgets.c',
@@ -37,5 +49,7 @@ source= [
 
 env.Program('lvgl', source,
     LIBS=libs+env.get('LIBS'),
+    LIBPATH=env.get('LIBPATH')+libpath,
+    CPPPATH=env.get('CPPPATH')+include,
     CFLAGS='$CFLAGS $LIBCFLAGS -DLV_LVGL_H_INCLUDE_SIMPLE=1',
 )

@@ -18,7 +18,7 @@ Export('cliEnv')
 env = appEnv
 
 env['CPPPATH'] += [
-    '../../eggs/',
+    '#/eggs/',
     '.',
     '../libs/include/',
     '../include/',
@@ -26,7 +26,7 @@ env['CPPPATH'] += [
 ]
 
 env['LIBPATH'] += [
-    '../../eggs/',
+    '#/eggs/',
 ]
 
 add_libc(env)
@@ -39,34 +39,31 @@ if cliEnv.get('MYLIB'):
     cliEnv['LIBS'].append(cliEnv.get('MYLIB'))
 
 env['CPPPCOMMON'] = [
-    '../../eggs/libgui',
-    '../../eggs/libjpeg',
-    '../../eggs/libzlib',
-    '../../eggs/libpng',
-    '../../eggs/libetk',
-    '../../eggs/libcmocka/include',
-    '../../eggs/liblvgl',
+    '#/eggs/libgui',
+    '#/eggs/libjpeg',
+    '#/eggs/libzlib',
+    '#/eggs/libpng',
+    '#/eggs/libetk',
+    '#/eggs/libcmocka/include',
 ]
 
 env['LIBCOMMON'] = [
-    '../../eggs/libgui',
-    '../../eggs/libimage',
-    '../../eggs/libjpeg',
-    '../../eggs/libpng',
-    '../../eggs/libzlib',
-    '../../eggs/libetk',
-    '../../eggs/libcmocka',
-    '../../eggs/liblz4',
-    '../../eggs/libuuid',
-    '../../eggs/liblvgl',
-    '../../eggs/liblvqrcode',
+    '#/eggs/libgui',
+    '#/eggs/libimage',
+    '#/eggs/libjpeg',
+    '#/eggs/libpng',
+    '#/eggs/libzlib',
+    '#/eggs/libetk',
+    '#/eggs/libcmocka',
+    '#/eggs/liblz4',
+    '#/eggs/libuuid',
 ]
 
 env['LIBPATH'] += env['LIBCOMMON']
 env['CPPPATH'] += env['CPPPCOMMON']
 env['LIBS'] += env['LIBC']
 env['CFLAGS'] += env['LIBCFLAGS']
-env['LINKFLAGS'] += env['USER']
+env['LINKFLAGS'] += env['USER']+' -Wl,-dynamic-linker,/lib/ld-musl-%s.so.1  '%(env['ARCHTYPE'])
 
 if env.get('MYLIB'):
     env['LIBS'].append(env.get('MYLIB'))
@@ -129,8 +126,12 @@ if env.get('APP') and len(env.get('APP'))>0 :
         'test/test-sound',
         'test/test-sys',
         # 'test/test-cpp',
-        # 'rust/test/test-rs',
+        'rust/test/test-rs',
         'test/test-thread',
+        'test/libtest-so.so',
+        'test/test-call-so',
+        'test/test-dl',
+
 
 
         'cmd/ls',
@@ -178,7 +179,13 @@ if env.get('APP') and len(env.get('APP'))>0 :
         'monogui/monogui',
 
         'unitest/pngtest',
-        
+        '../foot/service/servicea',
+        '../foot/service/serviceb',
+        '../foot/driver/tinyusb/tinyusb',
+
+
+        'xtrack/xtrack',
+
         # 'monogui/demo/asc12.bin',
         # 'monogui/demo/gb12song',
         # 'monogui/demo/gb16song',
@@ -195,7 +202,7 @@ if env.get('APP') and len(env.get('APP'))>0 :
         # SConscript(dirs=['meui'], exports='env')
 
         apps_file += [
-            # 'test/test-musl',
+            'test/test-musl',
             'toybox/toybox',
             # 'meui/packages/examples/dist/index.js',
             # 'meui/meui'
