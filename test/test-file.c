@@ -233,7 +233,7 @@ void test_fgetc(void** state) {
 void test_read_dir_file(void* state) {
   int c;
   int n = 0;
-  int fp = fopen("/file/fgetc.txt", "r");
+  int fp = fopen("/fgetc.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -277,7 +277,7 @@ void test_read_more_dir_file(void* state) {
 }
 
 void test_write_dir_file(void** state) {
-  FILE* fp = fopen("/file/test.txt", "w+");
+  FILE* fp = fopen("/test.txt", "w+");
   assert_non_null(fp);
   int ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -289,7 +289,7 @@ void test_write_dir_file(void** state) {
 
   int c;
   int n = 0;
-  fp = fopen("/file/test.txt", "r");
+  fp = fopen("/test.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);

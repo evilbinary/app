@@ -2,7 +2,7 @@
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
-
+#include <fcntl.h>
 #include "cmocka.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -20,7 +20,7 @@ char* buf = "hello test elf\n";
 
 void test_pty() {
   u32 fd_ptm, fd_pts;
-  fd_ptm = open("/dev/ptm", "r");
+  fd_ptm = open("/dev/ptm", O_RDWR);
   if (fd_ptm < 0) {
     printf("error get ptm \n");
     assert_true(false);
@@ -28,7 +28,7 @@ void test_pty() {
   u32 pts = ioctl(fd_ptm, IOC_SLAVE);
   char buf[20];
   sprintf(buf, "/dev/pts/%d", pts);
-  fd_pts = open(buf, "r");
+  fd_pts = open(buf, O_RDONLY);
   if (fd_pts < 0) {
     printf("error get pts \n");
     assert_true(false);
@@ -65,7 +65,7 @@ void test_dup() {
 
 void test_dup2() {
   int fd;
-  fd = open("/testdup2.txt", "w");
+  fd = open("/testdup2.txt", O_CREAT);
   assert_true(fd > 0);
 
   if (fd < 0) {

@@ -17,6 +17,7 @@ void test_free_a(void** state) {
 void test_free_twice(void **state) {
   void *p = malloc(1024);
   free(p);
+  p=NULL;
   free(p);
 }
 

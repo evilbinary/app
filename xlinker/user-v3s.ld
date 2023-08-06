@@ -33,5 +33,11 @@ SECTIONS
         {
                 *(.eh_frame)
         }
+        .ARM.exidx ALIGN(0x8) : { 
+                __exidx_start = .;
+                *(.ARM.exidx.* )
+                *(.gnu.linkonce.armexidx.*)
+                __exidx_end = .;
+        }
        _end = .;
 }
