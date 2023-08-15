@@ -181,6 +181,8 @@ if env.get('APP') and len(env.get('APP'))>0 :
         'unitest/pngtest',
         '../foot/service/servicea',
         '../foot/service/serviceb',
+        '../foot/service/systemd',
+        '../foot/service/vfsd',
         '../foot/driver/tinyusb/tinyusb',
 
 
