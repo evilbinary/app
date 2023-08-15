@@ -139,21 +139,11 @@ env.Program('test-sys', source,
             LIBS=libs+env.get('LIBS')
             )
 
+libs = [
 
-source = [
-    'test-cpp.cpp',
-]
-
-libpath=[]
-
-include=[]
-
-# cppEnv.Program('test-cpp', source,
-#     # LIBPATH=libpath+env.get('LIBPATH'),
-#     # CPPPATH=include+env.get('CPPPATH'),
-#     # LIBS=libs+env.get('LIBS')
-#             )
-
+]+env['LIBC']
+include = ['.']
+libpath = ['.']
 
 source = [
     'test-thread.c',
@@ -168,10 +158,10 @@ source = [
     'test-so.c',
 ]
 
-env.SharedLibrary('test-so', source,
-            SHLIBSUFFIX = '.so',
-            LIBS=libs+env.get('LIBS')
-            )
+# env.SharedLibrary('test-so', source,
+#             SHLIBSUFFIX = '.so',
+#             LIBS=libs+env.get('LIBS')
+#             )
 
 
 source = [
@@ -179,27 +169,27 @@ source = [
 ]
 
 
-include=['.']
-libpath=['.']
+include = ['.']
+libpath = ['.']
 
 libs = [
     'test-so',
 ]+env['LIBC']
 
-env.Program('test-call-so', source,
-            CPPPATH=include+env.get('CPPPATH'),
-            LIBPATH=libpath+env['LIBPATH'],
-            LIBS=libs+env.get('LIBS'),
-            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-            )
+# env.Program('test-call-so', source,
+#             CPPPATH=include+env.get('CPPPATH'),
+#             LIBPATH=libpath+env['LIBPATH'],
+#             LIBS=libs+env.get('LIBS'),
+#             CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+#             )
 
 
 source = [
     'test-dl.c'
 ]
-    
-include=['.']
-libpath=['.']
+
+include = ['.']
+libpath = ['.']
 
 libs = [
 
@@ -213,9 +203,8 @@ env.Program('test-dl', source,
             )
 
 
-
-include=['.']
-libpath=['.']
+include = ['.']
+libpath = ['.']
 
 libs = [
 
@@ -224,13 +213,44 @@ libs = [
 source = [
 ]
 
-env.SharedLibrary('ld-musl-arm', source,
-            SHLIBPREFIX = '',
-            SHLIBSUFFIX = '.so.1',
-            CPPPATH=include+env.get('CPPPATH'),
-            LIBPATH=libpath+env['LIBPATH'],
-            LIBS=libs+env.get('LIBS'),
-            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-            )
+# env.SharedLibrary('ld-musl-arm', source,
+#             SHLIBPREFIX = '',
+#             SHLIBSUFFIX = '.so.1',
+#             CPPPATH=include+env.get('CPPPATH'),
+#             LIBPATH=libpath+env['LIBPATH'],
+#             LIBS=libs+env.get('LIBS'),
+#             CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+#             )
 
 
+source = [
+    'test-cpp.cpp',
+]
+
+libpath = [
+    '#/eggs/libcxx/',
+    '#/eggs/libcxxabi/'
+]
+
+include = [
+    '../../eggs/libcxx/include',
+    '../../eggs/libcxxabi/include',
+    'include',
+    '.',
+    '../../eggs/include',
+]
+
+libs = [
+    'libcxx.a',
+    'libcxxabi.a',
+]+env['LIBC']
+
+cxxflags = '  '+cflags
+
+cppEnv.Program('test-cpp', source,
+               LIBS=libs+env.get('LIBS'),
+               LIBPATH=libpath + env['LIBPATH'],
+               CPPPATH=include + env['CPPPATH'],
+               # CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+               CXXFLAGS=cxxflags+' $CXXFLAGS $LIBCFLAGS '
+               )
