@@ -125,7 +125,7 @@ if env.get('APP') and len(env.get('APP'))>0 :
         'test/test-free',
         'test/test-sound',
         'test/test-sys',
-        # 'test/test-cpp',
+        'test/test-cpp',
         'rust/test/test-rs',
         'test/test-thread',
         'test/libtest-so.so',
