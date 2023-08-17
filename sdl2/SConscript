@@ -57,14 +57,14 @@ source = [
 ]
 
 libpath = [
-    '../../eggs/libsdl2/',
-    '../../eggs/libffmpeg/libavdevice/',
-    '../../eggs/libffmpeg/libavfilter/',
-    '../../eggs/libffmpeg/libavformat/',
-    '../../eggs/libffmpeg/libswscale/',
-    '../../eggs/libffmpeg/libavcodec/',
-    '../../eggs/libffmpeg/libavutil/',
-    '../../eggs/libffmpeg/libswresample/',
+    '#/eggs/libsdl2/',
+    '#/eggs/libffmpeg/libavdevice/',
+    '#/eggs/libffmpeg/libavfilter/',
+    '#/eggs/libffmpeg/libavformat/',
+    '#/eggs/libffmpeg/libswscale/',
+    '#/eggs/libffmpeg/libavcodec/',
+    '#/eggs/libffmpeg/libavutil/',
+    '#/eggs/libffmpeg/libswresample/',
 ]
 libs = [
     'libsdl2.a',
@@ -79,17 +79,16 @@ libs = [
 ]
 
 include = [
-    '../../eggs/libffmpeg/',
     '#/eggs/libffmpeg/',
-    '../../eggs/libsdl2/include',
+    '#/eggs/libsdl2/include',
 ]
 
-# env.Program('player', source,
-#             LIBS=libs+env.get('LIBS'),
-#             LIBPATH=env.get('LIBPATH')+libpath,
-#             CPPPATH=env.get('CPPPATH')+include,
-#             CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-#             )
+env.Program('player', source,
+            LIBS=libs+env.get('LIBS'),
+            LIBPATH=libpath+env.get('LIBPATH'),
+            CPPPATH=include+env.get('CPPPATH'),
+            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
+            )
 
 
 # showimage

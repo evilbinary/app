@@ -147,7 +147,7 @@ if env.get('APP') and len(env.get('APP'))>0 :
         'launcher/launcher',
         'infones/infones',
         'sdl2/sdl2',
-        # 'sdl2/player',
+        'sdl2/player',
         'sdl2/showimage',
         'sdl2/showfont',
         'mgba/mgba',

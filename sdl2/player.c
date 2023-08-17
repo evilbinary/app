@@ -19,8 +19,8 @@ int ffplayer(int argc, char *argv[]) {
   int i, videoindex;
   AVCodecContext *pCodecCtx;
   AVCodec *pCodec;
-  char filepath[] = "/test.wmv";
-  // char filepath[] = "/test.mp4";
+  // char filepath[] = "/test.wmv";
+  char filepath[] = "/test.mp4";
 
   //av_log_set_level(AV_LOG_TRACE);  // AV_LOG_TRACE AV_LOG_VERBOSE
   //   char rtspUrl[] = "rtsp://admin:12345@192.168.10.76:522";
