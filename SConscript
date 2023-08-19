@@ -141,6 +141,7 @@ if env.get('APP') and len(env.get('APP'))>0 :
         'cmd/touch',
         'cmd/date',
         'cmd/kill',
+        'cmd/shell',
 
         'lvgl/lvgl',
         'track/track',
