@@ -139,7 +139,6 @@ void do_shell_cmd(char* cmd) {
 }
 
 int run_exec(char* cmd, char** argv) {
-  printf("exec %s\n", cmd);
   int pid = fork();
   if (pid == 0) {  // 子进程
     // reopen( "/dev/log");
@@ -170,8 +169,6 @@ int do_exec(char* cmd) {
   }
   int pid = 0;
   if (ret == 0) {
-    printf("run exec %s\n", buf);
-
     pid = run_exec(buf, argv);
   }
   return pid;
