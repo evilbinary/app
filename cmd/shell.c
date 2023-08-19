@@ -109,7 +109,7 @@ void cd_command(char* cmd) {
 
 void pwd_command() {
   char buf[128];
-  kmemset(buf, 0, 128);
+  memset(buf, 0, 128);
   getcwd(buf, 128);
   print_string(buf);
   print_string("\n");
