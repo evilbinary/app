@@ -140,36 +140,37 @@ void do_shell_cmd(char* cmd) {
 
 int run_exec(char* cmd, char** argv) {
   int pid = fork();
+  int p = syscall(SYS_GETPID);
   if (pid == 0) {  // 子进程
     // reopen( "/dev/log");
     execv(cmd, argv);
     exit(0);
   }
-  return 0;
+  return p;
 }
 
 int do_exec(char* cmd) {
-  char buf[64];
-  char* argv[64];
+  char cmd_buf[64];
+  char* cmd_argv[64];
   int i = 0;
   const char* split = " ";
   char* ptr = strtok(cmd, split);
   while (ptr != NULL) {
-    argv[i++] = ptr;
+    cmd_argv[i++] = ptr;
     ptr = strtok(NULL, split);
   }
-  if (i <= 0 || argv[1] == ' ' || argv[0] == NULL) {
+  if (i <= 0 || cmd_argv[1] == ' ' || cmd_argv[0] == NULL) {
     return 0;
   }
-  sprintf(buf, "/bin/%s", argv[0]);
-  int ret = access(buf, 0);
+  sprintf(cmd_buf, "/bin/%s", cmd_argv[0]);
+  int ret = access(cmd_buf, 0);
   if (ret < 0) {
-    sprintf(buf, "/%s", argv[0]);
-    ret = access(buf, 0);
+    sprintf(cmd_buf, "/%s", cmd_argv[0]);
+    ret = access(cmd_buf, 0);
   }
   int pid = 0;
   if (ret == 0) {
-    pid = run_exec(buf, argv);
+    pid = run_exec(cmd_buf, cmd_argv);
   }
   return pid;
 }
