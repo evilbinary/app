@@ -187,10 +187,10 @@ void shell_loop() {
     ret = ch;
     if (ret > 0) {
       if (ch == '\r' || ch == '\n') {
+        printf("\n");
         do_shell_cmd(buf);
         count = 0;
         memset(buf, 0, 128);
-        printf("\n");
         print_promot();
       } else if (ch == 127) {
         if (count > 0) {
