@@ -9,10 +9,6 @@
 #ifndef InfoNES_TYPES_H_INCLUDED
 #define InfoNES_TYPES_H_INCLUDED
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*-------------------------------------------------------------------*/
 /*  Type definition                                                  */
 /*-------------------------------------------------------------------*/
@@ -34,9 +30,5 @@ typedef unsigned char  BYTE;
 #ifndef NULL
 #define NULL  0
 #endif /* !NULL */
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* !InfoNES_TYPES_H_INCLUDED */

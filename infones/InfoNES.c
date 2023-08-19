@@ -436,7 +436,7 @@ int InfoNES_Reset()
   if ( MapperTable[ nIdx ].nMapperNo == -1 )
   {
     // Non support mapper
-    InfoNES_MessageBox( "Mapper #%d is unsupported.\n" );
+    InfoNES_MessageBox( "Mapper #%d is unsupported.\n", MapperNo );
     return -1;
   }
 
@@ -587,9 +587,11 @@ void InfoNES_Cycle()
  *
  */
 
+#if 0
   // Set the PPU adress to the buffered value
   if ( ( PPU_R1 & R1_SHOW_SP ) || ( PPU_R1 & R1_SHOW_SCR ) )
 		PPU_Addr = PPU_Temp;
+#endif
 
   // Emulation loop
   for (;;)
@@ -638,6 +640,7 @@ void InfoNES_Cycle()
     // A function in H-Sync
     if ( InfoNES_HSync() == -1 )
       return;  // To the menu screen
+
     // HSYNC Wait
     InfoNES_Wait();
   }
@@ -705,6 +708,7 @@ int InfoNES_HSync()
       {
         // Transfer the contents of work frame on the screen
         InfoNES_LoadFrame();
+        return -1;
         
 #if 0
         // Switching of the double buffer
@@ -857,7 +861,6 @@ void InfoNES_DrawLine()
       pPoint[ 5 ] = pPalTbl[ pbyChrData[ 5 ] ];
       pPoint[ 6 ] = pPalTbl[ pbyChrData[ 6 ] ];
       pPoint[ 7 ] = pPalTbl[ pbyChrData[ 7 ] ];
-
       pPoint += 8;
 
       // Callback at PPU read/write
@@ -1054,6 +1057,7 @@ void InfoNES_DrawLine()
       pPointTop = &WorkFrame[ PPU_Scanline * NES_DISP_WIDTH ];
       InfoNES_MemorySet( pPointTop, 0, 8 << 1 );
     }
+
     if ( nSprCnt >= 8 )
       PPU_R2 |= R2_MAX_SP;  // Set a flag of maximum sprites on scanline
   }

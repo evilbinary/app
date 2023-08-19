@@ -9,10 +9,6 @@
 #ifndef InfoNES_SYSTEM_H_INCLUDED
 #define InfoNES_SYSTEM_H_INCLUDED
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*-------------------------------------------------------------------*/
 /*  Include files                                                    */
 /*-------------------------------------------------------------------*/
@@ -69,9 +65,5 @@ void InfoNES_SoundOutput(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3, BYT
 
 /* Print system message */
 void InfoNES_MessageBox(const char *pszMsg, ... );
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* !InfoNES_SYSTEM_H_INCLUDED */
