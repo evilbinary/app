@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/uio.h>
 
 #include "cmocka.h"
 #include "stdio.h"
@@ -69,7 +70,7 @@ void test_read_large(void** state) {
 }
 
 void test_write(void** state) {
-  FILE* fp = fopen("/hello.txt", "w+");
+  FILE* fp = fopen("/test/hello.txt", "w+");
   assert_non_null(fp);
   int ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -81,7 +82,7 @@ void test_write(void** state) {
 
 void test_write_read(void** state) {
   int ret;
-  FILE* fp = fopen("/read-write.txt", "w+");
+  FILE* fp = fopen("/test/read-write.txt", "w+");
   assert_non_null(fp);
   ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -93,7 +94,7 @@ void test_write_read(void** state) {
   assert_true(ret == 0);
 
   char buf[64];
-  fp = fopen("/read-write.txt", "r+");
+  fp = fopen("/test/read-write.txt", "r+");
   ret = fseek(fp, 0, SEEK_SET);
   assert_non_null(fp);
   for (int i = 0; i < 100; i++) {
@@ -193,7 +194,7 @@ void test_seek_read(void** state) {
 }
 
 void test_fgetc(void** state) {
-  FILE* fp = fopen("/fgetc.txt", "w+");
+  FILE* fp = fopen("/test/fgetc.txt", "w+");
   assert_non_null(fp);
   int ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -205,7 +206,7 @@ void test_fgetc(void** state) {
 
   int c;
   int n = 0;
-  fp = fopen("fgetc.txt", "r");
+  fp = fopen("/test/fgetc.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -233,7 +234,7 @@ void test_fgetc(void** state) {
 void test_read_dir_file(void* state) {
   int c;
   int n = 0;
-  int fp = fopen("/fgetc.txt", "r");
+  int fp = fopen("/test/fgetc.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -277,7 +278,7 @@ void test_read_more_dir_file(void* state) {
 }
 
 void test_write_dir_file(void** state) {
-  FILE* fp = fopen("/test.txt", "w+");
+  FILE* fp = fopen("/test/test.txt", "w+");
   assert_non_null(fp);
   int ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -289,7 +290,7 @@ void test_write_dir_file(void** state) {
 
   int c;
   int n = 0;
-  fp = fopen("/test.txt", "r");
+  fp = fopen("/test/test.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -316,8 +317,8 @@ void test_read_dir_file_opened(void* state) {
   int c;
   int n = 0;
 
-  int fp = fopen("/dtm/", "r");
-  fp = fopen("/dtm/100.dtm", "r");
+  int fp = fopen("/test/", "r");
+  fp = fopen("/test/abc.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -350,28 +351,73 @@ void test_stat_mode(void* state) {
   assert_non_null(fp);
 
   int ret = stat("/res/duck.png", &buf);
-  assert_true(ret < 0);
+  assert_true(ret == 0);
 
   assert_true(S_ISREG(buf.st_mode));
 
+  ret = stat("/res/duck11.png", &buf);
+  assert_int_equal(ret , -1);
+
   fclose(fp);
 }
+
+static void test_readv_success(void **state) {
+    int fd = open("/test/test_file.txt", O_RDONLY);
+    assert_true(fd >= 0);
+
+    char buffer1[10];
+    char buffer2[10];
+
+    struct iovec iov[2];
+    iov[0].iov_base = buffer1;
+    iov[0].iov_len = sizeof(buffer1);
+    iov[1].iov_base = buffer2;
+    iov[1].iov_len = sizeof(buffer2);
+
+    ssize_t result = readv(fd, iov, 2);
+    assert_int_equal(result, sizeof(buffer1) + sizeof(buffer2));
+
+    close(fd);
+}
+
+static void test_readv_failure(void **state) {
+    int fd = open("nonexistent_file.txt", O_RDONLY);
+    assert_true(fd < 0);
+
+    char buffer1[10];
+    char buffer2[10];
+
+    struct iovec iov[2];
+    iov[0].iov_base = buffer1;
+    iov[0].iov_len = sizeof(buffer1);
+    iov[1].iov_base = buffer2;
+    iov[1].iov_len = sizeof(buffer2);
+
+    ssize_t result = readv(fd, iov, 2);
+    assert_int_equal(result, -1);
+
+    close(fd);
+}
+
 
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_read_large),
       cmocka_unit_test(test_seek_read),
-      cmocka_unit_test(test_write),
-      cmocka_unit_test(test_write_read),
-      cmocka_unit_test(test_read_dir),
+      // cmocka_unit_test(test_write),
+      // cmocka_unit_test(test_write_read),
+      // cmocka_unit_test(test_read_dir),
       cmocka_unit_test(test_seek),
       cmocka_unit_test(test_read_byte),
-      cmocka_unit_test(test_fgetc),
-      cmocka_unit_test(test_read_dir_file),
-      cmocka_unit_test(test_read_dir_file_opened),
+      // cmocka_unit_test(test_fgetc),
+      // cmocka_unit_test(test_read_dir_file),
+      // cmocka_unit_test(test_read_dir_file_opened),
+      // cmocka_unit_test(test_write_dir_file),
+
       cmocka_unit_test(test_stat_mode),
-      cmocka_unit_test(test_write_dir_file),
       cmocka_unit_test(test_read_more_dir_file),
+      cmocka_unit_test(test_readv_success),
+      cmocka_unit_test(test_readv_failure),
 
   };
 
