@@ -70,7 +70,7 @@ void test_read_large(void** state) {
 }
 
 void test_write(void** state) {
-  FILE* fp = fopen("/test/hello.txt", "w+");
+  FILE* fp = fopen("/tests/hello.txt", "w+");
   assert_non_null(fp);
   int ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -82,7 +82,7 @@ void test_write(void** state) {
 
 void test_write_read(void** state) {
   int ret;
-  FILE* fp = fopen("/test/read-write.txt", "w+");
+  FILE* fp = fopen("/tests/read-write.txt", "w+");
   assert_non_null(fp);
   ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -94,7 +94,7 @@ void test_write_read(void** state) {
   assert_true(ret == 0);
 
   char buf[64];
-  fp = fopen("/test/read-write.txt", "r+");
+  fp = fopen("/tests/read-write.txt", "r+");
   ret = fseek(fp, 0, SEEK_SET);
   assert_non_null(fp);
   for (int i = 0; i < 100; i++) {
@@ -194,7 +194,7 @@ void test_seek_read(void** state) {
 }
 
 void test_fgetc(void** state) {
-  FILE* fp = fopen("/test/fgetc.txt", "w+");
+  FILE* fp = fopen("/tests/fgetc.txt", "w+");
   assert_non_null(fp);
   int ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -206,7 +206,7 @@ void test_fgetc(void** state) {
 
   int c;
   int n = 0;
-  fp = fopen("/test/fgetc.txt", "r");
+  fp = fopen("/tests/fgetc.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -234,7 +234,7 @@ void test_fgetc(void** state) {
 void test_read_dir_file(void* state) {
   int c;
   int n = 0;
-  int fp = fopen("/test/fgetc.txt", "r");
+  int fp = fopen("/tests/fgetc.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -278,7 +278,7 @@ void test_read_more_dir_file(void* state) {
 }
 
 void test_write_dir_file(void** state) {
-  FILE* fp = fopen("/test/test.txt", "w+");
+  FILE* fp = fopen("/tests/test.txt", "w+");
   assert_non_null(fp);
   int ret = fseek(fp, 0, SEEK_SET);
   assert_true(ret == 0);
@@ -290,7 +290,7 @@ void test_write_dir_file(void** state) {
 
   int c;
   int n = 0;
-  fp = fopen("/test/test.txt", "r");
+  fp = fopen("/tests/test.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -317,8 +317,8 @@ void test_read_dir_file_opened(void* state) {
   int c;
   int n = 0;
 
-  int fp = fopen("/test/", "r");
-  fp = fopen("/test/abc.txt", "r");
+  int fp = fopen("/tests/", "r");
+  fp = fopen("/tests/abc.txt", "r");
   if (fp == NULL) {
     perror("Error in opening file");
     return (-1);
@@ -362,7 +362,7 @@ void test_stat_mode(void* state) {
 }
 
 static void test_readv_success(void **state) {
-    int fd = open("/test/test_file.txt", O_RDONLY);
+    int fd = open("/tests/test_file.txt", O_RDONLY);
     assert_true(fd >= 0);
 
     char buffer1[10];
