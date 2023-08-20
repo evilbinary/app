@@ -164,6 +164,27 @@ DWORD RGBPalette[64] = {
 	0xfff8e0a0,0xffe0f8a0,0xffa8f0b8,0xffb0f8c8,0xff98f8f0,0xff000000,0xff000000,0xff000000,
 };
 
+// DWORD RGBPalette[64] = {
+//     0xff707070,0xff201888,0xff0000a8,0xff400098,0xff880070,0xffa80010,0xffa00000,0xff780800,
+//     0xff402800,0xff004000,0xff005000,0xff003810,0xff183858,0xff000000,0xff000000,0xff000000,
+//     0xffb8b8b8,0xff0070e8,0xff2038e8,0xff8000f0,0xffb800b8,0xffe00058,0xffd82800,0xffc84808,
+//     0xff887000,0xff009000,0xff00a800,0xff009038,0xff008088,0xff000000,0xff000000,0xff000000,
+//     0xfff8f8f8,0xff38b8f8,0xff5890f8,0xff4088f8,0xfff078f8,0xff00ffff,0xff00ffff,0xff00ffff,
+//     0xfff0b838,0xff80d010,0xff48d848,0xff58f898,0xff00e8d8,0xff000000,0xff000000,0xff000000,
+//     0xfff8f8f8,0xffa8e0f8,0xffc0d0f8,0xffd0c8f8,0xfff8c0f8,0xfff8c0d8,0xfff8b8b0,0xfff8d8a8,
+//     0xfff8e0a0,0xffe0f8a0,0xffa8f0b8,0xffb0f8c8,0xff98f8f0,0xff000000,0xff000000,0xff000000,
+// };
+// DWORD RGBPalette[64] = {
+//     0xff707070,0xff201800,0xff0000ff,0xff400098,0xff880070,0xffa80010,0xffa00000,0xff780800,
+//     0xff402800,0xff004000,0xff005000,0xff003810,0xff183858,0xff000000,0xff000000,0xff000000,
+//     0xffb8b8b8,0xff0070e8,0xff2038e8,0xffff0000,0xffb800b8,0xffe00058,0xffd82800,0xffc84808,
+//     0xff887000,0xff009000,0xff00a800,0xff009038,0xff008088,0xff000000,0xff000000,0xff000000,
+//     0xfff8f8f8,0xff38b8f8,0xff5890f8,0xff4088f8,0xfff078f8,0xfff870b0,0xfff87060,0xfff89838,
+//     0xfff0b838,0xff80d010,0xff48d848,0xff58f898,0xff00e8d8,0xff000000,0xff000000,0xff000000,
+//     0xfff8f8f8,0xffa8e0f8,0xffc0d0f8,0xffd0c8f8,0xfff8c0f8,0xfff8c0d8,0xfff8b8b0,0xfff8d8a8,
+//     0xfff8e0a0,0xffe0f8a0,0xffa8f0b8,0xffb0f8c8,0xff98f8f0,0xff000000,0xff000000,0xff000000,
+// };
+
 /* Palette data */
 WORD NesPalette[64] = {
     // 0x738E,0x88C4,0xA800,0x9808,0x7011,0x1015,0x0014,0x004F,
@@ -644,15 +665,15 @@ static inline  InfoNES_LoadFrameScale1(void){
 }
 
 
-// void InfoNES_LoadFrame(){
-// 	if(screen->width >= NES_DISP_WIDTH * 2 && screen->height >= NES_DISP_HEIGHT * 2)
-// 		InfoNES_LoadFrameScale2();
-// 	else
-// 		InfoNES_LoadFrameScale1();	
-//   screen_flush();
-// }
+void InfoNES_LoadFrame(){
+	if(screen->width >= NES_DISP_WIDTH * 2 && screen->height >= NES_DISP_HEIGHT * 2)
+		InfoNES_LoadFrameScale2();
+	else
+		InfoNES_LoadFrameScale1();	
+  screen_flush();
+}
 
-void InfoNES_LoadFrame() {
+void InfoNES_LoadFrame2() {
   int x, y;
   int line_width;
   WORD wColor;
@@ -775,7 +796,7 @@ void InfoNES_SoundOutput(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3,
 /*            InfoNES_Wait() : Wait Emulation if required            */
 /*                                                                   */
 /*===================================================================*/
-void InfoNES_Wait() { usleep(5000); }
+void InfoNES_Wait() {  }
 
 /*===================================================================*/
 /*                                                                   */
