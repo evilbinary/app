@@ -9,11 +9,8 @@ import os
 Import('env')
 
 
-env = env.Clone(
-  w=GetOption('w'),
-  ENV = os.environ,
-  PATH= [os.environ['PATH'],'/opt/local/bin' ],
-  )
+Import('cliEnv')
+env = cliEnv
 
 source=[
     'lua.c',

@@ -9,20 +9,13 @@ import os
 Import('env')
 Import('cppEnv')
 
+cppEnv=cppEnv.Clone()
+# cppEnv.UseLibc()
+cppEnv.UseLibApp()
+
 cflags='  -DLIBYC -DIS_LITTLE_ENDIAN  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -fpermissive -DRUN_ENVIRONMENT_LINUX -DCHINESE_SUPPORT -DMOUSE_SUPPORT -DRESMGT_SUPPORT -DMODE_DEBUG ' #RUN_ENVIRONMENT_WIN32 RUN_ENVIRONMENT_LINUX 
 
-libs = [
-    'libsdl2.a',
-    'libgui.a',
-    'libimage.a',
-    'libjpeg.a',
-    'libpng.a',
-    'libzlib.a',
-    'libsdl2-ttf.a',
-    'libcxx.a',
-    'libcxxabi.a',
 
-]+env['LIBC']
 
 include = [
     '../../eggs/libcxx/include',
@@ -40,33 +33,11 @@ include = [
     '../../eggs/include',
 ]
 
-libpath = [
-    '../../eggs/libcxx/',
-    '../../eggs/libcxxabi/',
-    '../../eggs/libsdl2/',
-    '../../eggs/libsdl2-image/',
-    '../../eggs/libsdl2-ttf/',
-    '../../eggs/libfreetype',
-    '../../eggs/libwebp/',
-    '../../eggs/libgui',
-    '../../eggs/libimage',
-    '../../eggs/libjpeg',
-    '../../eggs/libpng',
-    '../../eggs/libc/',
-    '../../eggs/libzlib',
+cppEnv.UseLibrary(['sdl2'])
+cppEnv.AddCxxFlags(cflags)
 
-]
 
-source = []
-
-source += Glob('tgui/*.cpp')
-
-source += Glob('demo/*.cpp')
-
-cppEnv.Program('monogui', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=libpath +env['LIBPATH'],
-    CPPPATH=include+ env['CPPPATH'] ,
-    # CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
-            )
+cppEnv.Program('monogui', [
+    Glob('tgui/*.cpp'),
+    Glob('demo/*.cpp')
+])

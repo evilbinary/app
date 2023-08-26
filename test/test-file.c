@@ -404,11 +404,14 @@ int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_read_large),
       cmocka_unit_test(test_seek_read),
+
       // cmocka_unit_test(test_write),
       // cmocka_unit_test(test_write_read),
       // cmocka_unit_test(test_read_dir),
+    
       cmocka_unit_test(test_seek),
       cmocka_unit_test(test_read_byte),
+
       // cmocka_unit_test(test_fgetc),
       // cmocka_unit_test(test_read_dir_file),
       // cmocka_unit_test(test_read_dir_file_opened),

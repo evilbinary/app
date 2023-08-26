@@ -9,7 +9,9 @@ import os
 Import('env')
 Import('cppEnv')
 
-cflags=' -DIS_LITTLE_ENDIAN  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW '
+env = cppEnv.Clone()
+
+cflags = ' -DIS_LITTLE_ENDIAN  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW '
 
 # cflags+='-DSDL_IMAGE_USE_COMMON_BACKEND \
 # 		-DLOAD_BMP -DLOAD_GIF -DLOAD_LBM -DLOAD_PCX -DLOAD_PNM \
@@ -27,88 +29,73 @@ libs = [
     'libzlib.a',
     'libsdl-ttf.a',
     'libsdl-image.a',
-    'libcxx.a',
-    'libcxxabi.a',
     'libfreetype.a',
     'libsdl.a',
     'libwebp.a',
     'libjpeg.a',
-
-]+env['LIBC']
+]
 
 include = [
-    '../../eggs/libcxx/include',
-    '../../eggs/libcxxabi/include',
+    '#eggs/libcxx/include',
+    '#eggs/libcxxabi/include',
 
-    '../../eggs/libgui',
-    '../../eggs/libsdl-ttf',
-    '../../eggs/libsdl-image',
-    '../../eggs/libjpeg/',
-    '../../eggs/libfreetype/include',
+    '#eggs/libgui',
+    '#eggs/libsdl-ttf',
+    '#eggs/libsdl-image',
+    '#eggs/libjpeg/',
+    '#eggs/libfreetype/include',
     'include',
     '.',
-    '../../eggs/include',
-    '../../eggs/include/SDL',
+    '#eggs/include',
+    '#eggs/include/SDL',
 
 ]
 
 libpath = [
-    '../../eggs/libcxx/',
-    '../../eggs/libcxxabi/',
-    '../../eggs/libsdl/',
-    '../../eggs/libsdl-image/',
-    '../../eggs/libsdl-ttf/',
-    '../../eggs/libfreetype',
-    '../../eggs/libwebp/',
-    '../../eggs/libgui',
-    '../../eggs/libimage',
-    '../../eggs/libjpeg',
-    '../../eggs/libpng',
-    '../../eggs/libc/',
-    '../../eggs/libzlib',
+    '#eggs/libcxx/',
+    '#eggs/libcxxabi/',
+    '#eggs/libsdl/',
+    '#eggs/libsdl-image/',
+    '#eggs/libsdl-ttf/',
+    '#eggs/libfreetype',
+    '#eggs/libwebp/',
+    '#eggs/libgui',
+    '#eggs/libimage',
+    '#eggs/libjpeg',
+    '#eggs/libpng',
+    '#eggs/libc/',
+    '#eggs/libzlib',
 
 ]
 
-source = ['testwm.c']
+env.UseLibApp()
+env.AddInclude(include)
+env.AddPath(include)
+
+env.UseLibrary([
+    'libsdl-ttf.a',
+    'libfreetype.a',
+    'libsdl.a',
+    'libgui.a',
+    'libsdl-image.a',
+    'libimage.a',
+    'libwebp.a',
+    'libjpeg.a',
+    'libpng.a',
+    'libzlib.a',
+])
+
+env.Program('testwm',
+            ['testwm.c'])
 
 
-env.Program('testwm', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=libpath +env['LIBPATH'],
-    CPPPATH=include+ env['CPPPATH'] ,
-    CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
-            )
+env.Program('testoverlay',
+            ['testoverlay.c'])
 
 
-source = ['testoverlay.c']
-
-env.Program('testoverlay', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=libpath +env['LIBPATH'],
-    CPPPATH=include+ env['CPPPATH'] ,
-    CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
-            )
+env.Program('testoverlay2',
+            ['testoverlay2.c'])
 
 
-source = ['testoverlay2.c']
-
-env.Program('testoverlay2', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=libpath +env['LIBPATH'],
-    CPPPATH=include+ env['CPPPATH'] ,
-    CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
-            )
-
-source = ['testbitmap.c']
-
-env.Program('testbitmap', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=libpath +env['LIBPATH'],
-    CPPPATH=include+ env['CPPPATH'] ,
-    CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
-            )
-
+env.Program('testbitmap',
+            ['testbitmap.c'])

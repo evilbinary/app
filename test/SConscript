@@ -6,251 +6,110 @@
 # ********************************************************************
 import os
 
-Import('env')
+Import('cliEnv')
 Import('cppEnv')
 
 
-env = env.Clone(
-    w=GetOption('w'),
-    ENV=os.environ,
-    PATH=[os.environ['PATH'], '/opt/local/bin'],
+env = cliEnv.Clone()
+
+env.UseLibrary(['cmocka'])
+
+
+
+env.AddCflags([
+    '-DHAVE_SIGNAL_H'
+])
+
+env.Program('test', [
+    'test.c']
 )
 
-source = [
-    'test.c',
-]
-
-libs = [
-    'libcmocka.a',
-]+env['LIBC']
-
-
-env.Program('test', source,
-            LIBS=libs+env.get('LIBS'),
-            CFLAGS='$CFLAGS $LIBCFLAGS',
-            )
-
 if env.get('DEFAULT_LIBC') == 'libmusl':
-    source = [
+    env.Program('test-musl', [
         'test-musl.c',
-    ]
-    env.Program('test-musl', source,
-                LIBS=libs+env.get('LIBS'),
-                CFLAGS='$CFLAGS $LIBCFLAGS',
-                )
+    ])
 
 
-source = [
+env.Program('test-file', [
     'test-file.c',
-]
+])
 
-env.Program('test-file', source,
-            LIBS=libs+env.get('LIBS'),
-            )
-
-
-source = [
+env.Program('test-mem', [
     'test-mem.c',
-]
+])
 
+env = cliEnv.Clone()
+env.UseLibrary(['zlib', 'lz4', 'uuid', 'cmocka'])
 
-env.Program('test-mem', source,
-            LIBS=libs+env.get('LIBS')
-            )
-
-
-source = [
+env.Program('test-uncompress', [
     'test-uncompress.c',
-]
+])
 
-
-cflags = ''
-
-env.Program('test-uncompress', source,
-            LIBS=libs+env.get('LIBS')+[
-                'libzlib.a',
-                'liblz4.a',
-                'libuuid.a',
-                'libcmocka.a',
-            ],
-            CFLAGS='$CFLAGS $LIBCFLAGS',
-            )
-
-
-source = [
+env.Program('test-string',  [
     'test-string.c',
-]
-
-env.Program('test-string', source,
-            LIBS=libs+env.get('LIBS'),
-            )
+])
 
 
-source = [
+env.Program('test-stdlib', [
     'test-stdlib.c',
-]
+])
 
-
-env.Program('test-stdlib', source,
-            LIBS=libs+env.get('LIBS'))
-
-
-source = [
+env.Program('test-stdio', [
     'test-stdio.c',
-]
-
-env.Program('test-stdio', source,
-            LIBS=libs+env.get('LIBS')
-            )
+])
 
 
-source = [
+env.Program('test-fork', [
     'test-fork.c',
-]
-
-env.Program('test-fork', source,
-            LIBS=libs+env.get('LIBS')
-            )
+])
 
 
-source = [
+env.Program('test-free', [
     'test-free.c',
-]
-
-env.Program('test-free', source,
-            LIBS=libs+env.get('LIBS')
-            )
+])
 
 
-source = [
+env.Program('test-sound', [
     'test-sound.c',
-]
-
-env.Program('test-sound', source,
-            LIBS=libs+env.get('LIBS')
-            )
+])
 
 
-source = [
+env.Program('test-sys', [
     'test-sys.c',
-]
+])
 
-env.Program('test-sys', source,
-            LIBS=libs+env.get('LIBS')
-            )
 
-libs = [
-
-]+env['LIBC']
-include = ['.']
-libpath = ['.']
-
-source = [
+env.Program('test-thread', [
     'test-thread.c',
-]
-
-env.Program('test-thread', source,
-            LIBS=libs+env.get('LIBS')
-            )
+])
 
 
-source = [
-    'test-so.c',
-]
-
-# env.SharedLibrary('test-so', source,
-#             SHLIBSUFFIX = '.so',
-#             LIBS=libs+env.get('LIBS')
-#             )
+# env.SharedLibrary('test-so',  [
+#     'test-so.c',
+# ],
+#     SHLIBSUFFIX='.so',
+# )
 
 
-source = [
-    'test-call-so.c',
-]
+# env.Program('test-call-so', [
+#     'test-call-so.c',
+# ])
 
 
-include = ['.']
-libpath = ['.']
+# env.Program('test-call-so', [
+#     'test-dl.c',
+# ])
 
-libs = [
-    'test-so',
-]+env['LIBC']
-
-# env.Program('test-call-so', source,
-#             CPPPATH=include+env.get('CPPPATH'),
-#             LIBPATH=libpath+env['LIBPATH'],
-#             LIBS=libs+env.get('LIBS'),
-#             CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-#             )
-
-
-source = [
-    'test-dl.c'
-]
-
-include = ['.']
-libpath = ['.']
-
-libs = [
-
-]+env['LIBC']
-
-env.Program('test-dl', source,
-            CPPPATH=include+env.get('CPPPATH'),
-            LIBPATH=libpath+env['LIBPATH'],
-            LIBS=libs+env.get('LIBS'),
-            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-            )
-
-
-include = ['.']
-libpath = ['.']
-
-libs = [
-
-]+env['LIBC']
-
-source = [
-]
 
 # env.SharedLibrary('ld-musl-arm', source,
 #             SHLIBPREFIX = '',
 #             SHLIBSUFFIX = '.so.1',
 #             CPPPATH=include+env.get('CPPPATH'),
 #             LIBPATH=libpath+env['LIBPATH'],
-#             LIBS=libs+env.get('LIBS'),
+#            ,
 #             CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
 #             )
 
-
-source = [
+cppEnv.Program('test-cpp', [
     'test-cpp.cpp',
-]
-
-libpath = [
-    '#/eggs/libcxx/',
-    '#/eggs/libcxxabi/'
-]
-
-include = [
-    '../../eggs/libcxx/include',
-    '../../eggs/libcxxabi/include',
-    'include',
-    '.',
-    '../../eggs/include',
-]
-
-libs = [
-    'libcxx.a',
-    'libcxxabi.a',
-]+env['LIBC']
-
-cxxflags = '  '+cflags
-
-cppEnv.Program('test-cpp', source,
-               LIBS=libs+env.get('LIBS'),
-               LIBPATH=libpath + env['LIBPATH'],
-               CPPPATH=include + env['CPPPATH'],
-               # CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-               CXXFLAGS=cxxflags+' $CXXFLAGS $LIBCFLAGS '
-               )
+])

@@ -6,8 +6,8 @@
 # ********************************************************************
 import os
 
-Import('env')
-
+Import('appEnv')
+env=appEnv
 
 source =[
     'K6502.c',

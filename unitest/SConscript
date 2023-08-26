@@ -6,31 +6,22 @@
 # ********************************************************************
 import os
 
-Import('env')
-Import('cppEnv')
+Import('appEnv')
+env = appEnv
 
-
-env = env.Clone(
-    w=GetOption('w'),
-    ENV=os.environ,
-    PATH=[os.environ['PATH'], '/opt/local/bin'],
-)
-
-source = [
-    'test.c',
-]
-
-libs = [
-    'libcmocka.a',
+env.UseLibrary([
+    'libsdl2-ttf.a',
+    'libfreetype.a',
+    'libsdl2.a',
+    'libgui.a',
+    'libsdl2-image.a',
+    'libimage.a',
+    'libwebp.a',
+    'libjpeg.a',
     'libpng.a',
     'libzlib.a',
-]+env['LIBC'] 
+])
 
-source = [
+env.Program('pngtest', [
     'pngtest.c',
-]
-
-env.Program('pngtest', source,
-            LIBS=libs+env.get('LIBS')
-            )
-
+])

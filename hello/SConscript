@@ -6,29 +6,10 @@
 # ********************************************************************
 import os
 
-Import('env')
+Import('cliEnv')
+env = cliEnv
 
 
-AddOption(
-    '--w',
-    dest='w',
-    nargs=1,
-    type='string',
-    action='store',
-    metavar='DIR',
-    help='w image',
-)
-
-# env = env.Clone(
-#   w=GetOption('w'),
-#   ENV = os.environ,
-#   PATH= [os.environ['PATH'],'/opt/local/bin' ],
-#   )
-
-
-source=[
+env.Program('hello', [
     'hello.c',
-    ]
-
-env.Program('hello', source)
-
+])

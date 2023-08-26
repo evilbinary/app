@@ -9,7 +9,10 @@ import os
 Import('env')
 Import('cppEnv')
 
-cflags='  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -DLOG_LEVEL=4 ' # -DIS_LITTLE_ENDIAN 
+cppEnv = cppEnv.Clone()
+
+# -DIS_LITTLE_ENDIAN
+cflags = ' -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -DLOG_LEVEL=4 '
 
 # cflags+='-DSDL_IMAGE_USE_COMMON_BACKEND \
 # 		-DLOAD_BMP -DLOAD_GIF -DLOAD_LBM -DLOAD_PCX -DLOAD_PNM \
@@ -18,30 +21,10 @@ cflags='  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -DLOG_LEVEL=4 ' # -DI
 #         -DLOAD_JPG  -DFAST_IS_JPEG\
 #         '
 
-cflags+=' -DENABLE_CLOCK '
+cflags += ' -DENABLE_CLOCK '
 
-libs = [
-    'libsdl.a',
-    'libgui.a',
-    'libimage.a',
-    'libjpeg.a',
-    'libpng.a',
-    'libzlib.a',
-    'libsdl-ttf.a',
-    'libsdl-image.a',
-    'libcxx.a',
-    'libcxxabi.a',
-    'libfreetype.a',
-    'libsdl.a',
-    'libwebp.a',
-    'libjpeg.a',
-
-]+env['LIBC']
 
 include = [
-    '../../eggs/libcxx/include',
-    '../../eggs/libcxxabi/include',
-
     '../../eggs/libgui',
     '../../eggs/libsdl-ttf',
     '../../eggs/libsdl-image',
@@ -54,31 +37,27 @@ include = [
 
 ]
 
-libpath = [
-    '../../eggs/libcxx/',
-    '../../eggs/libcxxabi/',
-    '../../eggs/libsdl/',
-    '../../eggs/libsdl-image/',
-    '../../eggs/libsdl-ttf/',
-    '../../eggs/libfreetype',
-    '../../eggs/libwebp/',
-    '../../eggs/libgui',
-    '../../eggs/libimage',
-    '../../eggs/libjpeg',
-    '../../eggs/libpng',
-    '../../eggs/libc/',
-    '../../eggs/libzlib',
 
-]
+cppEnv.UseLibrary([
+    # 'libsdl.a',
 
-source = []
+    'libsdl-ttf.a',
+    'libfreetype.a',
+    'libsdl.a',
+    'libgui.a',
+    'libsdl-image.a',
+    'libimage.a',
+    'libwebp.a',
+    'libjpeg.a',
+    'libpng.a',
+    'libzlib.a',
+])
 
-source += Glob('src/*.cpp')
+cppEnv.UseLibApp()
 
-cppEnv.Program('gmenu', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=libpath +env['LIBPATH'],
-    CPPPATH=include+ env['CPPPATH'] ,
-    CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
-            )
+cppEnv.AddCxxFlags(cflags)
+cppEnv.AddInclude(include)
+
+cppEnv.Program('gmenu', [
+    Glob('src/*.cpp')
+])

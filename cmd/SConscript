@@ -7,64 +7,44 @@
 import os
 
 Import('cliEnv')
-env=cliEnv
+env = cliEnv
 
-
-source = [
+ls = env.Program('ls', [
     'ls.c',
-]
+])
 
-ls=env.Program('ls', source)
 
-source = [
+echo = env.Program('echo', [
     'echo.c',
-]
-
-echo=env.Program('echo', source)
+])
 
 
-source = [
+cat = env.Program('cat', [
     'cat.c',
-]
+])
 
-
-cat=env.Program('cat', source)
-
-source = [
+hexdump = env.Program('hexdump', [
     'hexdump.c',
-]
+])
 
 
-hexdump=env.Program('hexdump', source)
-
-
-source = [
+touch = env.Program('touch', [
     'touch.c',
-]
+])
 
-
-touch=env.Program('touch', source)
-
-
-source = [
+date = env.Program('date', [
     'date.c',
-]
-
-date=env.Program('date', source)
+])
 
 
-source = [
+kill = env.Program('kill', [
     'kill.c',
-]
+])
 
-kill=env.Program('kill', source)
-
-source = [
+shell = env.Program('shell', [
     'shell.c',
-]
+])
 
-shell=env.Program('shell', source)
-
-returns=[ls,echo,date,kill,touch,hexdump,cat]
+returns = [ls, echo, date, kill, touch, hexdump, cat]
 
 Return('returns')

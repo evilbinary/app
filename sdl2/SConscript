@@ -6,8 +6,9 @@
 # ********************************************************************
 import os
 
-Import('env')
-
+Import('appEnv')
+env = appEnv.Clone()
+ffmepgEnv = appEnv.Clone()
 
 source = [
     'main.c',
@@ -34,11 +35,10 @@ libpath = [
     '../../eggs/libsdl2/',
 ]
 
-cflags=' -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT'
+cflags = ' -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT'
 
 if env.get('DEFAULT_LIBC') == 'libmusl':
-    cflags='-lstdatomic  -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT -DHAVE_TRUNCF -DHAVE_ROUNDF -DHAVE_ROUND  -DHAVE_LRINT -DHAVE_LRINTF -DHAVE_CBRTF -DHAVE_COPYSIGN'
-
+    cflags = '-lstdatomic  -DHAVE_CBRT -DHAVE_ERF -DHAVE_HYPOT -DHAVE_TRUNC -DHAVE_RINT -DHAVE_TRUNCF -DHAVE_ROUNDF -DHAVE_ROUND  -DHAVE_LRINT -DHAVE_LRINTF -DHAVE_CBRTF -DHAVE_COPYSIGN'
 
 
 env.Program('sdl2', source,
@@ -49,46 +49,37 @@ env.Program('sdl2', source,
             )
 
 
-source = [
+
+
+
+ffmepgEnv.UseLibrary([
+    'sdl2',
+    'gui',
+    'libffmpeg/avdevice',
+    'libffmpeg/avfilter',
+    'libffmpeg/avformat',
+    'libffmpeg/swscale',
+    'libffmpeg/avcodec',
+    'libffmpeg/swresample',
+    'libffmpeg/avutil'
+])
+
+ffmepgEnv.AddInclude([
+    '#eggs/libffmpeg',
+    '#eggs/libsdl2',
+    '#eggs/libsdl2/include',
+    '#eggs/libffmpeg/libavdevice/',
+    '#eggs/libffmpeg/libavfilter/',
+    '#eggs/libffmpeg/libavformat/',
+    '#eggs/libffmpeg/libswscale/',
+    '#eggs/libffmpeg/libavcodec/',
+    '#eggs/libffmpeg/libavutil/',
+    '#eggs/libffmpeg/libswresample/',
+])
+
+ffmepgEnv.Program('player', [
     'player.c',
-
-
-
-]
-
-libpath = [
-    '#/eggs/libsdl2/',
-    '#/eggs/libffmpeg/libavdevice/',
-    '#/eggs/libffmpeg/libavfilter/',
-    '#/eggs/libffmpeg/libavformat/',
-    '#/eggs/libffmpeg/libswscale/',
-    '#/eggs/libffmpeg/libavcodec/',
-    '#/eggs/libffmpeg/libavutil/',
-    '#/eggs/libffmpeg/libswresample/',
-]
-libs = [
-    'libsdl2.a',
-    'libgui.a',
-    'libavdevice.a',
-    'libavfilter.a',
-    'libavformat.a',
-    'libswscale.a',
-    'libavcodec.a',
-    'libswresample.a',
-    'libavutil.a',
-]
-
-include = [
-    '#/eggs/libffmpeg/',
-    '#/eggs/libsdl2/include',
-]
-
-env.Program('player', source,
-            LIBS=libs+env.get('LIBS'),
-            LIBPATH=libpath+env.get('LIBPATH'),
-            CPPPATH=include+env.get('CPPPATH'),
-            CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-            )
+])
 
 
 # showimage
@@ -119,13 +110,6 @@ libpath = [
     '../../eggs/libsdl2/',
     '../../eggs/libsdl2-image/',
     '../../eggs/libwebp/',
-
-    '../../eggs/libffmpeg/libavdevice/',
-    '../../eggs/libffmpeg/libavfilter/',
-    '../../eggs/libffmpeg/libavformat/',
-    '../../eggs/libffmpeg/libswscale/',
-    '../../eggs/libffmpeg/libavcodec/',
-    '../../eggs/libffmpeg/libavutil/',
 ]
 
 env.Program('showimage', source,
@@ -167,13 +151,6 @@ libpath = [
     '../../eggs/libfreetype',
 
     '../../eggs/libwebp/',
-
-    '../../eggs/libffmpeg/libavdevice/',
-    '../../eggs/libffmpeg/libavfilter/',
-    '../../eggs/libffmpeg/libavformat/',
-    '../../eggs/libffmpeg/libswscale/',
-    '../../eggs/libffmpeg/libavcodec/',
-    '../../eggs/libffmpeg/libavutil/',
 ]
 
 env.Program('showfont', source,

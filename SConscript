@@ -7,90 +7,10 @@
 import os
 import platform
 import copy
-from xenv.env import add_libc
+
+Import('env')
 
 plt = platform.system()
-
-Import('appEnv')
-cliEnv = appEnv.Clone()
-Export('cliEnv')
-
-env = appEnv
-
-env['CPPPATH'] += [
-    '#/eggs/',
-    '.',
-    '../libs/include/',
-    '../include/',
-    '../../duck/libs/include'
-]
-
-env['LIBPATH'] += [
-    '#/eggs/',
-]
-
-add_libc(env)
-add_libc(cliEnv)
-
-cliEnv['LIBS'] += cliEnv['LIBC']
-cliEnv['CFLAGS'] += cliEnv['LIBCFLAGS']
-cliEnv['LINKFLAGS'] += cliEnv['USER']
-if cliEnv.get('MYLIB'):
-    cliEnv['LIBS'].append(cliEnv.get('MYLIB'))
-
-env['CPPPCOMMON'] = [
-    '#/eggs/libgui',
-    '#/eggs/libjpeg',
-    '#/eggs/libzlib',
-    '#/eggs/libpng',
-    '#/eggs/libetk',
-    '#/eggs/libcmocka/include',
-]
-
-env['LIBCOMMON'] = [
-    '#/eggs/libgui',
-    '#/eggs/libimage',
-    '#/eggs/libjpeg',
-    '#/eggs/libpng',
-    '#/eggs/libzlib',
-    '#/eggs/libetk',
-    '#/eggs/libcmocka',
-    '#/eggs/liblz4',
-    '#/eggs/libuuid',
-]
-
-env['LIBPATH'] += env['LIBCOMMON']
-env['CPPPATH'] += env['CPPPCOMMON']
-env['LIBS'] += env['LIBC']
-env['CFLAGS'] += env['LIBCFLAGS']
-env['LINKFLAGS'] += env['USER']+' -Wl,-dynamic-linker,/lib/ld-musl-%s.so.1  '%(env['ARCHTYPE'])
-
-if env.get('MYLIB'):
-    env['LIBS'].append(env.get('MYLIB'))
-
-
-# config cpp env
-cppEnv = appEnv.Clone()
-
-
-cppEnv['LIBS'] += ['libcxx.a','libcxxabi.a']+ env['LIBC']
-cppEnv['LIBPATH']+=env['LIBCOMMON']+[
-    '../../eggs/libcxx/',
-    '../../eggs/libcxxabi/',
-
-    ] 
-cppEnv['CPPPATH']+=['#/eggs/libcxx',
-                    '#/eggs/libcxx/include',
-                    '#/eggs/libcxxabi',
-                    '#/eggs/libcxxabi/include'
-                    ]
-cxxflags=' -g -fno-use-cxa-atexit -fno-threadsafe-statics -D_LIBCPP_HAS_NO_THREADS -D_LIBCPP_HAS_NO_MONOTONIC_CLOCK -D_LIBCPP_HAS_MUSL_LIBC -D_LIBCPP_HAS_NO_LIBRARY_ALIGNED_ALLOCATION    -D_LIBCPP_BUILDING_LIBRARY -D_POSIX_C_SOURCE -D_LIBCXXABI_HAS_NO_THREADS -D_GNU_SOURCE  '
-
-cppEnv['CXXFLAGS'] += env['LIBCFLAGS']
-cppEnv['CXXFLAGS'] += cxxflags
-
-Export('cppEnv')
-
 
 def check_exit(apps):
     new_list = copy.deepcopy(apps)
@@ -106,7 +26,6 @@ returns=[]
 if env.get('APP') and len(env.get('APP'))>0 :
     build_app = env.get('APP')
     all = SConscript(dirs=build_app, exports='env')
-    
     resource_file=  Glob('resource/*')
 
     apps_file = [

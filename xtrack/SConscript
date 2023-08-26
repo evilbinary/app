@@ -8,13 +8,14 @@ import os
 
 Import('env')
 Import('cppEnv')
+env = cppEnv.Clone()
 
-cflags=' -D_POSIX_C_SOURCE -DLV_LVGL_H_INCLUDE_SIMPLE=1  ' # -DIS_LITTLE_ENDIAN 
+cflags = ' -D_POSIX_C_SOURCE -DLV_LVGL_H_INCLUDE_SIMPLE=1  '  # -DIS_LITTLE_ENDIAN
 
-cflags+='  -D_GLIBCPP_USE_C99 -DLIBYC -DIS_LITTLE_ENDIAN  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -fpermissive -DRUN_ENVIRONMENT_LINUX -DCHINESE_SUPPORT -DMOUSE_SUPPORT -DRESMGT_SUPPORT -DMODE_DEBUG  '
+cflags += '  -D_GLIBCPP_USE_C99 -DLIBYC -DIS_LITTLE_ENDIAN  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -fpermissive -DRUN_ENVIRONMENT_LINUX -DCHINESE_SUPPORT -DMOUSE_SUPPORT -DRESMGT_SUPPORT -DMODE_DEBUG  '
 
 
-cflags+=' -DENABLE_CLOCK '
+cflags += ' -DENABLE_CLOCK '
 
 libs = [
     'libgui.a',
@@ -33,7 +34,7 @@ libs = [
     'liblvgl.a',
     'libgui.a',
 
-]+env['LIBC']
+]
 
 include = [
     '#/eggs/libmusl/include',
@@ -76,6 +77,12 @@ libpath = [
 
 ]
 
+cppEnv.UseLibrary(libs)
+cppEnv.AddInclude(include)
+cppEnv.AddCFlags(cflags)
+cppEnv.AddCxxFlags(cflags)
+cppEnv.AddPath(libpath)
+
 source = ['main.cpp']
 
 source += Glob('APP/Pages/*.cpp')
@@ -92,15 +99,9 @@ source += Glob('App/*.cpp')
 source += Glob('App/Resource/*.cpp')
 
 
-
 source += Glob('HAL/*.cpp')
 source += Glob('MillisTaskManager/*.cpp')
 
 
-cppEnv.Program('xtrack', source,
-    LIBS=libs+env.get('LIBS'),
-    LIBPATH=libpath +env['LIBPATH'],
-    CPPPATH=include +env['CPPPATH'],
-    CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
-    CXXFLAGS=cflags+' $CXXFLAGS $LIBCFLAGS '
-            )
+cppEnv.Program('xtrack', source
+               )

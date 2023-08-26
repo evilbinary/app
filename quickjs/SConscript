@@ -6,7 +6,8 @@
 # ********************************************************************
 import os
 
-Import('env')
+Import('cliEnv')
+env=cliEnv
 
 
 cflags = ' -UCONFIG_PRINTF_RNDN -D_GNU_SOURCE -DUSE_FILE32API  -Iapp/quickjs -DCONFIG_BIGNUM' #-DCONFIG_BIGNUM for qjscalc
@@ -35,11 +36,6 @@ source += [
 
 libs = [
     'libquickjs.a',
-    'libsdl2.a',
-    'libgui.a',
-    'libimage.a',
-    'libpng.a',
-    'libzlib.a',
 ]
 
 libpath = [

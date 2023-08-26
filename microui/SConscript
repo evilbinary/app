@@ -6,18 +6,8 @@
 # ********************************************************************
 import os
 
-Import('env')
-
-env = env.Clone(
-  w=GetOption('w'),
-  ENV = os.environ,
-  PATH= [os.environ['PATH'],'/opt/local/bin' ],
-  )
-
-
-libs=[
-    'libgui.a',
-]
+Import('appEnv')
+env = appEnv
 
 source= [
     'main.c',
@@ -26,8 +16,7 @@ source= [
     ]
 
 
-env.Program('microui',source,
-    LIBS=libs+env.get('LIBS'),)
+env.Program('microui',source)
 
 # env.Objcopy('microui','microui',OBJCOPYFLAGS='-S')
 # env.Objcopy('microui.dbg','microui',OBJCOPYFLAGS='--only-keep-debug')
