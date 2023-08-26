@@ -97,7 +97,7 @@ int main(int argc, const char *argv[]) {
   int import_notify = 0;
   int compile_imported_libraries = 0;
 #ifdef FEATURE_EXPEDITOR
-  int expeditor_enable = 1;
+  int expeditor_enable = 0;
   const char *expeditor_history_file = "";  /* use "" for default location */
 #endif /* FEATURE_EXPEDITOR */
 

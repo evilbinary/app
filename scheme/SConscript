@@ -19,6 +19,7 @@ libs = [
     'libzlib.a',
     'liblz4.a',
     'libuuid.a',
+    'libncurses.a'
 ]
 
 libpath = [
@@ -26,6 +27,7 @@ libpath = [
     '../../eggs/libzlib/',
     '../../eggs/liblz4/',
     '../../eggs/libuuid',
+    '../../eggs/libncurses',
 ]
 
 
@@ -44,6 +46,7 @@ else:
 
 
 include = [
+    '../libncurses/include',
     'src',
     'include',
     '.',
