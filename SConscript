@@ -22,12 +22,32 @@ def check_exit(apps):
 
 returns=[]
 
+build_app=[]
+
+if env.get('CPP_APP') and len(env.get('CPP_APP'))>0:
+    build_app+=env.get('CPP_APP')
 
 if env.get('APP') and len(env.get('APP'))>0 :
     build_app = env.get('APP')
     all = SConscript(dirs=build_app, exports='env')
     resource_file=  Glob('resource/*')
 
+    app_cpp_file=[
+        'test/test-cpp',
+        'gmenu2x/gmenu',
+        'monogui/monogui',
+        'xtrack/xtrack',
+        # 'monogui/demo/asc12.bin',
+        # 'monogui/demo/gb12song',
+        # 'monogui/demo/gb16song',
+        # 'monogui/demo/KeyMap.txt',
+        # 'monogui/demo/lx.db',
+        # 'monogui/demo/lx.idx',
+        # 'monogui/demo/ex.db',
+        # 'monogui/demo/ex.idx',
+        # 'monogui/demo/py.db',
+        # 'monogui/demo/py.idx',
+    ]
     apps_file = [
         'hello/hello',
         'gui/gui',
@@ -44,7 +64,6 @@ if env.get('APP') and len(env.get('APP'))>0 :
         'test/test-free',
         'test/test-sound',
         'test/test-sys',
-        'test/test-cpp',
         'rust/test/test-rs',
         'test/test-thread',
         'test/libtest-so.so',
@@ -89,14 +108,12 @@ if env.get('APP') and len(env.get('APP'))>0 :
         # 'quickjs/examples/hello.js',
         'watch/watch',
 
-        'gmenu2x/gmenu',
+       
         # 'sdlmine/sdlmine',
         'sdl/testwm',
         'sdl/testoverlay2',
         'sdl/testbitmap',
         'sdl/testoverlay',
-
-        'monogui/monogui',
 
         'unitest/pngtest',
         '../foot/service/servicea',
@@ -104,21 +121,11 @@ if env.get('APP') and len(env.get('APP'))>0 :
         '../foot/service/systemd',
         '../foot/service/vfsd',
         '../foot/driver/tinyusb/tinyusb',
-
-
-        'xtrack/xtrack',
-
-        # 'monogui/demo/asc12.bin',
-        # 'monogui/demo/gb12song',
-        # 'monogui/demo/gb16song',
-        # 'monogui/demo/KeyMap.txt',
-        # 'monogui/demo/lx.db',
-        # 'monogui/demo/lx.idx',
-        # 'monogui/demo/ex.db',
-        # 'monogui/demo/ex.idx',
-        # 'monogui/demo/py.db',
-        # 'monogui/demo/py.idx',
+  
     ]
+    if env.get('CPP_APP') and len(env.get('CPP_APP'))>0:
+        apps_file+=app_cpp_file
+
     if env.get('DEFAULT_LIBC') == 'libmusl':
         SConscript(dirs=['toybox'], exports='env')
         # SConscript(dirs=['meui'], exports='env')

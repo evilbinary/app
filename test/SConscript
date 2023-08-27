@@ -109,7 +109,3 @@ env.Program('test-thread', [
 #            ,
 #             CFLAGS=cflags+' $CFLAGS $LIBCFLAGS ',
 #             )
-
-cppEnv.Program('test-cpp', [
-    'test-cpp.cpp',
-])
