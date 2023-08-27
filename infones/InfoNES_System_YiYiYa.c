@@ -665,7 +665,7 @@ static inline  InfoNES_LoadFrameScale1(void){
 }
 
 
-void InfoNES_LoadFrame(){
+void InfoNES_LoadFrame2(){
 	if(screen->width >= NES_DISP_WIDTH * 2 && screen->height >= NES_DISP_HEIGHT * 2)
 		InfoNES_LoadFrameScale2();
 	else
@@ -673,10 +673,10 @@ void InfoNES_LoadFrame(){
   screen_flush();
 }
 
-void InfoNES_LoadFrame2() {
+void InfoNES_LoadFrame() {
   int x, y;
   int line_width;
-  WORD wColor;
+  unsigned int wColor;
 
   if (0 < fb_fd) {
     for (y = 0; y < lcd_height; y++) {
@@ -684,8 +684,9 @@ void InfoNES_LoadFrame2() {
       for (x = 0; x < lcd_width; x++) {
         wColor = WorkFrame[line_width + zoom_x_tab[x]];
         /* 16-bit to 24-bit  RGB565 to RGB888*/
-        WORD color = ((wColor & 0x7c00) << 9) | ((wColor & 0x03e0) << 6) |
+        unsigned int color = ((wColor & 0x7c00) << 9) | ((wColor & 0x03e0) << 6) |
                      ((wColor & 0x001f) << 3) | (0xff << 24);
+        
         screen_put_pixel(x, y, color);
         // lcd_fb_display_px(wColor, x, y);
       }
