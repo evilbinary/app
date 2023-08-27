@@ -24,9 +24,6 @@ returns=[]
 
 build_app=[]
 
-if env.get('CPP_APP') and len(env.get('CPP_APP'))>0:
-    build_app+=env.get('CPP_APP')
-
 if env.get('APP') and len(env.get('APP'))>0 :
     build_app = env.get('APP')
     all = SConscript(dirs=build_app, exports='env')
