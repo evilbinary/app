@@ -6,38 +6,33 @@
 # ********************************************************************
 import os
 
-Import('env')
 Import('cppEnv')
 
-cppEnv=cppEnv.Clone()
+env=cppEnv.Clone()
 # cppEnv.UseLibc()
-cppEnv.UseLibApp()
+
 
 cflags='  -DLIBYC -DIS_LITTLE_ENDIAN  -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -fpermissive -DRUN_ENVIRONMENT_LINUX -DCHINESE_SUPPORT -DMOUSE_SUPPORT -DRESMGT_SUPPORT -DMODE_DEBUG ' #RUN_ENVIRONMENT_WIN32 RUN_ENVIRONMENT_LINUX 
 
 
 
 include = [
-    '../../eggs/libcxx/include',
-    '../../eggs/libcxxabi/include',
-
-    '../../eggs/libgui',
-    '../../eggs/libsdl2',
-    '../../eggs/libsdl2-ttf',
-    '../../eggs/libsdl2/include',
-    '../../eggs/libjpeg/',
-    '../../eggs/libfreetype/include',
-    'sys/sdl2/',
-    'include',
+    '#eggs/libsdl2',
+    '#eggs/libsdl2-ttf',
+    '#eggs/libsdl2/include',
+    '#eggs/libjpeg/',
+    '#eggs/libfreetype/include',
+    '#eggs/include/SDL2/',
     '.',
-    '../../eggs/include',
+    '#eggs/libsdl2/include',
 ]
+env.UseLibApp()
+env.UseLibrary(['sdl2'])
+env.AddCxxFlags(cflags)
+env.AddInclude(include)
 
-cppEnv.UseLibrary(['sdl2'])
-cppEnv.AddCxxFlags(cflags)
 
-
-cppEnv.Program('monogui', [
+env.Program('monogui', [
     Glob('tgui/*.cpp'),
     Glob('demo/*.cpp')
 ])

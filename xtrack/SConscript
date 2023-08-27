@@ -6,9 +6,8 @@
 # ********************************************************************
 import os
 
-Import('env')
 Import('cppEnv')
-env = cppEnv.Clone()
+cppEnv = cppEnv.Clone()
 
 cflags = ' -D_POSIX_C_SOURCE -DLV_LVGL_H_INCLUDE_SIMPLE=1  '  # -DIS_LITTLE_ENDIAN
 
