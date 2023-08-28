@@ -30,7 +30,7 @@ if env.get('APP') and len(env.get('APP'))>0 :
     resource_file=  Glob('resource/*')
 
     app_cpp_file=[
-        'test/test-cpp',
+        'testcpp/test-cpp',
         'gmenu2x/gmenu',
         'monogui/monogui',
         'xtrack/xtrack',
