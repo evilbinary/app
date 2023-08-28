@@ -6,9 +6,9 @@
 # ********************************************************************
 import os
 
-Import('cppEnv')
+Import('cppCliEnv')
 
-env=cppEnv.Clone()
+env=cppCliEnv.Clone()
 # cppEnv.UseLibc()
 
 

@@ -7,9 +7,9 @@
 import os
 
 Import('env')
-Import('cppEnv')
+Import('cppCliEnv')
 
-cppEnv = cppEnv.Clone()
+cppEnv = cppCliEnv.Clone()
 
 # -DIS_LITTLE_ENDIAN
 cflags = ' -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -DLOG_LEVEL=4 '
