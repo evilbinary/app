@@ -7,7 +7,7 @@
 import os
 
 Import('appEnv')
-env = appEnv
+env = appEnv.Clone()
 
 env.UseLibrary([
     'libsdl2-ttf.a',

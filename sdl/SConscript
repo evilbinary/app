@@ -36,8 +36,6 @@ libs = [
 ]
 
 include = [
-    '#eggs/libcxx/include',
-    '#eggs/libcxxabi/include',
 
     '#eggs/libgui',
     '#eggs/libsdl-ttf',
