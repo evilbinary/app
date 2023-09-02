@@ -6,14 +6,11 @@
 # ********************************************************************
 import os
 
-Import('cliEnv')
-Import('cppEnv')
+Import('cppCliEnv')
 
-
-env = cliEnv.Clone()
+env = cppCliEnv.Clone()
 
 env.UseLibrary(['cmocka'])
-
 
 
 env.AddCflags([
@@ -21,6 +18,6 @@ env.AddCflags([
 ])
 
 
-cppEnv.Program('test-cpp', [
+env.Program('test-cpp', [
     'test-cpp.cpp',
 ])
