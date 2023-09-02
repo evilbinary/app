@@ -199,7 +199,9 @@ int main(int /*argc*/, char * /*argv*/[]) {
 		ERROR("Unable to find gmenu2x home directory. The $HOME variable is not defined.\n");
 		// return 1;
 		home="/";
+		setenv("HOME","/",0);
 	}
+	
 
 	gmenu2x_home = (string)home + "gmenu2x";
 

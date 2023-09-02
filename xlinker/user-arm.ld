@@ -58,7 +58,7 @@ SECTIONS
                 __exidx_end = .;
         }
        
-         ARM.extab ALIGN(0x8) : { 
+        .ARM.extab ALIGN(0x8) : { 
                 *(.ARM.extab.*)
         }
         .note.GNU-stack ALIGN(0x8) :{
