@@ -55,7 +55,6 @@ target("mgba")
         'src',
         'include',
         '.',
-        'sys/sdl2/',
         'src/libgba'
         
     )

@@ -21,3 +21,12 @@ target("sdl2.elf")
     add_deps("sdl2")
 
     add_files('main.c')
+
+
+-- target("player")
+--     set_type("cli")
+
+--     add_deps("sdl2")
+--     add_packages("ffmpeg")
+
+--     add_files('player.c')

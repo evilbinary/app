@@ -1,8 +1,8 @@
--- target("test-cpp")
---     set_type("cli")
---     add_deps("cxx","cxxabi")
+target("test-cpp")
+    set_type("cli")
+    add_deps("cxx","cxxabi")
 
---     add_files("test-cpp.cpp") 
+    add_files("test-cpp.cpp") 
 
     -- add_cxxflags(
     -- '-ffreestanding -fpic',
