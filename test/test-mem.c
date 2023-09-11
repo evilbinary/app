@@ -90,7 +90,7 @@ void test_my_realloc_multi(void** state) {
 
   fp = fopen(name, "r+");
   assert_non_null(fp);
-  printf("fd=%d\n", *fp);
+  // printf("fd=%d\n", *fp);
   int len = 0;
   loadfile(fp, &len);
 
@@ -205,11 +205,11 @@ void test_mmap1() {
 
   p1 = (char*)mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   assert_int_not_equal(p1, MAP_FAILED);
-  (void)memset(p1, page_size, 0, page_size);
+  (void)memset(p1, 0, page_size);
 
   p2 = (char*)mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   assert_int_not_equal(p2, MAP_FAILED);
-  (void)memset(p2, page_size, 0, page_size);
+  (void)memset(p2, 0, page_size);
 
   ret = memcmp(p1, p2, page_size);
   assert_int_equal(ret, 0);

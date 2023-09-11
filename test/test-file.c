@@ -24,7 +24,7 @@ void test_read_large(void** state) {
   FILE* fp;
   fp = fopen(name, "r+");
   assert_non_null(fp);
-  printf("fd=%d\n", *fp);
+  // printf("fd=%d\n", *fp);
   int offset = 0;
   for (;;) {
     int ret = fseek(fp, offset, SEEK_SET);
@@ -170,7 +170,7 @@ void test_seek_read(void** state) {
   FILE* fp;
   fp = fopen(name, "r+");
   assert_non_null(fp);
-  printf("fd=%d\n", *fp);
+  // printf("fd=%d\n", *fp);
   int offset = 0x2a0;
   int ret = fseek(fp, offset, SEEK_SET);
   assert_int_equal(ret, 0);
