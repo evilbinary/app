@@ -24,6 +24,8 @@
 
 --     ) 
 
+        -- remove_files("")
+
 --     add_cflags(' -D_POSIX_C_SOURCE -DLV_LVGL_H_INCLUDE_SIMPLE=1 ')
 --     add_cxxflags(' -D_POSIX_C_SOURCE -DLV_LVGL_H_INCLUDE_SIMPLE=1 ')
 
