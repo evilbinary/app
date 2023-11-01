@@ -1,0 +1,4 @@
+title=emacs
+icon=skin:icons/emacs.png
+exec=/usr/bin/emacs
+wrapper=true

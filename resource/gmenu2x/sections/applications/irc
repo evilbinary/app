@@ -1,0 +1,4 @@
+title=irc
+icon=skin:icons/irc.png
+exec=/usr/bin/irc
+wrapper=true

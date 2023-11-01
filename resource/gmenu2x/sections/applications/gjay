@@ -1,0 +1,4 @@
+title=gjay
+icon=skin:icons/gjay.png
+exec=/usr/bin/gjay
+wrapper=true

@@ -1,0 +1,4 @@
+title=tclsh
+icon=skin:icons/tclsh.png
+exec=/usr/bin/tclsh
+wrapper=true

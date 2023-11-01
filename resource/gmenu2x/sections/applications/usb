@@ -1,0 +1,4 @@
+title=usb
+icon=skin:icons/usb.png
+exec=/usr/bin/usb
+wrapper=true

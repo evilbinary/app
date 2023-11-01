@@ -1,0 +1,4 @@
+title=date
+icon=skin:icons/date.png
+exec=/usr/bin/date
+wrapper=true

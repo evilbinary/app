@@ -1,0 +1,4 @@
+title=brainless
+icon=skin:icons/brainless.png
+exec=/usr/bin/brainless
+wrapper=true

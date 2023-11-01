@@ -1,5 +1,4 @@
-title=Movies
+title=mplayer
 icon=skin:icons/mplayer.png
-exec=/usr/gp2x/mplayer
-clock=200
+exec=/usr/bin/mplayer
 wrapper=true

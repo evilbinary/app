@@ -1,0 +1,4 @@
+title=gtkguitune
+icon=skin:icons/gtkguitune.png
+exec=/usr/bin/gtkguitune
+wrapper=true

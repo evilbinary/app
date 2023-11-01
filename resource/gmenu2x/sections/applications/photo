@@ -1,6 +1,4 @@
-title=Photo
+title=photo
 icon=skin:icons/photo.png
-exec=/usr/gp2x/gp2xmenu
-params=--disable-autorun --enable-terminate --view-photo
-clock=100
+exec=/usr/bin/photo
 wrapper=true

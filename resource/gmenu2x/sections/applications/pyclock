@@ -1,0 +1,4 @@
+title=pyclock
+icon=skin:icons/pyclock.png
+exec=/usr/bin/pyclock
+wrapper=true

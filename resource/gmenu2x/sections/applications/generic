@@ -1,0 +1,4 @@
+title=generic
+icon=skin:icons/generic.png
+exec=/usr/bin/generic
+wrapper=true

@@ -1,0 +1,4 @@
+title=ase
+icon=skin:icons/ase.png
+exec=/usr/bin/ase
+wrapper=true

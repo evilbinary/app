@@ -1,0 +1,4 @@
+title=dinguxcmdr
+icon=skin:icons/dinguxcmdr.png
+exec=/usr/bin/dinguxcmdr
+wrapper=true

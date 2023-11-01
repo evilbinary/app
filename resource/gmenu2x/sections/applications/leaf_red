@@ -1,0 +1,4 @@
+title=leaf_red
+icon=skin:icons/leaf_red.png
+exec=/usr/bin/leaf_red
+wrapper=true

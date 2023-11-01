@@ -1,0 +1,4 @@
+title=freedroid
+icon=skin:icons/freedroid.png
+exec=/usr/bin/freedroid
+wrapper=true

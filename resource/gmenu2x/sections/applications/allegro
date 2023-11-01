@@ -1,0 +1,4 @@
+title=allegro
+icon=skin:icons/allegro.png
+exec=/usr/bin/allegro
+wrapper=true

@@ -1,0 +1,4 @@
+title=imgv
+icon=skin:icons/imgv.png
+exec=/usr/bin/imgv
+wrapper=true

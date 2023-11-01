@@ -1,0 +1,4 @@
+title=lynx
+icon=skin:icons/lynx.png
+exec=/usr/bin/lynx
+wrapper=true

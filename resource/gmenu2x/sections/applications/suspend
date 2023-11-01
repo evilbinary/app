@@ -1,0 +1,4 @@
+title=suspend
+icon=skin:icons/suspend.png
+exec=/usr/bin/suspend
+wrapper=true

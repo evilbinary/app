@@ -1,0 +1,4 @@
+title=stardict
+icon=skin:icons/stardict.png
+exec=/usr/bin/stardict
+wrapper=true

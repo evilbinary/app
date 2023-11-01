@@ -1,0 +1,4 @@
+title=configure
+icon=skin:icons/configure.png
+exec=/usr/bin/configure
+wrapper=true

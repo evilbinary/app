@@ -1,0 +1,4 @@
+title=mcabber
+icon=skin:icons/mcabber.png
+exec=/usr/bin/mcabber
+wrapper=true

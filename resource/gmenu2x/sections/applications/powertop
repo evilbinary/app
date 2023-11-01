@@ -1,0 +1,4 @@
+title=powertop
+icon=skin:icons/powertop.png
+exec=/usr/bin/powertop
+wrapper=true

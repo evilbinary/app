@@ -1,0 +1,4 @@
+title=exit
+icon=skin:icons/exit.png
+exec=/usr/bin/exit
+wrapper=true

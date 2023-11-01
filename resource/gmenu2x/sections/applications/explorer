@@ -1,0 +1,4 @@
+title=explorer
+icon=skin:icons/explorer.png
+exec=/usr/bin/explorer
+wrapper=true

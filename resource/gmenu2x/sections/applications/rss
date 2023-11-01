@@ -1,0 +1,4 @@
+title=rss
+icon=skin:icons/rss.png
+exec=/usr/bin/rss
+wrapper=true

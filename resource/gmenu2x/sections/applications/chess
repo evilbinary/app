@@ -1,0 +1,4 @@
+title=chess
+icon=skin:icons/chess.png
+exec=/usr/bin/chess
+wrapper=true

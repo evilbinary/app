@@ -1,0 +1,4 @@
+title=sticker
+icon=skin:icons/sticker.png
+exec=/usr/bin/sticker
+wrapper=true

@@ -1,0 +1,4 @@
+title=tile
+icon=skin:icons/tile.png
+exec=/usr/bin/tile
+wrapper=true

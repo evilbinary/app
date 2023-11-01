@@ -1,0 +1,4 @@
+title=reboot
+icon=skin:icons/reboot.png
+exec=/usr/bin/reboot
+wrapper=true

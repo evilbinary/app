@@ -1,0 +1,4 @@
+title=about
+icon=skin:icons/about.png
+exec=/usr/bin/about
+wrapper=true

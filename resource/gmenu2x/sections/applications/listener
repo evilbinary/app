@@ -1,0 +1,4 @@
+title=listener
+icon=skin:icons/listener.png
+exec=/usr/bin/listener
+wrapper=true

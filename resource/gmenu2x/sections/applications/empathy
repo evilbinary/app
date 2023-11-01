@@ -1,0 +1,4 @@
+title=empathy
+icon=skin:icons/empathy.png
+exec=/usr/bin/empathy
+wrapper=true

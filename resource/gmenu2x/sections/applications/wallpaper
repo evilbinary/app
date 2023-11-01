@@ -1,0 +1,4 @@
+title=wallpaper
+icon=skin:icons/wallpaper.png
+exec=/usr/bin/wallpaper
+wrapper=true

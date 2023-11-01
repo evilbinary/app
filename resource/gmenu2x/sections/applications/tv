@@ -1,0 +1,4 @@
+title=tv
+icon=skin:icons/tv.png
+exec=/usr/bin/tv
+wrapper=true

@@ -1,0 +1,4 @@
+title=skin
+icon=skin:icons/skin.png
+exec=/usr/bin/skin
+wrapper=true

@@ -1,0 +1,4 @@
+title=backgammon
+icon=skin:icons/backgammon.png
+exec=/usr/bin/backgammon
+wrapper=true

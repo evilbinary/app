@@ -1,0 +1,4 @@
+title=gnuplot
+icon=skin:icons/gnuplot.png
+exec=/usr/bin/gnuplot
+wrapper=true

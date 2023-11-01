@@ -1,0 +1,4 @@
+title=Bard32
+icon=skin:icons/Bard32.png
+exec=/usr/bin/Bard32
+wrapper=true

@@ -1,0 +1,4 @@
+title=editor
+icon=skin:icons/editor.png
+exec=/usr/bin/editor
+wrapper=true

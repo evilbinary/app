@@ -1,0 +1,4 @@
+title=gmu
+icon=skin:icons/gmu.png
+exec=/usr/bin/gmu
+wrapper=true

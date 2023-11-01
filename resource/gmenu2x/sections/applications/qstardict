@@ -1,0 +1,4 @@
+title=qstardict
+icon=skin:icons/qstardict.png
+exec=/usr/bin/qstardict
+wrapper=true

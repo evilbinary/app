@@ -1,0 +1,4 @@
+title=octave
+icon=skin:icons/octave.png
+exec=/usr/bin/octave
+wrapper=true

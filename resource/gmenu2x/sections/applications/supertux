@@ -1,0 +1,4 @@
+title=supertux
+icon=skin:icons/supertux.png
+exec=/usr/bin/supertux
+wrapper=true

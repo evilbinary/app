@@ -158,3 +158,5 @@ xtrack/xtrack
 launcher/SConscript
 test/test-dl
 test/test-call-so
+
+**/**/__pycache__/**.pyc

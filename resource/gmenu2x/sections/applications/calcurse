@@ -1,0 +1,4 @@
+title=calcurse
+icon=skin:icons/calcurse.png
+exec=/usr/bin/calcurse
+wrapper=true

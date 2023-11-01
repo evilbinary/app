@@ -1,0 +1,4 @@
+title=bc
+icon=skin:icons/bc.png
+exec=/usr/bin/bc
+wrapper=true

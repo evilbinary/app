@@ -1,0 +1,4 @@
+title=section
+icon=skin:icons/section.png
+exec=/usr/bin/section
+wrapper=true

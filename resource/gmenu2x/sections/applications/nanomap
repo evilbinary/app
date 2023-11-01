@@ -1,0 +1,4 @@
+title=nanomap
+icon=skin:icons/nanomap.png
+exec=/usr/bin/nanomap
+wrapper=true

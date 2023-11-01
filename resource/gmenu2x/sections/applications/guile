@@ -1,0 +1,4 @@
+title=guile
+icon=skin:icons/guile.png
+exec=/usr/bin/guile
+wrapper=true

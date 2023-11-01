@@ -1,0 +1,4 @@
+title=browser
+icon=skin:icons/browser.png
+exec=/usr/bin/browser
+wrapper=true

@@ -1,0 +1,4 @@
+title=calc
+icon=skin:icons/calc.png
+exec=/usr/bin/calc
+wrapper=true
