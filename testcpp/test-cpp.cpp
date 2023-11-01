@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "stdio.h"
+#include "dirent.h"
 
 using namespace std;
 
@@ -39,8 +40,36 @@ void test_dir() {
   // }
 }
 
+void test_readdir_readline(string const& linkfile){
+  string line;
+  string file= linkfile;
+	ifstream infile (file.c_str(), ios_base::in);
+	while (getline(infile, line, '\n')) {
+    cout<<"line===>"<<line<<endl;
+  }
+  infile.close();
+}
+
+void test_readdir(){
+  string path="gmenu2x/sections/applications";
+
+  DIR *dirp = opendir(path.c_str());
+	if (!dirp) return;
+
+	while (struct dirent *dptr = readdir(dirp)) {
+		if (dptr->d_type != DT_REG) continue;
+		string linkfile = path + "/" + dptr->d_name;
+
+    cout<<"dir==>"<<linkfile<<endl;
+    test_readdir_readline(linkfile);
+
+  }
+}
+
 int main() {
-  test_dir();
+  // test_dir();
+  // test_readline();
+  test_readdir();
 
   return 0;
 }
