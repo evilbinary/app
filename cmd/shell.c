@@ -155,6 +155,8 @@ int do_exec(char* cmd) {
   int i = 0;
   const char* split = " ";
   char* ptr = strtok(cmd, split);
+  memset(cmd_buf,0,64);
+  memset(cmd_argv,0,64);
   while (ptr != NULL) {
     cmd_argv[i++] = ptr;
     ptr = strtok(NULL, split);
