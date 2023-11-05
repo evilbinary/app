@@ -180,6 +180,7 @@ void shell_loop() {
   int count = 0;
   int ret = 0;
   int ch;
+  memset(buf, 0, 128);
   for (;;) {
     ch = getchar();
     ret = ch;
