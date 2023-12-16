@@ -9,5 +9,5 @@ if has_config("app"):
         includes("./"+v+"/ya.py")
 
 if has_config("cpp-apps"): 
-    for v in get_config('cpp_apps'):
+    for v in get_config('cpp-apps'):
         includes("./"+v+"/ya.py")
