@@ -1,7 +1,7 @@
 target("gnuboy")
 set_type("cli")
 
-add_deps("sdl2","sdl2-image","zlib")
+add_deps("sdl2","sdl2-image","zlib","gui")
 
 add_files(
     'src/*.c',
