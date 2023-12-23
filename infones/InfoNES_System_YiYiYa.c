@@ -61,23 +61,28 @@ static int lcd_fb_display_px(WORD color, int x, int y) {
   // r = (((color & 0xF800) >> 11) << 3);
   // g = (((color & 0x7E0) >> 5) << 2);
   // b = (((color & 0x1F)) << 3);
-  
+
   // u8 *dst=&c;
   // dst[0]=b;
   // dst[1]=g;
   // dst[2]=r;
   // dst[3]=0xff;
-  screen_put_pixel(x, y,c);
+  screen_put_pixel(x, y, c);
   return 0;
 }
-screen_info_t *screen=NULL;
+screen_info_t *screen = NULL;
 static int lcd_fb_init() {
   screen_init();
   screen = screen_info();
   fb_mem = (unsigned char *)screen->fb.frambuffer;
   fb_fd = screen->fd;
-  lcd_height = NES_DISP_HEIGHT;
-  lcd_width = NES_DISP_WIDTH;
+  if (screen->fb.bpp == 16) {
+    lcd_height = NES_DISP_HEIGHT * 2;
+    lcd_width = NES_DISP_WIDTH * 2;
+  } else {
+    lcd_height = NES_DISP_HEIGHT;
+    lcd_width = NES_DISP_WIDTH;
+  }
   return 0;
 }
 
@@ -154,14 +159,17 @@ int LoadSRAM();
 int SaveSRAM();
 
 DWORD RGBPalette[64] = {
-	0xff707070,0xff201888,0xff0000a8,0xff400098,0xff880070,0xffa80010,0xffa00000,0xff780800,
-	0xff402800,0xff004000,0xff005000,0xff003810,0xff183858,0xff000000,0xff000000,0xff000000,
-	0xffb8b8b8,0xff0070e8,0xff2038e8,0xff8000f0,0xffb800b8,0xffe00058,0xffd82800,0xffc84808,
-	0xff887000,0xff009000,0xff00a800,0xff009038,0xff008088,0xff000000,0xff000000,0xff000000,
-	0xfff8f8f8,0xff38b8f8,0xff5890f8,0xff4088f8,0xfff078f8,0xfff870b0,0xfff87060,0xfff89838,
-	0xfff0b838,0xff80d010,0xff48d848,0xff58f898,0xff00e8d8,0xff000000,0xff000000,0xff000000,
-	0xfff8f8f8,0xffa8e0f8,0xffc0d0f8,0xffd0c8f8,0xfff8c0f8,0xfff8c0d8,0xfff8b8b0,0xfff8d8a8,
-	0xfff8e0a0,0xffe0f8a0,0xffa8f0b8,0xffb0f8c8,0xff98f8f0,0xff000000,0xff000000,0xff000000,
+    0xff707070, 0xff201888, 0xff0000a8, 0xff400098, 0xff880070, 0xffa80010,
+    0xffa00000, 0xff780800, 0xff402800, 0xff004000, 0xff005000, 0xff003810,
+    0xff183858, 0xff000000, 0xff000000, 0xff000000, 0xffb8b8b8, 0xff0070e8,
+    0xff2038e8, 0xff8000f0, 0xffb800b8, 0xffe00058, 0xffd82800, 0xffc84808,
+    0xff887000, 0xff009000, 0xff00a800, 0xff009038, 0xff008088, 0xff000000,
+    0xff000000, 0xff000000, 0xfff8f8f8, 0xff38b8f8, 0xff5890f8, 0xff4088f8,
+    0xfff078f8, 0xfff870b0, 0xfff87060, 0xfff89838, 0xfff0b838, 0xff80d010,
+    0xff48d848, 0xff58f898, 0xff00e8d8, 0xff000000, 0xff000000, 0xff000000,
+    0xfff8f8f8, 0xffa8e0f8, 0xffc0d0f8, 0xffd0c8f8, 0xfff8c0f8, 0xfff8c0d8,
+    0xfff8b8b0, 0xfff8d8a8, 0xfff8e0a0, 0xffe0f8a0, 0xffa8f0b8, 0xffb0f8c8,
+    0xff98f8f0, 0xff000000, 0xff000000, 0xff000000,
 };
 
 // DWORD RGBPalette[64] = {
@@ -203,8 +211,7 @@ WORD NesPalette[64] = {
     0x7fff, 0x1eff, 0x2e5f, 0x223f, 0x79ff, 0x7dd6, 0x7dcc, 0x7e67,
     0x7ae7, 0x4342, 0x2769, 0x2ff3, 0x03bb, 0x0000, 0x0000, 0x0000,
     0x7fff, 0x579f, 0x635f, 0x6b3f, 0x7f1f, 0x7f1b, 0x7ef6, 0x7f75,
-    0x7f94, 0x73f4, 0x57d7, 0x5bf9, 0x4ffe, 0x0000, 0x0000, 0x0000
-    };
+    0x7f94, 0x73f4, 0x57d7, 0x5bf9, 0x4ffe, 0x0000, 0x0000, 0x0000};
 
 /*===================================================================*/
 /*                                                                   */
@@ -621,55 +628,55 @@ void *InfoNES_MemorySet(void *dest, int c, int count) {
 /*                                                                   */
 /*===================================================================*/
 
-
 /* Transfer the contents of work frame on the screen */
-static inline void InfoNes_LoadLineScale2(uint32_t *fb, WORD* frame, int width){
-	do{
-		int i = *frame++ % 64;
-		*fb++ = *fb++ = RGBPalette[i];
-	}while(width--);
+static inline void InfoNes_LoadLineScale2(uint32_t *fb, WORD *frame,
+                                          int width) {
+  do {
+    int i = *frame++ % 64;
+    *fb++ = *fb++ = RGBPalette[i];
+  } while (width--);
 }
 
-
-static inline void InfoNES_LoadFrameScale2(void){
-  int offX = (screen->width - NES_DISP_WIDTH*2)/2;
-  int offY =(screen->height - NES_DISP_HEIGHT*2)/2; 
-  uint32_t* d=(uint32_t *)screen->buffer + offY*screen->width + offX; 
-  WORD* s = WorkFrame;
-  for(int y=0; y<NES_DISP_HEIGHT; y++){
-	InfoNes_LoadLineScale2(d, s, NES_DISP_WIDTH);
-	d+=screen->width;
-	InfoNes_LoadLineScale2(d, s, NES_DISP_WIDTH);
-    d+=screen->width; 
-	s+=NES_DISP_WIDTH;
+static inline void InfoNES_LoadFrameScale2(void) {
+  int offX = (screen->width - NES_DISP_WIDTH * 2) / 2;
+  int offY = (screen->height - NES_DISP_HEIGHT * 2) / 2;
+  uint32_t *d = (uint32_t *)screen->buffer + offY * screen->width + offX;
+  WORD *s = WorkFrame;
+  for (int y = 0; y < NES_DISP_HEIGHT; y++) {
+    InfoNes_LoadLineScale2(d, s, NES_DISP_WIDTH);
+    d += screen->width;
+    InfoNes_LoadLineScale2(d, s, NES_DISP_WIDTH);
+    d += screen->width;
+    s += NES_DISP_WIDTH;
   }
 }
 
-static inline void InfoNes_LoadLineScale1(uint32_t *fb, WORD* frame, int width){
-	do{
-		int i = *frame++ % 64;
-		*fb++ = RGBPalette[i];
-	}while(width--);
+static inline void InfoNes_LoadLineScale1(uint32_t *fb, WORD *frame,
+                                          int width) {
+  do {
+    int i = *frame++ % 64;
+    *fb++ = RGBPalette[i];
+  } while (width--);
 }
 
-static inline  InfoNES_LoadFrameScale1(void){
-  int offX = (screen->width - NES_DISP_WIDTH)/2;
-  int offY =(screen->height - NES_DISP_HEIGHT)/2; 
-  uint32_t* d=(uint32_t *)screen->buffer + offY*screen->width + offX; 
-  WORD* s = WorkFrame;
-  for(int y=0; y<NES_DISP_HEIGHT; y++){
-	InfoNes_LoadLineScale1(d, s, NES_DISP_WIDTH);
-	d+=screen->width;
-	s+=NES_DISP_WIDTH;
+static inline InfoNES_LoadFrameScale1(void) {
+  int offX = (screen->width - NES_DISP_WIDTH) / 2;
+  int offY = (screen->height - NES_DISP_HEIGHT) / 2;
+  uint32_t *d = (uint32_t *)screen->buffer + offY * screen->width + offX;
+  WORD *s = WorkFrame;
+  for (int y = 0; y < NES_DISP_HEIGHT; y++) {
+    InfoNes_LoadLineScale1(d, s, NES_DISP_WIDTH);
+    d += screen->width;
+    s += NES_DISP_WIDTH;
   }
 }
 
-
-void InfoNES_LoadFrame2(){
-	if(screen->width >= NES_DISP_WIDTH * 2 && screen->height >= NES_DISP_HEIGHT * 2)
-		InfoNES_LoadFrameScale2();
-	else
-		InfoNES_LoadFrameScale1();	
+void InfoNES_LoadFrame2() {
+  if (screen->width >= NES_DISP_WIDTH * 2 &&
+      screen->height >= NES_DISP_HEIGHT * 2)
+    InfoNES_LoadFrameScale2();
+  else
+    InfoNES_LoadFrameScale1();
   screen_flush();
 }
 
@@ -684,9 +691,10 @@ void InfoNES_LoadFrame() {
       for (x = 0; x < lcd_width; x++) {
         wColor = WorkFrame[line_width + zoom_x_tab[x]];
         /* 16-bit to 24-bit  RGB565 to RGB888*/
-        unsigned int color = ((wColor & 0x7c00) << 9) | ((wColor & 0x03e0) << 6) |
-                     ((wColor & 0x001f) << 3) | (0xff << 24);
-        
+        unsigned int color = ((wColor & 0x7c00) << 9) |
+                             ((wColor & 0x03e0) << 6) |
+                             ((wColor & 0x001f) << 3) | (0xff << 24);
+
         screen_put_pixel(x, y, color);
         // lcd_fb_display_px(wColor, x, y);
       }
@@ -797,7 +805,7 @@ void InfoNES_SoundOutput(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3,
 /*            InfoNES_Wait() : Wait Emulation if required            */
 /*                                                                   */
 /*===================================================================*/
-void InfoNES_Wait() {  }
+void InfoNES_Wait() {}
 
 /*===================================================================*/
 /*                                                                   */
