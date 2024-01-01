@@ -21,26 +21,93 @@ int InitJoypadInput(void) {
 
 int GetJoypadInput(void) {
   u32 key = 0;
-  u32 press = event_read_key(&key);
+  u32 press = event_read_joystick(&key);
+  if (press > 0) {
+    printf("press =%d key=%x\n",press,key);
+    if (press == 2) {  // down
+      switch (key) {
+        case KEY_RIGHT:  // 右
+          keyPad |= (1 << 7);
+          break;
+        case KEY_LEFT:  // 左
+          keyPad |= (1 << 6);
+          break;
+        case KEY_DOWN:  // 下
+          keyPad |= (1 << 5);
+          break;
+        case KEY_UP:  // 上
+          keyPad |= (1 << 4);
+          break;
+        case KEY_BUTTON_START:  // 开始
+          keyPad |= (1 << 3);
+          break;
+        case KEY_BUTTON_SELECT:  // 选择
+          keyPad |= (1 << 2);
+          break;
+        case KEY_BUTTON_B:  // B
+          keyPad |= (1 << 1);
+          break;
+        case KEY_BUTTON_A:  // A
+          keyPad |= (1 << 0);
+          break;
+        case KEY_HOME:
+          printf("quit\n");
+          bThread = 0;
+        default:
+          break;
+      }
+    } else if (press == 1) {  // up
+      switch (key) {
+        case KEY_RIGHT:  // 右
+          keyPad &= ~(1 << 7);
+          break;
+        case KEY_LEFT:  // 左
+          keyPad &= ~(1 << 6);
+          break;
+        case KEY_DOWN:  // 下
+          keyPad &= ~(1 << 5);
+          break;
+        case KEY_UP:  // 上
+          keyPad &= ~(1 << 4);
+          break;
+        case KEY_BUTTON_START:  // 开始
+          keyPad &= ~(1 << 3);
+          break;
+        case KEY_BUTTON_SELECT:  // 选择
+          keyPad &= ~(1 << 2);
+          break;
+        case KEY_BUTTON_B:  // B
+          keyPad &= ~(1 << 1);
+          break;
+        case KEY_BUTTON_A:  // A
+          keyPad &= ~(1 << 0);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  press = event_read_key(&key);
   if (press > 0) {
     if (press == 2) {  // down
       switch (key) {
-        case 'd':  //右
+        case 'd':  // 右
           keyPad |= (1 << 7);
           break;
-        case 'a':  //左
+        case 'a':  // 左
           keyPad |= (1 << 6);
           break;
         case 's':  // 下
           keyPad |= (1 << 5);
           break;
-        case 'w':  //上
+        case 'w':  // 上
           keyPad |= (1 << 4);
           break;
-        case 'n':  //开始
+        case 'n':  // 开始
           keyPad |= (1 << 3);
           break;
-        case 'm':  //选择
+        case 'm':  // 选择
           keyPad |= (1 << 2);
           break;
         case 'k':  // B
@@ -55,24 +122,24 @@ int GetJoypadInput(void) {
         default:
           break;
       }
-    }else if (press == 1) {  // up
+    } else if (press == 1) {  // up
       switch (key) {
-        case 'd':  //右
+        case 'd':  // 右
           keyPad &= ~(1 << 7);
           break;
-        case 'a':  //左
+        case 'a':  // 左
           keyPad &= ~(1 << 6);
           break;
         case 's':  // 下
           keyPad &= ~(1 << 5);
           break;
-        case 'w':  //上
+        case 'w':  // 上
           keyPad &= ~(1 << 4);
           break;
-        case 'n':  //开始
+        case 'n':  // 开始
           keyPad &= ~(1 << 3);
           break;
-        case 'm':  //选择
+        case 'm':  // 选择
           keyPad &= ~(1 << 2);
           break;
         case 'k':  // B
@@ -88,5 +155,6 @@ int GetJoypadInput(void) {
   } else {
     return -1;
   }
+
   return keyPad;
 }

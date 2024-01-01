@@ -3,6 +3,9 @@ set_type("cli")
 
 add_deps("gui","image","jpeg","png","zlib")
 
+
+add_cflags("-O2")
+
 add_files(
     'K6502.c',
     'InfoNES.c',

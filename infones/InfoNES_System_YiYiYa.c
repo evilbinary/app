@@ -173,6 +173,20 @@ DWORD RGBPalette[64] = {
 };
 
 // DWORD RGBPalette[64] = {
+//     0xff707070, 0xff201888, 0xff0000a8, 0xff400098, 0xff880070, 0xffa80010,
+//     0xffa00000, 0xff780800, 0xff402800, 0xff004000, 0xff005000, 0xff003810,
+//     0xff183858, 0xff000000, 0xff000000, 0xff000000, 0xffb8b8b8, 0xff0070e8,
+//     0xff2038e8, 0xff8000f0, 0xffb800b8, 0xffe00058, 0xffd82800, 0xffc84808,
+//     0xff887000, 0xff009000, 0xff00a800, 0xff009038, 0xff008088, 0xff000000,
+//     0xff000000, 0xff000000, 0xfff8f8f8, 0xff38b8f8, 0xff5890f8, 0xff4088f8,
+//     0xfff078f8, 0xfff870b0, 0xfff87060, 0xfff89838, 0xfff0b838, 0xff80d010,
+//     0xff48d848, 0xff58f898, 0xff00e8d8, 0xff000000, 0xff000000, 0xff000000,
+//     0xfff8f8f8, 0xffa8e0f8, 0xffc0d0f8, 0xffd0c8f8, 0xfff8c0f8, 0xfff8c0d8,
+//     0xfff8b8b0, 0xfff8d8a8, 0xfff8e0a0, 0xffe0f8a0, 0xffa8f0b8, 0xffb0f8c8,
+//     0xff98f8f0, 0xff000000, 0xff000000, 0xff000000,
+// };
+
+// DWORD RGBPalette[64] = {
 //     0xff707070,0xff201888,0xff0000a8,0xff400098,0xff880070,0xffa80010,0xffa00000,0xff780800,
 //     0xff402800,0xff004000,0xff005000,0xff003810,0xff183858,0xff000000,0xff000000,0xff000000,
 //     0xffb8b8b8,0xff0070e8,0xff2038e8,0xff8000f0,0xffb800b8,0xffe00058,0xffd82800,0xffc84808,
@@ -694,7 +708,6 @@ void InfoNES_LoadFrame() {
         unsigned int color = ((wColor & 0x7c00) << 9) |
                              ((wColor & 0x03e0) << 6) |
                              ((wColor & 0x001f) << 3) | (0xff << 24);
-
         screen_put_pixel(x, y, color);
         // lcd_fb_display_px(wColor, x, y);
       }
@@ -788,14 +801,14 @@ void InfoNES_SoundOutput(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3,
   unsigned char wav;
 
   if (sound_fd > 0) {
-    for (int i = 0; i < samples; i++) {
-      final_wave[i * 2 + 1] = final_wave[i * 2] =
-          (wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i]) * 50;
-    }
+    // for (int i = 0; i < samples; i++) {
+    //   final_wave[i * 2 + 1] = final_wave[i * 2] =
+    //       (wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i]) * 50;
+    // }
 
-    if (write(sound_fd, final_wave, samples * 4) < samples * 4) {
-      printf("wrote less than 1024 bytes\n");
-    }
+    // if (write(sound_fd, final_wave, samples * 4) < samples * 4) {
+    //   printf("wrote less than 1024 bytes\n");
+    // }
   }
   return;
 }
