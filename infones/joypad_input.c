@@ -1,5 +1,6 @@
 #include "screen.h"
 #include "stdio.h"
+#include "joystick.h"
 
 int input_fd;
 
