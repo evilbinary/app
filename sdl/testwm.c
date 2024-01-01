@@ -346,8 +346,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* Check command line arguments */
-	w = 640;
-	h = 480;
+	w = 480;
+	h = 272;
 	video_bpp = 8;
 	video_flags = SDL_SWSURFACE;
 	parsed = 1;
