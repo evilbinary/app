@@ -11,6 +11,8 @@ add_files(
     'sys/yiyiya/*.c'
 )
 
+add_cflags("-O2")
+
 add_includedirs(
     'sys/sdl2/',
     './include',
