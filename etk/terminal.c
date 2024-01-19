@@ -89,7 +89,7 @@ void send_input(str_t* input_buf) {
 }
 
 void interpret_cmd(char* cmd) {
-  fprintf(file_out, "interpret cmd: %s\n", cmd);
+  //fprintf(file_out, "interpret cmd: %s\n", cmd);
   if(strlen(cmd)<=0){
     return;
   }
