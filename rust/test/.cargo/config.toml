@@ -4,7 +4,7 @@ rustflags = [   "-C", "link-arg=-Tuser-arm.ld" ,
                 "-C","link-args=-nostdlib",
                 "-C","link-args=-nostdinc",
                 "-C","link-args=-nostartfiles",
-                "-C","link-args=-lmusl",
+                "-C","link-args=-lc",
                 "-C","link-args=-lgcc",
 
                 "-C", "link-arg=-g",
@@ -22,7 +22,7 @@ rustflags = [   "-C", "link-arg=-Tuser-arm.ld" ,
                 # "-C", "link-arg=-mfloat-abi=softfp",
                 # "-C", "link-arg=-mfpu=vfpv3-d16",
 
-                # "-C", "link-arg=-L ../../../eggs/libmusl/lib",
+                "-C", "link-arg=-L ../../../build/raspi2/armv7-a/debug/musl/lib/",
                 # "-C", "link-arg=-L /opt/local/lib/gcc/arm-none-eabi/9.2.0/",
 
                 # "-L","../../../eggs/libmusl/lib",
