@@ -77,7 +77,7 @@ Menu::Menu(GMenu2X& gmenu2x)
 			std::bind(&GMenu2X::showContextMenu, &gmenu2x))
 {
 	readSections(GMENU2X_SYSTEM_DIR "/sections");
-	readSections(GMenu2X::getHome() + "/sections");
+	// readSections(GMenu2X::getHome() + "/sections");
 
 	setSectionIndex(0);
 	readLinks();
@@ -117,12 +117,26 @@ Menu::~Menu()
 void Menu::readSections(std::string const& parentDir)
 {
 	std::error_code ec;
-	for (const auto& entry : compat::filesystem::directory_iterator(parentDir, ec))
-	{
-		const auto filename = entry.path().filename().string();
-		if (filename[0] != '.')
+	printf("readSections start %s\n",parentDir.c_str());
+	DIR *dirp = opendir(parentDir.c_str());
+
+	while (struct dirent *dptr = readdir(dirp)) {
+		if (dptr->d_type != DT_REG) continue;
+		string filename = dptr->d_name;
+		if (filename[0] != '.'){
 			sectionNamed(filename);
-	}
+			std::cout <<"filename=>"<< filename << '\n';
+		}
+  	}
+	// for (const auto& entry : compat::filesystem::directory_iterator(parentDir, ec))
+	// {
+	// 	const auto filename = entry.path().filename().string();
+	// 	if (filename[0] != '.'){
+	// 		//sectionNamed(filename);
+	// 		std::cout << entry.path() << '\n';
+	// 	}
+	// }
+	printf("readSections end\n");
 	//TODO: report anything in case of error?
 }
 
@@ -876,6 +890,8 @@ void Menu::readLinksOfSection(
 	while (struct dirent *dptr = readdir(dirp)) {
 		if (dptr->d_type != DT_REG) continue;
 		string linkfile = path + '/' + dptr->d_name;
+		// cout<<"---->"<<linkfile<<endl;
+		// printf("linkfile path:%s link:%s d:%s\n",path,linkfile.c_str(),path,dptr->d_name);
 
 		LinkApp *link = new LinkApp(gmenu2x, linkfile, deletable);
 		if (link->targetExists()) {

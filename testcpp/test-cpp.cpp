@@ -6,7 +6,9 @@
 #include "stdio.h"
 #include "dirent.h"
 
+
 using namespace std;
+
 
 
 class A {
@@ -66,10 +68,25 @@ void test_readdir(){
   }
 }
 
+void test_filesystem(){
+  string path="/gmenu2x/sections";
+  printf("readSections start %s\n",path.c_str());
+  std::error_code ec;
+	for (const auto& entry : std::filesystem::directory_iterator(path, ec))
+	{
+		const auto filename = entry.path().filename().string();
+    printf("readSections %s\n",filename);
+		// if (filename[0] != '.')
+			// sectionNamed(filename);
+	}
+	printf("readSections end\n");
+}
+
 int main() {
   // test_dir();
   // test_readline();
-  test_readdir();
+  // test_readdir();
+  test_filesystem();
 
   return 0;
 }

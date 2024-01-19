@@ -10,7 +10,8 @@ add_includedirs(
     '.'
     )
 
-add_cxxflags(' -DIS_LINUX  -D_REENTRANT  -DHAVE_STD_STRING_VIEW -DLOG_LEVEL=4 -DENABLE_CLOCK ')
+#-DHAVE_STD_STRING_VIEW
+add_cxxflags('-std=c++17 -O2 -DIS_LINUX  -D_REENTRANT   -DLOG_LEVEL=4 -DENABLE_CLOCK ')
 
 add_cxxflags(
 '-ffreestanding -fpic',
