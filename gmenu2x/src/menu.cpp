@@ -128,6 +128,7 @@ void Menu::readSections(std::string const& parentDir)
 			std::cout <<"filename=>"<< filename << '\n';
 		}
   	}
+	closedir(dirp);
 	// for (const auto& entry : compat::filesystem::directory_iterator(parentDir, ec))
 	// {
 	// 	const auto filename = entry.path().filename().string();

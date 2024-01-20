@@ -1,4 +1,4 @@
-target("showimage")
+target("showimage2")
 set_type("cli")
 
 add_deps("sdl2","sdl2-image")

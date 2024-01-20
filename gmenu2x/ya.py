@@ -11,7 +11,7 @@ add_includedirs(
     )
 
 #-DHAVE_STD_STRING_VIEW
-add_cxxflags('-std=c++17 -O2 -DIS_LINUX  -D_REENTRANT   -DLOG_LEVEL=4 -DENABLE_CLOCK ')
+add_cxxflags('-std=c++17 -g -DIS_LINUX  -D_REENTRANT   -DLOG_LEVEL=4 -DENABLE_CLOCK ')
 
 add_cxxflags(
 '-ffreestanding -fpic',
