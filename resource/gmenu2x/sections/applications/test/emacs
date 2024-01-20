@@ -1,4 +1,4 @@
 title=emacs
 icon=skin:icons/emacs.png
-exec=/bin/ls
+exec=/usr/bin/emacs
 wrapper=true

@@ -1,4 +1,4 @@
 title=editor
 icon=skin:icons/editor.png
-exec=/bin/ls
+exec=/usr/bin/editor
 wrapper=true

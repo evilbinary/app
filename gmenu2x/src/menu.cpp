@@ -121,11 +121,12 @@ void Menu::readSections(std::string const& parentDir)
 	DIR *dirp = opendir(parentDir.c_str());
 
 	while (struct dirent *dptr = readdir(dirp)) {
-		if (dptr->d_type != DT_REG) continue;
+		if (dptr->d_type != DT_DIR) continue;
 		string filename = dptr->d_name;
+
 		if (filename[0] != '.'){
-			sectionNamed(filename);
 			std::cout <<"filename=>"<< filename << '\n';
+			sectionNamed(filename);
 		}
   	}
 	closedir(dirp);
@@ -874,9 +875,9 @@ void Menu::readLinks()
 		string const& section = sections[correct];
 
 		readLinksOfSection(
-				links[i], GMENU2X_SYSTEM_DIR "/sections/" + section, false);
-		readLinksOfSection(
-				links[i], GMenu2X::getHome() + "/sections/" + section, true);
+				links[i], GMENU2X_SYSTEM_DIR "/sections/" + section, true);
+		// readLinksOfSection(
+		// 		links[i], GMenu2X::getHome() + "/sections/" + section, true);
 	}
 
 	orderLinks();
@@ -890,9 +891,13 @@ void Menu::readLinksOfSection(
 
 	while (struct dirent *dptr = readdir(dirp)) {
 		if (dptr->d_type != DT_REG) continue;
+		string filename = dptr->d_name;
+		if (filename[0] == '.'){
+			continue;
+		}
 		string linkfile = path + '/' + dptr->d_name;
 		// cout<<"---->"<<linkfile<<endl;
-		// printf("linkfile path:%s link:%s d:%s\n",path,linkfile.c_str(),path,dptr->d_name);
+		printf("linkfile path:%s link:%s d:%s\n",path,linkfile.c_str(),path,filename);
 
 		LinkApp *link = new LinkApp(gmenu2x, linkfile, deletable);
 		if (link->targetExists()) {

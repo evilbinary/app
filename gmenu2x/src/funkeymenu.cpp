@@ -5,7 +5,7 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-//#define MENU_DEBUG
+#define MENU_DEBUG
 #define MENU_ERROR
 
 #ifdef MENU_DEBUG

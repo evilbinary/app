@@ -29,7 +29,6 @@
 #include <cassert>
 #include <iomanip>
 #include <utility>
-
 using namespace std;
 
 
@@ -83,9 +82,6 @@ void Surface::blit(SDL_Surface *destination, int x, int y, int w, int h, int a) 
 	dest.y = y;
 	if (a>0 && a!=raw->format->alpha)
 		SDL_SetAlpha(raw, SDL_RLEACCEL, a);
-	if(w==0|| h==0){
-		return;
-	}
 	SDL_BlitSurface(raw, (w==0 || h==0) ? NULL : &src, destination, &dest);
 }
 void Surface::blit(Surface& destination, int x, int y, int w, int h, int a) const {
@@ -352,7 +348,7 @@ unique_ptr<OutputSurface> OutputSurface::open(
 #if !defined(G2X_BUILD_OPTION_WINDOWED_MODE)
 	flags |= SDL_FULLSCREEN;
 #endif
-
+	printf("open output %dx%d %d\n",width,height,bitsPerPixel);
 	SDL_Surface *raw = SDL_SetVideoMode(
 		width, height, bitsPerPixel, flags);
 	return unique_ptr<OutputSurface>(raw ? new OutputSurface(raw) : nullptr);

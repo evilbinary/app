@@ -1,4 +1,4 @@
 title=python
 icon=skin:icons/python.png
-exec=/bin/ls
+exec=/usr/bin/python
 wrapper=true

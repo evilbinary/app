@@ -1,4 +1,4 @@
 title=ebook
 icon=skin:icons/ebook.png
-exec=/bin/ls
+exec=/usr/bin/ebook
 wrapper=true

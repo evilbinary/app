@@ -280,7 +280,7 @@ GMenu2X::GMenu2X() : input(*this), sc(this)
 	// find largest resolution available
 	for (const auto res : supported_resolutions) {
 		if (OutputSurface::resolutionSupported(res.first, res.second) &&
-		    (s = OutputSurface::open(res.first, res.second, 0)))
+		    (s = OutputSurface::open(res.first, res.second, 32)))
 			break;
 	}
 #endif
