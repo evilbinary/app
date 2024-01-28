@@ -65,7 +65,8 @@ extern int optind, opterr, optopt;
 
 int main(int argc, char* argv[]) {
   char* path = "/";
-  path = getcwd(buf, 512);
+  int ret = getcwd(buf, 512);
+  path=buf;
   if (argc > 1) {
     int c;
     while ((c = getopt(argc, argv, "ahl?")) != -1) {
