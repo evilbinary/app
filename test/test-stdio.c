@@ -119,6 +119,19 @@ void test_float() {
   assert_true(b == 5.0);
 }
 
+void test_getline() {
+  FILE *file;
+  int chr;
+  int count;
+  int size = 0;
+  char *buff = NULL;
+  int read = 0;
+  file = fopen("/conf/init.conf", "r");
+  getline(&buff, &size, file);
+
+  assert_true(size == 11);
+}
+
 int main(int argc, char *argv[]) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_stdio),

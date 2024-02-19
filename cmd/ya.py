@@ -38,3 +38,7 @@ add_files("shell.c")
 target("touch")
 set_type("cli")
 add_files("touch.c") 
+
+target("config")
+set_type("cli")
+add_files("config.c") 
