@@ -19,26 +19,30 @@ int main(int argc, char* argv[]) {
     return -1;
   }
   while ((read = getline(&buff, &size, file)) != -1) {
-    
-    int s=strlen(buff);
-    buff[s-1]=0;
-    
-    
+    // int s = strlen(buff);
+    // buff[s - 1] = 0;
+     buff[size - 1] = 0;
+
     const char* split = " ";
     char* ptr = strtok(buff, split);
+    char* args[30];
+    int i = 0;
     char* proc = ptr;
-    ptr = strtok(NULL, split);
+
+    while (ptr != NULL) {
+      printf("arg %s\n", ptr);
+      args[i++] = ptr;
+      ptr = strtok(NULL, split);
+    }
+    args[i++] = NULL;
+
     char* arg = ptr;
 
     pid_t p1 = -1;
     p1 = fork();  // 返回2次
     if (p1 == 0) {
-      char* const args[] = {proc, NULL};
       sleep(1);
-      if (arg == NULL) {
-        arg = args;
-      }
-      execv(proc, arg);
+      execv(proc, args);
       wait();
     }
     if (p1 > 0) {

@@ -273,6 +273,7 @@ void FunkeyMenu::add_menu_zone(ENUM_MENU_TYPE menu_type){
 	menu_zone_surfaces[nb_menu_zones-1] = IMG_Load(MENU_PNG_BG_PATH);
 	if(!menu_zone_surfaces[nb_menu_zones-1]) {
 		MENU_ERROR_PRINTF("ERROR IMG_Load: %s\n", IMG_GetError());
+		return;
 	}
 
 	/// --------- Init Common Variables --------

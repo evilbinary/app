@@ -9,7 +9,7 @@ SECTIONS
         .text K_VIR_ADDR : AT(K_PHY_ADDR)
         {
 		. = ALIGN(PAGE_SIZE);
-                *(.text*)
+                *(.text* .text)
         }
 
         /* Read-only data. */
