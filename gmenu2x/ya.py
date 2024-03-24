@@ -1,6 +1,6 @@
 target("gmenu")
 set_type("cli")
-add_deps("cxx","cxxabi","sdl-ttf","sdl-image","musl")
+add_deps("cxx","cxxabi","sdl-ttf","sdl-image",get_config('default_libc'))
 
 add_files(
     'src/*.cpp'

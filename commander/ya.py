@@ -1,6 +1,6 @@
 target("commander")
 set_type("cli")
-add_deps("cxx","cxxabi","sdl-ttf","sdl-image","sdl-gfx","musl")
+add_deps("cxx","cxxabi","sdl-ttf","sdl-image","sdl-gfx",get_config('default_libc'))
 
 add_files(
     './*.cpp',
