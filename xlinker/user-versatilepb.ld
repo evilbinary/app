@@ -29,6 +29,7 @@ SECTIONS
 		PROVIDE_HIDDEN (__init_array_end = .);
 
                 PROVIDE (__preinit_array_start = .);
+                KEEP(*(SORT(.preinit_array.*)))
 	        KEEP (*(.preinit_array))
 	        PROVIDE (__preinit_array_end = .);
 

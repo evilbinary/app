@@ -46,7 +46,7 @@ int main(void)
     // }
     lv_tick_inc(LVGL_TICK);
     lv_task_handler();
-    usleep(5000);//5 ms
+    usleep(1000);//5 ms
     // delay_ms(LVGL_TICK);
     tickets++;
   }

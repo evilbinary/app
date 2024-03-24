@@ -48,7 +48,8 @@ void yiyiya_gui() {
   // void* bmp = load_bmp("/duck.bmp");
 
   mouse_data_t mouse;
-
+  
+ screen_fill_rect(0,0,screen->width,screen->height,0xff0000);
   for (;;) {
     screen_show_bitmap(0, 0, 1024, 768, bitmap);
 
@@ -104,8 +105,8 @@ void yiyiya_bitmap() {
 
 int main(int argc, char* argv[]) {
   printf(buf);
-  // yiyiya_gui();
-  yiyiya_display();
+  yiyiya_gui();
+  // yiyiya_display();
   // yiyiya_bitmap();
 
   return 0;
