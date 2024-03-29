@@ -4,7 +4,7 @@
 # * 作者: evilbinary on 01/01/20
 # * 邮箱: rootdebug@163.com
 # ********************************************************************
-if has_config("app"):
+if has_config("app") and get_config('apps'):
     for v in get_config('apps'):
         includes("./"+v+"/ya.py")
 
