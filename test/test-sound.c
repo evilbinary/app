@@ -184,6 +184,7 @@ static void test() {
   sound(p[1], fh[4]);
   sound(p[2], fh[5]);
   sound(p[2], f[0]);
+
 }
 
 void test_sound() {
@@ -193,13 +194,8 @@ void test_sound() {
   }
 
   int val;
-
-  //   val = NX_AUDIO_FTM_S16_LE;
-  // NX_DeviceControl(sound_fd, NX_AUDIO_SET_FMT, &val);
   val = 44100;
-  // NX_DeviceControl(sound_fd, NX_AUDIO_SET_SPEED, &val);
   val = 2;
-  // NX_DeviceControl(sound_fd, NX_AUDIO_SET_CHANNELS, &val);
 
   test();
   close(sound_fd);

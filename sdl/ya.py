@@ -42,3 +42,7 @@ set_type("cli")
 add_deps("sdl","sdl-image")
 add_files('showimage.c')
 
+target("testwave")
+set_type("cli")
+add_deps("sdl")
+add_files('testwave.c')

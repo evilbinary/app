@@ -34,7 +34,8 @@ int etk_app_main(int argc, char* argv[]) {
                               etkglobal.display->height,
                               ETK_WIDGET_DESKTOP | ETK_WIDGET_NO_BITMAP);
 
-  // b=etk_image_jpeg_decoder_decode(jpeg_decoder,"duck.jpg");
+  printf("window %d x %d\n",etkglobal.display->width,etkglobal.display->height);
+  // b=etk_image_jpeg_decoder_decode(jpeg_decoder,"/res/duck.jpg");
 
   // b=etk_image_bmp_decoder(bmp_decoder,"bg.bmp");
   b = etk_image_jpeg_decoder_decode(jpeg_decoder, "/res/home.jpg");
