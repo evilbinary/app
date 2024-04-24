@@ -30,3 +30,19 @@ add_files('main.c')
 #     add_packages("ffmpeg")
 
 #     add_files('player.c')
+
+
+target("loopwave")
+set_type("cli")
+
+add_deps("sdl2")
+
+add_files(['loopwave.c'])
+
+
+target("sdl2thread")
+set_type("cli")
+
+add_deps("sdl2")
+
+add_files('sdl2thread.c')

@@ -801,23 +801,23 @@ void InfoNES_SoundOutput(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3,
   unsigned char wav;
 
   if (sound_fd > 0) {
-    // for (int i = 0; i < samples; i++) {
-    //   final_wave[i * 2 + 1] = final_wave[i * 2] =
-    //       (wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i]) * 50;
-    // }
-
-    // if (write(sound_fd, final_wave, samples * 4) < samples * 4) {
-    //   printf("wrote less than 1024 bytes\n");
-    // }
-
     for (int i = 0; i < samples; i++) {
-      wav = (wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i]) / 5;
-      final_wave[i] = wav;
+      final_wave[i * 2 + 1] = final_wave[i * 2] =
+          (wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i]) * 50;
     }
 
-    if (write(sound_fd, final_wave, samples)<0) {
+    if (write(sound_fd, final_wave, samples * 4) < samples * 4) {
       printf("wrote less than 1024 bytes\n");
     }
+
+    // for (int i = 0; i < samples; i++) {
+    //   wav = (wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i]) / 5;
+    //   final_wave[i] = wav;
+    // }
+
+    // if (write(sound_fd, final_wave, samples)<0) {
+    //   printf("wrote less than 1024 bytes\n");
+    // }
   }
   return;
 }
