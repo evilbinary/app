@@ -30,7 +30,7 @@ static int fullscreen = 0;
 static int scale = 1;
 static int integer_scale = 1;
 static int render_type = 1; // 0: Software || 1: Default HW
-static int render_trace = 0;
+static int render_trace = 1;
 
 static int vmode[3] = {0, 0, 32};
 static byte pix[160 * 144 * sizeof(uint32_t)];
@@ -56,7 +56,7 @@ void vid_init()
 		vmode[1] = 144;
 	}
 
-	if (SDL_Init(SDL_INIT_VIDEO ) < 0) //| SDL_INIT_TIMER
+	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER ) < 0) 
 	{
 		printf("VID:    SDL could not initialize Video! SDL Error: %s\n", SDL_GetError());
 		exit(1);

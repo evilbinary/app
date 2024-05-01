@@ -58,7 +58,7 @@ void pcm_init()
 		}
 
 		want.freq = samplerate;
-		want.format = AUDIO_U8;
+		want.format = AUDIO_S16LSB;
 		want.channels = 1 + stereo;
 		want.samples = samplerate / 60;
 		int i;
@@ -78,6 +78,7 @@ void pcm_init()
 		pcm.hz = obtained.freq;
 		pcm.stereo = obtained.channels - 1;
 		pcm.len = obtained.size;
+		printf("size=%d freq=%d %d\n",pcm.len,pcm.hz,pcm.stereo );
 		pcm.buf = malloc(pcm.len);
 		pcm.pos = 0;
 		memset(pcm.buf, 0, pcm.len);
