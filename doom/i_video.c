@@ -5,467 +5,436 @@
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
 //
-// This source is available for distribution and/or modification
-// only under the terms of the DOOM Source Code License as
-// published by id Software. All rights reserved.
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 //
-// The source is distributed in the hope that it will be useful,
+// This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
-// for more details.
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
 // $Log:$
 //
 // DESCRIPTION:
-//	DOOM graphics stuff for SDL library
+//	DOOM graphics stuff for X11, UNIX.
 //
 //-----------------------------------------------------------------------------
 
 static const char
 rcsid[] = "$Id: i_x.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 
-#include <stdlib.h>
-
-#include "SDL.h"
-
-#include "m_swap.h"
-#include "doomstat.h"
-#include "i_system.h"
+#include "config.h"
 #include "v_video.h"
 #include "m_argv.h"
+#include "d_event.h"
 #include "d_main.h"
+#include "i_video.h"
+#include "z_zone.h"
 
-#include "doomdef.h"
+#include "tables.h"
+#include "doomkeys.h"
 
+#include "doomgeneric.h"
 
-SDL_Surface *screen;
+#include <stdbool.h>
+#include <stdlib.h>
 
-// Fake mouse handling.
-boolean		grabMouse;
+#include <fcntl.h>
 
-// Blocky mode,
-// replace each 320x200 pixel with multiply*multiply pixels.
-// According to Dave Taylor, it still is a bonehead thing
-// to use ....
-static int	multiply=1;
+#include <stdarg.h>
 
+#include <sys/types.h>
 
-//
-//  Translates the key 
-//
+//#define CMAP256
 
-int xlatekey(SDL_keysym *key)
+struct FB_BitField
 {
+	uint32_t offset;			/* beginning of bitfield	*/
+	uint32_t length;			/* length of bitfield		*/
+};
 
-    int rc;
+struct FB_ScreenInfo
+{
+	uint32_t xres;			/* visible resolution		*/
+	uint32_t yres;
+	uint32_t xres_virtual;		/* virtual resolution		*/
+	uint32_t yres_virtual;
 
-    switch(key->sym)
+	uint32_t bits_per_pixel;		/* guess what			*/
+	
+							/* >1 = FOURCC			*/
+	struct FB_BitField red;		/* bitfield in s_Fb mem if true color, */
+	struct FB_BitField green;	/* else only length is significant */
+	struct FB_BitField blue;
+	struct FB_BitField transp;	/* transparency			*/
+};
+
+static struct FB_ScreenInfo s_Fb;
+int fb_scaling = 1;
+int usemouse = 0;
+
+
+#ifdef CMAP256
+
+boolean palette_changed;
+struct color colors[256];
+
+#else  // CMAP256
+
+static struct color colors[256];
+
+
+#endif  // CMAP256
+
+
+void I_GetEvent(void);
+
+// The screen buffer; this is modified to draw things to the screen
+
+byte *I_VideoBuffer = NULL;
+
+// If true, game is running as a screensaver
+
+boolean screensaver_mode = false;
+
+// Flag indicating whether the screen is currently visible:
+// when the screen isnt visible, don't render the screen
+
+boolean screenvisible;
+
+// Mouse acceleration
+//
+// This emulates some of the behavior of DOS mouse drivers by increasing
+// the speed when the mouse is moved fast.
+//
+// The mouse input values are input directly to the game, but when
+// the values exceed the value of mouse_threshold, they are multiplied
+// by mouse_acceleration to increase the speed.
+
+float mouse_acceleration = 2.0;
+int mouse_threshold = 10;
+
+// Gamma correction level to use
+
+int usegamma = 0;
+
+typedef struct
+{
+	byte r;
+	byte g;
+	byte b;
+} col_t;
+
+// Palette converted to RGB565
+
+static uint16_t rgb565_palette[256];
+
+void cmap_to_rgb565(uint16_t * out, uint8_t * in, int in_pixels)
+{
+    int i, j;
+    struct color c;
+    uint16_t r, g, b;
+
+    for (i = 0; i < in_pixels; i++)
     {
-      case SDLK_LEFT:	rc = KEY_LEFTARROW;	break;
-      case SDLK_RIGHT:	rc = KEY_RIGHTARROW;	break;
-      case SDLK_DOWN:	rc = KEY_DOWNARROW;	break;
-      case SDLK_UP:	rc = KEY_UPARROW;	break;
-      case SDLK_ESCAPE:	rc = KEY_ESCAPE;	break;
-      case SDLK_RETURN:	rc = KEY_ENTER;		break;
-      case SDLK_TAB:	rc = KEY_TAB;		break;
-      case SDLK_F1:	rc = KEY_F1;		break;
-      case SDLK_F2:	rc = KEY_F2;		break;
-      case SDLK_F3:	rc = KEY_F3;		break;
-      case SDLK_F4:	rc = KEY_F4;		break;
-      case SDLK_F5:	rc = KEY_F5;		break;
-      case SDLK_F6:	rc = KEY_F6;		break;
-      case SDLK_F7:	rc = KEY_F7;		break;
-      case SDLK_F8:	rc = KEY_F8;		break;
-      case SDLK_F9:	rc = KEY_F9;		break;
-      case SDLK_F10:	rc = KEY_F10;		break;
-      case SDLK_F11:	rc = KEY_F11;		break;
-      case SDLK_F12:	rc = KEY_F12;		break;
-	
-      case SDLK_BACKSPACE:
-      case SDLK_DELETE:	rc = KEY_BACKSPACE;	break;
+        c = colors[*in]; 
+        r = ((uint16_t)(c.r >> 3)) << 11;
+        g = ((uint16_t)(c.g >> 2)) << 5;
+        b = ((uint16_t)(c.b >> 3)) << 0;
+        *out = (r | g | b);
 
-      case SDLK_PAUSE:	rc = KEY_PAUSE;		break;
+        in++;
+        for (j = 0; j < fb_scaling; j++) {
+            out++;
+        }
+    }
+}
 
-      case SDLK_EQUALS:	rc = KEY_EQUALS;	break;
+void cmap_to_fb(uint8_t * out, uint8_t * in, int in_pixels)
+{
+    int i, j, k;
+    struct color c;
+    uint32_t pix;
+    uint16_t r, g, b;
 
-      case SDLK_KP_MINUS:
-      case SDLK_MINUS:	rc = KEY_MINUS;		break;
+    for (i = 0; i < in_pixels; i++)
+    {
+        c = colors[*in];  /* R:8 G:8 B:8 format! */
+        r = (uint16_t)(c.r >> (8 - s_Fb.red.length));
+        g = (uint16_t)(c.g >> (8 - s_Fb.green.length));
+        b = (uint16_t)(c.b >> (8 - s_Fb.blue.length));
+        pix = r << s_Fb.red.offset;
+        pix |= g << s_Fb.green.offset;
+        pix |= b << s_Fb.blue.offset;
 
-      case SDLK_LSHIFT:
-      case SDLK_RSHIFT:
-	rc = KEY_RSHIFT;
-	break;
+        for (k = 0; k < fb_scaling; k++) {
+            for (j = 0; j < s_Fb.bits_per_pixel/8; j++) {
+                *out = (pix >> (j*8));
+                out++;
+            }
+        }
+        in++;
+    }
+}
+
+void I_InitGraphics (void)
+{
+    int i;
+
+	memset(&s_Fb, 0, sizeof(struct FB_ScreenInfo));
+	s_Fb.xres = DOOMGENERIC_RESX;
+	s_Fb.yres = DOOMGENERIC_RESY;
+	s_Fb.xres_virtual = s_Fb.xres;
+	s_Fb.yres_virtual = s_Fb.yres;
+
+#ifdef CMAP256
+
+	s_Fb.bits_per_pixel = 8;
+
+#else  // CMAP256
+
+	s_Fb.bits_per_pixel = 32;
+
+	s_Fb.blue.length = 8;
+	s_Fb.green.length = 8;
+	s_Fb.red.length = 8;
+	s_Fb.transp.length = 8;
+
+	s_Fb.blue.offset = 0;
+	s_Fb.green.offset = 8;
+	s_Fb.red.offset = 16;
+	s_Fb.transp.offset = 24;
 	
-      case SDLK_LCTRL:
-      case SDLK_RCTRL:
-	rc = KEY_RCTRL;
-	break;
-	
-      case SDLK_LALT:
-      case SDLK_LMETA:
-      case SDLK_RALT:
-      case SDLK_RMETA:
-	rc = KEY_RALT;
-	break;
-	
-      default:
-        rc = key->sym;
-	break;
+#endif  // CMAP256
+
+    printf("I_InitGraphics: framebuffer: x_res: %d, y_res: %d, x_virtual: %d, y_virtual: %d, bpp: %d\n",
+            s_Fb.xres, s_Fb.yres, s_Fb.xres_virtual, s_Fb.yres_virtual, s_Fb.bits_per_pixel);
+
+    printf("I_InitGraphics: framebuffer: RGBA: %d%d%d%d, red_off: %d, green_off: %d, blue_off: %d, transp_off: %d\n",
+            s_Fb.red.length, s_Fb.green.length, s_Fb.blue.length, s_Fb.transp.length, s_Fb.red.offset, s_Fb.green.offset, s_Fb.blue.offset, s_Fb.transp.offset);
+
+    printf("I_InitGraphics: DOOM screen size: w x h: %d x %d\n", SCREENWIDTH, SCREENHEIGHT);
+
+
+    i = M_CheckParmWithArgs("-scaling", 1);
+    if (i > 0) {
+        i = atoi(myargv[i + 1]);
+        fb_scaling = i;
+        printf("I_InitGraphics: Scaling factor: %d\n", fb_scaling);
+    } else {
+        fb_scaling = s_Fb.xres / SCREENWIDTH;
+        if (s_Fb.yres / SCREENHEIGHT < fb_scaling)
+            fb_scaling = s_Fb.yres / SCREENHEIGHT;
+        printf("I_InitGraphics: Auto-scaling factor: %d\n", fb_scaling);
     }
 
-    return rc;
 
+    /* Allocate screen to draw to */
+	I_VideoBuffer = (byte*)Z_Malloc (SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);  // For DOOM to draw on
+
+	screenvisible = true;
+
+    extern void I_InitInput(void);
+    I_InitInput();
 }
 
-void I_ShutdownGraphics(void)
+void I_ShutdownGraphics (void)
 {
-  SDL_Quit();
+	Z_Free (I_VideoBuffer);
 }
 
-
-
-//
-// I_StartFrame
-//
 void I_StartFrame (void)
 {
-    // er?
 
 }
 
-/* This processes SDL events */
-void I_GetEvent(SDL_Event *Event)
-{
-    Uint8 buttonstate;
-    event_t event;
-
-    switch (Event->type)
-    {
-      case SDL_KEYDOWN:
-	event.type = ev_keydown;
-	event.data1 = xlatekey(&Event->key.keysym);
-	D_PostEvent(&event);
-        break;
-
-      case SDL_KEYUP:
-	event.type = ev_keyup;
-	event.data1 = xlatekey(&Event->key.keysym);
-	D_PostEvent(&event);
-	break;
-
-      case SDL_MOUSEBUTTONDOWN:
-      case SDL_MOUSEBUTTONUP:
-	buttonstate = SDL_GetMouseState(NULL, NULL);
-	event.type = ev_mouse;
-	event.data1 = 0
-	    | (buttonstate & SDL_BUTTON(1) ? 1 : 0)
-	    | (buttonstate & SDL_BUTTON(2) ? 2 : 0)
-	    | (buttonstate & SDL_BUTTON(3) ? 4 : 0);
-	event.data2 = event.data3 = 0;
-	D_PostEvent(&event);
-	break;
-
-#if (SDL_MAJOR_VERSION >= 0) && (SDL_MINOR_VERSION >= 9)
-      case SDL_MOUSEMOTION:
-	/* Ignore mouse warp events */
-	if ((Event->motion.x != screen->w/2)||(Event->motion.y != screen->h/2))
-	{
-	    /* Warp the mouse back to the center */
-	    if (grabMouse) {
-		SDL_WarpMouse(screen->w/2, screen->h/2);
-	    }
-	    event.type = ev_mouse;
-	    event.data1 = 0
-	        | (Event->motion.state & SDL_BUTTON(1) ? 1 : 0)
-	        | (Event->motion.state & SDL_BUTTON(2) ? 2 : 0)
-	        | (Event->motion.state & SDL_BUTTON(3) ? 4 : 0);
-	    event.data2 = Event->motion.xrel << 2;
-	    event.data3 = -Event->motion.yrel << 2;
-	    D_PostEvent(&event);
-	}
-	break;
-#endif
-
-      case SDL_QUIT:
-	I_Quit();
-    }
-
-}
-
-//
-// I_StartTic
-//
 void I_StartTic (void)
 {
-    SDL_Event Event;
-
-    while ( SDL_PollEvent(&Event) )
-	I_GetEvent(&Event);
+	I_GetEvent();
 }
 
-
-//
-// I_UpdateNoBlit
-//
 void I_UpdateNoBlit (void)
 {
-    // what is this?
 }
 
 //
 // I_FinishUpdate
 //
+
 void I_FinishUpdate (void)
 {
+    int y;
+    int x_offset, y_offset, x_offset_end;
+    unsigned char *line_in, *line_out;
 
-    static int	lasttic;
-    int		tics;
-    int		i;
+    /* Offsets in case FB is bigger than DOOM */
+    /* 600 = s_Fb heigt, 200 screenheight */
+    /* 600 = s_Fb heigt, 200 screenheight */
+    /* 2048 =s_Fb width, 320 screenwidth */
+    y_offset     = (((s_Fb.yres - (SCREENHEIGHT * fb_scaling)) * s_Fb.bits_per_pixel/8)) / 2;
+    x_offset     = (((s_Fb.xres - (SCREENWIDTH  * fb_scaling)) * s_Fb.bits_per_pixel/8)) / 2; // XXX: siglent FB hack: /4 instead of /2, since it seems to handle the resolution in a funny way
+    //x_offset     = 0;
+    x_offset_end = ((s_Fb.xres - (SCREENWIDTH  * fb_scaling)) * s_Fb.bits_per_pixel/8) - x_offset;
 
-    // draws little dots on the bottom of the screen
-    if (devparm)
+    /* DRAW SCREEN */
+    line_in  = (unsigned char *) I_VideoBuffer;
+    line_out = (unsigned char *) DG_ScreenBuffer;
+
+    y = SCREENHEIGHT;
+
+    while (y--)
     {
+        int i;
+        for (i = 0; i < fb_scaling; i++) {
+            line_out += x_offset;
+#ifdef CMAP256
+            if (fb_scaling == 1) {
+                memcpy(line_out, line_in, SCREENWIDTH); /* fb_width is bigger than Doom SCREENWIDTH... */
+            } else {
+                int j;
 
-	i = I_GetTime();
-	tics = i - lasttic;
-	lasttic = i;
-	if (tics > 20) tics = 20;
-
-	for (i=0 ; i<tics*2 ; i+=2)
-	    screens[0][ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0xff;
-	for ( ; i<20*2 ; i+=2)
-	    screens[0][ (SCREENHEIGHT-1)*SCREENWIDTH + i] = 0x0;
-    }
-
-    // scales the screen size before blitting it
-    if ( SDL_MUSTLOCK(screen) ) {
-	if ( SDL_LockSurface(screen) < 0 ) {
-	    return;
-	}
-    }
-    if ((multiply == 1) && SDL_MUSTLOCK(screen))
-    {
-	unsigned char *olineptr;
-	unsigned char *ilineptr;
-	int y;
-
-	ilineptr = (unsigned char *) screens[0];
-	olineptr = (unsigned char *) screen->pixels;
-
-	y = SCREENHEIGHT;
-	while (y--)
-	{
-	    memcpy(olineptr, ilineptr, screen->w);
-	    ilineptr += SCREENWIDTH;
-	    olineptr += screen->pitch;
-	}
-    }
-    else if (multiply == 2)
-    {
-	unsigned int *olineptrs[2];
-	unsigned int *ilineptr;
-	int x, y, i;
-	unsigned int twoopixels;
-	unsigned int twomoreopixels;
-	unsigned int fouripixels;
-
-	ilineptr = (unsigned int *) (screens[0]);
-	for (i=0 ; i<2 ; i++) {
-	    olineptrs[i] =
-		(unsigned int *)&((Uint8 *)screen->pixels)[i*screen->pitch];
-        }
-
-	y = SCREENHEIGHT;
-	while (y--)
-	{
-	    x = SCREENWIDTH;
-	    do
-	    {
-		fouripixels = *ilineptr++;
-		twoopixels =	(fouripixels & 0xff000000)
-		    |	((fouripixels>>8) & 0xffff00)
-		    |	((fouripixels>>16) & 0xff);
-		twomoreopixels =	((fouripixels<<16) & 0xff000000)
-		    |	((fouripixels<<8) & 0xffff00)
-		    |	(fouripixels & 0xff);
-#ifdef __BIG_ENDIAN__
-		*olineptrs[0]++ = twoopixels;
-		*olineptrs[1]++ = twoopixels;
-		*olineptrs[0]++ = twomoreopixels;
-		*olineptrs[1]++ = twomoreopixels;
+                for (j = 0; j < SCREENWIDTH; j++) {
+                    int k;
+                    for (k = 0; k < fb_scaling; k++) {
+                        line_out[j * fb_scaling + k] = line_in[j];
+                    }
+                }
+            }
 #else
-		*olineptrs[0]++ = twomoreopixels;
-		*olineptrs[1]++ = twomoreopixels;
-		*olineptrs[0]++ = twoopixels;
-		*olineptrs[1]++ = twoopixels;
+            //cmap_to_rgb565((void*)line_out, (void*)line_in, SCREENWIDTH);
+            cmap_to_fb((void*)line_out, (void*)line_in, SCREENWIDTH);
 #endif
-	    } while (x-=4);
-	    olineptrs[0] += screen->pitch/4;
-	    olineptrs[1] += screen->pitch/4;
-	}
-
-    }
-    else if (multiply == 3)
-    {
-	unsigned int *olineptrs[3];
-	unsigned int *ilineptr;
-	int x, y, i;
-	unsigned int fouropixels[3];
-	unsigned int fouripixels;
-
-	ilineptr = (unsigned int *) (screens[0]);
-	for (i=0 ; i<3 ; i++) {
-	    olineptrs[i] = 
-		(unsigned int *)&((Uint8 *)screen->pixels)[i*screen->pitch];
+            line_out += (SCREENWIDTH * fb_scaling * (s_Fb.bits_per_pixel/8)) + x_offset_end;
         }
-
-	y = SCREENHEIGHT;
-	while (y--)
-	{
-	    x = SCREENWIDTH;
-	    do
-	    {
-		fouripixels = *ilineptr++;
-		fouropixels[0] = (fouripixels & 0xff000000)
-		    |	((fouripixels>>8) & 0xff0000)
-		    |	((fouripixels>>16) & 0xffff);
-		fouropixels[1] = ((fouripixels<<8) & 0xff000000)
-		    |	(fouripixels & 0xffff00)
-		    |	((fouripixels>>8) & 0xff);
-		fouropixels[2] = ((fouripixels<<16) & 0xffff0000)
-		    |	((fouripixels<<8) & 0xff00)
-		    |	(fouripixels & 0xff);
-#ifdef __BIG_ENDIAN__
-		*olineptrs[0]++ = fouropixels[0];
-		*olineptrs[1]++ = fouropixels[0];
-		*olineptrs[2]++ = fouropixels[0];
-		*olineptrs[0]++ = fouropixels[1];
-		*olineptrs[1]++ = fouropixels[1];
-		*olineptrs[2]++ = fouropixels[1];
-		*olineptrs[0]++ = fouropixels[2];
-		*olineptrs[1]++ = fouropixels[2];
-		*olineptrs[2]++ = fouropixels[2];
-#else
-		*olineptrs[0]++ = fouropixels[2];
-		*olineptrs[1]++ = fouropixels[2];
-		*olineptrs[2]++ = fouropixels[2];
-		*olineptrs[0]++ = fouropixels[1];
-		*olineptrs[1]++ = fouropixels[1];
-		*olineptrs[2]++ = fouropixels[1];
-		*olineptrs[0]++ = fouropixels[0];
-		*olineptrs[1]++ = fouropixels[0];
-		*olineptrs[2]++ = fouropixels[0];
-#endif
-	    } while (x-=4);
-	    olineptrs[0] += 2*screen->pitch/4;
-	    olineptrs[1] += 2*screen->pitch/4;
-	    olineptrs[2] += 2*screen->pitch/4;
-	}
-
+        line_in += SCREENWIDTH;
     }
-    if ( SDL_MUSTLOCK(screen) ) {
-	SDL_UnlockSurface(screen);
-    }
-    SDL_UpdateRect(screen, 0, 0, 0, 0);
+
+	DG_DrawFrame();
 }
-
 
 //
 // I_ReadScreen
 //
 void I_ReadScreen (byte* scr)
 {
-    memcpy (scr, screens[0], SCREENWIDTH*SCREENHEIGHT);
+    memcpy (scr, I_VideoBuffer, SCREENWIDTH * SCREENHEIGHT);
 }
-
 
 //
 // I_SetPalette
 //
+#define GFX_RGB565(r, g, b)			((((r & 0xF8) >> 3) << 11) | (((g & 0xFC) >> 2) << 5) | ((b & 0xF8) >> 3))
+#define GFX_RGB565_R(color)			((0xF800 & color) >> 11)
+#define GFX_RGB565_G(color)			((0x07E0 & color) >> 5)
+#define GFX_RGB565_B(color)			(0x001F & color)
+
 void I_SetPalette (byte* palette)
 {
-    int i;
-    SDL_Color colors[256];
+	int i;
+	//col_t* c;
 
-    for ( i=0; i<256; ++i ) {
-	colors[i].r = gammatable[usegamma][*palette++];
-	colors[i].g = gammatable[usegamma][*palette++];
-	colors[i].b = gammatable[usegamma][*palette++];
-	colors[i].unused = 0;
+	//for (i = 0; i < 256; i++)
+	//{
+	//	c = (col_t*)palette;
+
+	//	rgb565_palette[i] = GFX_RGB565(gammatable[usegamma][c->r],
+	//								   gammatable[usegamma][c->g],
+	//								   gammatable[usegamma][c->b]);
+
+	//	palette += 3;
+	//}
+    
+
+    /* performance boost:
+     * map to the right pixel format over here! */
+
+    for (i=0; i<256; ++i ) {
+        colors[i].a = 0;
+        colors[i].r = gammatable[usegamma][*palette++];
+        colors[i].g = gammatable[usegamma][*palette++];
+        colors[i].b = gammatable[usegamma][*palette++];
     }
-    SDL_SetColors(screen, colors, 0, 256);
+
+#ifdef CMAP256
+
+    palette_changed = true;
+
+#endif  // CMAP256
 }
 
+// Given an RGB value, find the closest matching palette index.
 
-void I_InitGraphics(void)
+int I_GetPaletteIndex (int r, int g, int b)
 {
+    int best, best_diff, diff;
+    int i;
+    col_t color;
 
-    static int	firsttime=1;
-    Uint16 video_w, video_h, w, h;
-    Uint8 video_bpp;
-    Uint32 video_flags;
+    printf("I_GetPaletteIndex\n");
 
-    if (!firsttime)
-	return;
-    firsttime = 0;
+    best = 0;
+    best_diff = INT_MAX;
 
-    video_flags = (SDL_SWSURFACE|SDL_HWPALETTE);
-    if (!!M_CheckParm("-fullscreen"))
-        video_flags |= SDL_FULLSCREEN;
+    for (i = 0; i < 256; ++i)
+    {
+    	color.r = GFX_RGB565_R(rgb565_palette[i]);
+    	color.g = GFX_RGB565_G(rgb565_palette[i]);
+    	color.b = GFX_RGB565_B(rgb565_palette[i]);
 
-    if (M_CheckParm("-2"))
-	multiply = 2;
+        diff = (r - color.r) * (r - color.r)
+             + (g - color.g) * (g - color.g)
+             + (b - color.b) * (b - color.b);
 
-    if (M_CheckParm("-3"))
-	multiply = 3;
+        if (diff < best_diff)
+        {
+            best = i;
+            best_diff = diff;
+        }
 
-    // check if the user wants to grab the mouse (quite unnice)
-    grabMouse = !!M_CheckParm("-grabmouse");
-
-    video_w = w = SCREENWIDTH * multiply;
-    video_h = h = SCREENHEIGHT * multiply;
-    video_bpp = 8;
-
-    /* We need to allocate a software surface because the DOOM! code expects
-       the screen surface to be valid all of the time.  Properly done, the
-       rendering code would allocate the video surface in video memory and
-       then call SDL_LockSurface()/SDL_UnlockSurface() around frame rendering.
-       Eventually SDL will support flipping, which would be really nice in
-       a complete-frame rendering application like this.
-    */
-    switch (video_w/w) {
-        case 3:
-            multiply *= 3;
+        if (diff == 0)
+        {
             break;
-        case 2:
-            multiply *= 2;
-            break;
-        case 1:
-            multiply *= 1;
-            break;
-        default:
-		;
+        }
     }
-    if ( multiply > 3 ) {
-        I_Error("Smallest available mode (%dx%d) is too large!",
-						video_w, video_h);
-    }
-    screen = SDL_SetVideoMode(video_w, video_h, 8, video_flags);
-    if ( screen == NULL ) {
-        I_Error("Could not set %dx%d video mode: %s", video_w, video_h,
-							SDL_GetError());
-    }
-    SDL_ShowCursor(0);
-    SDL_WM_SetCaption("SDL DOOM! v1.10", "doom");
 
-    /* Set up the screen displays */
-    w = SCREENWIDTH * multiply;
-    h = SCREENHEIGHT * multiply;
-    if (multiply == 1 && !SDL_MUSTLOCK(screen) ) {
-	screens[0] = (unsigned char *) screen->pixels;
-    } else {
-	screens[0] = (unsigned char *) malloc (SCREENWIDTH * SCREENHEIGHT);
-        if ( screens[0] == NULL )
-            I_Error("Couldn't allocate screen memory");
-    }
+    return best;
+}
+
+void I_BeginRead (void)
+{
+}
+
+void I_EndRead (void)
+{
+}
+
+void I_SetWindowTitle (char *title)
+{
+	DG_SetWindowTitle(title);
+}
+
+void I_GraphicsCheckCommandLine (void)
+{
+}
+
+void I_SetGrabMouseCallback (grabmouse_callback_t func)
+{
+}
+
+void I_EnableLoadingDisk(void)
+{
+}
+
+void I_BindVideoVariables (void)
+{
+}
+
+void I_DisplayFPSDots (boolean dots_on)
+{
+}
+
+void I_CheckIsScreensaver (void)
+{
 }

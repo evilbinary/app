@@ -22,6 +22,9 @@ int main(int argc, char* argv[]) {
     // int s = strlen(buff);
     // buff[s - 1] = 0;
      buff[size - 1] = 0;
+    if(buff[0]=='#'){
+      continue;
+    }
 
     const char* split = " ";
     char* ptr = strtok(buff, split);
@@ -41,7 +44,7 @@ int main(int argc, char* argv[]) {
     pid_t p1 = -1;
     p1 = fork();  // 返回2次
     if (p1 == 0) {
-      sleep(1);
+      sleep(20);
       execv(proc, args);
       wait();
     }
