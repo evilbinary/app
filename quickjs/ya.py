@@ -31,7 +31,7 @@ set_type("cli")
 add_deps("quickjs")
 
 add_files(
-    'qjsc.c',
+    'qjs.c',
     'qjscalc.c',
     'repl.c'
 ) 

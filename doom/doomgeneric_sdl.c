@@ -133,17 +133,31 @@ static void handleKeyInput(){
 
 void DG_Init(){
   window = SDL_CreateWindow("DOOM",
-                            SDL_WINDOWPOS_UNDEFINED,
-                            SDL_WINDOWPOS_UNDEFINED,
-                            DOOMGENERIC_RESX,
-                            DOOMGENERIC_RESY,
-                            SDL_WINDOW_SHOWN
+                            SDL_WINDOWPOS_CENTERED,
+                            SDL_WINDOWPOS_CENTERED,
+                            320,
+                            240,
+                            0
                             );
 
   // Setup renderer
-  renderer =  SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
+  renderer =  SDL_CreateRenderer( window, -1, 0);
+  
+  // Select the color for drawing. It is set to red here.
+  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+  // Clear the entire screen to our selected color.
+  SDL_RenderClear(renderer);
+
+  // Up until now everything was drawn behind the scenes.
+  // This will show the new, red contents of the window.
+  SDL_RenderPresent(renderer);
+
+
+  
   // Clear winow
   SDL_RenderClear( renderer );
+  
   // Render the rect to the screen
   SDL_RenderPresent(renderer);
 
