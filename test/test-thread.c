@@ -68,8 +68,8 @@ void test_thread_key_create() {
 
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {
-      //   cmocka_unit_test(test_thread_create),
-      cmocka_unit_test(test_thread_key_create),
+        cmocka_unit_test(test_thread_create),
+      // cmocka_unit_test(test_thread_key_create),
   };
 
   return cmocka_run_group_tests(tests, NULL, NULL);
