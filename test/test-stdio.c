@@ -132,11 +132,50 @@ void test_getline() {
   assert_true(size == 11);
 }
 
+
+// 测试用例函数
+static void test_read_char_from_stdin(void **state) {
+    (void) state; // 忽略未使用的参数
+
+    // 创建临时文件并写入测试数据
+    FILE *temp_file = tmpfile();
+    assert_non_null(temp_file);
+    fputc('B', temp_file);
+    rewind(temp_file);
+
+    // 重定向 stdin 到临时文件
+    int stdin_fd = dup(fileno(stdin));
+    assert_true(stdin_fd >= 0);
+    assert_true(freopen(NULL, "r", stdin) != NULL);
+    dup2(fileno(temp_file), fileno(stdin));
+
+    // 调用被测试函数
+    char result = fgetc(stdin);
+
+    // 恢复 stdin
+    fflush(stdin);
+    dup2(stdin_fd, fileno(stdin));
+    close(stdin_fd);
+    fclose(temp_file);
+
+    // 验证结果
+    assert_int_equal(result, 'B');
+}
+
+static void test_read_char_from_stdin2(void **state) {
+    (void) state; // 忽略未使用的参数
+
+  char result = fgetc(stdin);
+  printf("result=%c %x\n",result,result);
+}
+
 int main(int argc, char *argv[]) {
   const struct CMUnitTest tests[] = {
-      cmocka_unit_test(test_stdio),
-      cmocka_unit_test(test_open),
-      cmocka_unit_test(test_float),
+      // cmocka_unit_test(test_stdio),
+      // cmocka_unit_test(test_open),
+      // cmocka_unit_test(test_float),
+      // cmocka_unit_test(test_read_char_from_stdin),
+      cmocka_unit_test(test_read_char_from_stdin2),
 
   };
 

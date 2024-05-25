@@ -137,7 +137,7 @@ void DG_Init(){
                             SDL_WINDOWPOS_CENTERED,
                             320,
                             240,
-                            0
+                            SDL_WINDOW_FULLSCREEN
                             );
 
   // Setup renderer
@@ -168,7 +168,7 @@ void DG_DrawFrame()
 {
   SDL_UpdateTexture(texture, NULL, DG_ScreenBuffer, DOOMGENERIC_RESX*sizeof(uint32_t));
 
-  SDL_RenderClear(renderer);
+  // SDL_RenderClear(renderer);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
 
