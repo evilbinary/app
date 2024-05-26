@@ -160,3 +160,6 @@ test/test-dl
 test/test-call-so
 
 **/**/__pycache__/**.pyc
+
+
+app/resource/**

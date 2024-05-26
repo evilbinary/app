@@ -31,5 +31,5 @@ add_includedirs(
     '.',
     './yiyiya'
 )
-add_cflags('-DIS_LITTLE_ENDIAN  -DIS_LINUX -D_GNU_SOURCE=1 -D_REENTRANT -DYIYIYA_BUILD -DRPI_BUILD')
+add_cflags('-DIS_LITTLE_ENDIAN  -DIS_LINUX -D_GNU_SOURCE=1 -D_REENTRANT -DYIYIYA_BUILD ')
 

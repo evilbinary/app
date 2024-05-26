@@ -32,6 +32,11 @@
 //#include "input.h"
 #endif
 
+#ifdef YIYIYA_BUILD
+#include "input.h"
+#include "yiyiya/rpi.h"
+#endif
+
 #define MAX_PATH 1024
 
 // Blatantly stolen and trimmed from MZX (megazeux.sourceforge.net)
@@ -775,6 +780,13 @@ u32 gamepad_config_line_to_button[] =
 
 #endif
 
+#ifdef YIYIYA_BUILD
+
+u32 gamepad_config_line_to_button[] =
+ { 8, 6, 7, 9, 1, 2, 3, 0, 4, 5, 11, 10 };
+
+#endif
+
 #ifdef GP2X_BUILD
 
 u32 gamepad_config_line_to_button[] =
@@ -928,9 +940,8 @@ enum file_options {
 #ifdef PC_BUILD
 #define PLAT_BUTTON_COUNT 0
 #endif
-#ifdef YIYIYA_BUILD
-#define PLAT_BUTTON_COUNT 0
-#endif
+
+
 
 #ifdef RPI_BUILD
 #define FILE_OPTION_COUNT (fo_main_option_count + PLAT_BUTTON_COUNT + PLAT_KEY_COUNT)
@@ -1735,6 +1746,20 @@ u32 menu(u16 *original_screen)
 #endif
 
 #if defined(PC_BUILD)
+
+  menu_option_type gamepad_config_options[] =
+  {
+    submenu_option(NULL, "Back", "Return to the main menu.", 13)
+  };
+
+  menu_option_type analog_config_options[] =
+  {
+    submenu_option(NULL, "Back", "Return to the main menu.", 11)
+  };
+
+#endif
+
+#if defined(YIYIYA_BUILD)
 
   menu_option_type gamepad_config_options[] =
   {

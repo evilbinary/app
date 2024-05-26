@@ -555,7 +555,7 @@ void init_input()
 #endif
 
 
-#ifdef PC_BUILD
+#if defined(PC_BUILD)|| defined(YIYIYA_BUILD)
 
 u32 key_map(SDLKey key_sym)
 {

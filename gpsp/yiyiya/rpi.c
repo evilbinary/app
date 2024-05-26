@@ -22,7 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "time.h"
-#include "sdl.h"
+#include "rpi.h"
 
 
 //Default setting of gamepad
@@ -60,12 +60,16 @@ u32 keyboard_config_map[PLAT_KEY_COUNT] =
 static int video_started=0;
 static uint16_t * video_buff;
 
+  SDL_Surface* myVideoSurface;
+
+#define WIDTH 640
+#define HEIGHT 480
 
 void gpsp_plat_init(void)
 {
   int ret;
   //const char *layer_fb_name;
-  SDL_Surface* myVideoSurface;
+	SDL_Color palette[256];
 
 
   ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO  | SDL_INIT_NOPARACHUTE); //SDL_INIT_JOYSTICK
@@ -73,15 +77,29 @@ void gpsp_plat_init(void)
     fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
     exit(1);
   }
+	myVideoSurface = SDL_SetVideoMode(WIDTH, HEIGHT, 16, 0);
 
-  myVideoSurface = SDL_SetVideoMode( 0, 0, 16,  SDL_SWSURFACE);
+//   myVideoSurface = SDL_SetVideoMode( 0, 0, 16,  SDL_SWSURFACE);
     // Print out some information about the video surface
     if (myVideoSurface == NULL) {
        fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
        exit(1);
     }
+
+   printf("init===>app/gpsp/gpsp\n");
+
+
+	for (int i=0; i<256; ++i ) {
+		palette[i].r = 255-i;
+		palette[i].g = 255-i;
+		palette[i].b = 255-i;
+	}
+	SDL_SetColors(myVideoSurface, palette, 0, 256);
+
+   fb_set_mode(WIDTH, HEIGHT, 0, 0, 0, 0);
+
+
   SDL_ShowCursor(0);
-  fb_set_mode(240, 160, 0, 0, 0, 0);
   screen_scale = 3;
 }
 
@@ -207,21 +225,21 @@ int button_map[] = {
   BUTTON_SELECT
 };
 
-int key_map(SDLKey key_sym) {
-   int i;
+// int key_map(SDLKey key_sym) {
+//    int i;
 
-   for(i=0;i<PLAT_KEY_COUNT;i++) {
-      if (keyboard_config_map[i]==key_sym) return button_map[i];
-   }
-   return BUTTON_NONE;
-}
+//    for(i=0;i<PLAT_KEY_COUNT;i++) {
+//       if (keyboard_config_map[i]==key_sym) return button_map[i];
+//    }
+//    return BUTTON_NONE;
+// }
 
-int joy_map(u32 button) {
-   int i;
+// int joy_map(u32 button) {
+//    int i;
 
-   for(i=0;i<PLAT_BUTTON_COUNT;i++) {
-      if (gamepad_config_map[i]==button) return button_map[i];
-   }
-   return BUTTON_NONE;
-}
+//    for(i=0;i<PLAT_BUTTON_COUNT;i++) {
+//       if (gamepad_config_map[i]==button) return button_map[i];
+//    }
+//    return BUTTON_NONE;
+// }
 
