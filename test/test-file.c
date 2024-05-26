@@ -400,6 +400,34 @@ static void test_readv_failure(void **state) {
 }
 
 
+static void test_read_font(void **state) {
+
+
+    int fd = open("/font/RobotoMono-Regular.ttf", O_RDONLY);
+    printf("fd=%d\n",fd);
+
+    assert_true(fd > 0);
+
+    close(fd);
+    
+    FILE* fp;
+    fp = fopen("/font/RobotoMono-Regular.ttf", "r+");
+
+  
+    int ret = fseek(fp, 0, SEEK_SET);
+    assert_true(ret == 0);
+
+    ret = fseek(fp, 0, SEEK_END);
+    assert_true(ret == 0);
+
+    long end=ftell(fp);
+
+    assert_true(end > 0);
+
+
+    close(fd);
+}
+
 int main(int argc, char* argv[]) {
   const struct CMUnitTest tests[] = {
       cmocka_unit_test(test_read_large),
@@ -421,6 +449,8 @@ int main(int argc, char* argv[]) {
       cmocka_unit_test(test_read_more_dir_file),
       cmocka_unit_test(test_readv_success),
       cmocka_unit_test(test_readv_failure),
+
+      cmocka_unit_test(test_read_font),
 
   };
 
