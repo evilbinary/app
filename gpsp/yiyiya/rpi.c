@@ -62,8 +62,8 @@ static uint16_t * video_buff;
 
   SDL_Surface* myVideoSurface;
 
-#define WIDTH 640
-#define HEIGHT 480
+#define WIDTH 480
+#define HEIGHT 320
 
 void gpsp_plat_init(void)
 {
@@ -77,7 +77,7 @@ void gpsp_plat_init(void)
     fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
     exit(1);
   }
-	myVideoSurface = SDL_SetVideoMode(WIDTH, HEIGHT, 16, 0);
+	myVideoSurface = SDL_SetVideoMode(0, 0, 16, 0);
 
 //   myVideoSurface = SDL_SetVideoMode( 0, 0, 16,  SDL_SWSURFACE);
     // Print out some information about the video surface
