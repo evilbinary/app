@@ -1,5 +1,0 @@
-
-
-function hello(a,b){
-
-}
