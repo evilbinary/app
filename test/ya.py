@@ -132,3 +132,12 @@ add_files(
    'test-fstat.c'
 )
 add_cflags('-DHAVE_SIGNAL_H')
+
+
+target("test-check-file")
+set_type("cli")
+add_deps("cmocka")
+add_files(
+   'test-check-file.c'
+)
+add_cflags('-DHAVE_SIGNAL_H')
