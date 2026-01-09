@@ -35,8 +35,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-
-    char* json_path="app/memory-game/app.json";
+    char* json_path="app/app.json";
     // 加载UI描述文件
     if(argc>1){
         json_path=argv[1];

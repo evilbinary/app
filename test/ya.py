@@ -113,3 +113,12 @@ add_files(
    'test-time.c'
 )
 add_cflags('-DHAVE_SIGNAL_H')
+
+
+target("test-font-large")
+set_type("cli")
+add_deps("cmocka")
+add_files(
+   'test-font-large.c'
+)
+add_cflags('-DHAVE_SIGNAL_H')
