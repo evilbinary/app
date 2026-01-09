@@ -115,10 +115,10 @@ add_files(
 add_cflags('-DHAVE_SIGNAL_H')
 
 
-target("test-font-large")
+target("test-font")
 set_type("cli")
 add_deps("cmocka")
 add_files(
-   'test-font-large.c'
+   'test-font.c'
 )
 add_cflags('-DHAVE_SIGNAL_H')
