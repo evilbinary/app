@@ -1,7 +1,7 @@
 target("ymain")
 set_type("cli")
 
-add_deps("yui","jsmodule","sdl2")
+add_deps("socket","yui","quickjs","jsmodule-quickjs","yaml2json"),
 
 add_files(
     'main.c',
