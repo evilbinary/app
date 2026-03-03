@@ -7,6 +7,18 @@
 #include "../../duck/init/init.h"
 
 
+#define BLACK 0x0000
+#define WHITE 0xFFFF
+
+#define RED 0xf800
+#define BLUE 0x001f
+#define GREEN 0x07e0
+#define YELLOW 0xffe0
+#define MAGENTA 0xF81F
+#define CYAN 0xFFE0
+
+
+extern int module_ready;
 extern void do_kernel_thread();
 
 void kstart(int argc, char* argv[], char** envp) {
@@ -53,32 +65,35 @@ void thread_lcd(){
       // sleep();
     }
 
+    lcd_fill_rect(0, 0, 128, 128, BLACK); // WHITE
     while(1){
-      sleep_ms(1000);
+      sleep_ms(100);
       
       // 填充红色矩形 (x:10-50, y:10-50)
-      lcd_fill_rect(10, 10, 40, 40, 0xf800);  // RED
+      lcd_fill_rect(10, 10, 40, 40, RED);  // RED
       
       // 填充蓝色矩形 (x:60-100, y:10-50)
-      lcd_fill_rect(60, 10, 40, 40, 0x001f); // BLUE
+      lcd_fill_rect(60, 10, 40, 40, BLUE); // BLUE
       
       // 循环动画：移动的绿色矩形
       for (int i = 0; i < 5; i++) {
           // 绘制绿色矩形
-          lcd_fill_rect(10 + i * 10, 60, 40, 40, 0x07e0); // GREEN
+          lcd_fill_rect(10 + i * 10, 60, 40, 40, GREEN); // GREEN
           sleep_ms(200);
           // 擦除（用黑色）
-          lcd_fill_rect(10 + i * 10, 60, 40, 40, 0x0000); // BLACK
+          lcd_fill_rect(10 + i * 10, 60, 40, 40, BLACK); // BLACK
       }
       // 最后绘制黄色矩形
-      lcd_fill_rect(60, 60, 40, 40, 0xffe0); // YELLOW
+      lcd_fill_rect(60, 60, 40, 40, YELLOW); // YELLOW
   }
     
 }
 
 
 void thread_lcd2(){
-
+  while (module_ready <= 0) {
+    // sleep();
+  }
   while(1){
     sleep_ms(200);
   }
