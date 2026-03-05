@@ -19,8 +19,6 @@
 
 extern int module_ready;
 extern void do_kernel_thread();
-extern void kernel_init()__attribute__((weak));
-extern void kernel_run() __attribute__((weak));
 
 void kstart(int argc, char* argv[], char** envp) {
   boot_info_t* boot_info = envp[0];
