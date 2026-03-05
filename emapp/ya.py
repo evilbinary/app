@@ -1,0 +1,1 @@
+includes("./*/ya.py")

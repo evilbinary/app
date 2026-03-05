@@ -3,8 +3,8 @@
  * 作者: evilbinary on 01/01/20
  * 邮箱: rootdebug@163.com
  ********************************************************************/
-#include "../../duck/init/main.h"
-#include "../../duck/init/init.h"
+#include "main.h"
+#include "init.h"
 
 
 #define BLACK 0x0000
@@ -20,6 +20,8 @@
 
 extern int module_ready;
 extern void do_kernel_thread();
+extern void kernel_init()__attribute__((weak));
+extern void kernel_run() __attribute__((weak));
 
 void kstart(int argc, char* argv[], char** envp) {
   boot_info_t* boot_info = envp[0];
