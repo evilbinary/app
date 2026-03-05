@@ -4,7 +4,6 @@
  * 邮箱: rootdebug@163.com
  ********************************************************************/
 #include "main.h"
-#include "init.h"
 
 
 #define BLACK 0x0000
@@ -37,6 +36,14 @@ void kstart(int argc, char* argv[], char** envp) {
 }
 
 
+
+
+void sleep_ms(int ms) {
+  struct timespec tv;
+  tv.tv_nsec = (ms % 1000) * 1000 * 1000;
+  tv.tv_sec = ms / 1000;
+  syscall4(SYS_CLOCK_NANOSLEEP, 0, 0, &tv, &tv);
+}
 
 
 // 通过系统调用写入LCD填充矩形
@@ -101,6 +108,27 @@ void thread_lcd2(){
   }
 }
 
+
+void do_kernel_thread(void) {
+  kprintf("init kernel thread\n");
+  modules_init();
+  mp_init();
+
+  module_ready=1;
+  
+  u32 i = 0;
+  u32 count = 0;
+  for (;;) {
+    count++;
+    if (i % 4 == 0) {
+      i = 0;
+    }
+    // log_debug("count=%d\n",count);
+    // test_fb(count);
+    schedule_sleep(1000 * 1000 * 10000);
+    // cpu_wait();
+  }
+}
 
 int kmain(int argc, char* argv[]) {
   kernel_init();

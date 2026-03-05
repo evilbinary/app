@@ -11,7 +11,3 @@ if has_config("app") and get_config('apps'):
 if has_config("cpp-apps"): 
     for v in get_config('cpp-apps'):
         includes("./"+v+"/ya.py")
-
-if get_config('em-apps'):
-    includes("./emapp/*/ya.py")
-       
