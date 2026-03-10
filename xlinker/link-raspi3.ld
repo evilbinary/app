@@ -3,6 +3,7 @@ K_VIR_ADDR = 0x100000;
 K_PHY_ADDR = 0x100000;
 PAGE_SIZE    = 0x100;
 STACK_SIZE = 0x2000;
+
 SECTIONS
 {
         /* Code. */
@@ -24,13 +25,11 @@ SECTIONS
         .data BLOCK(4K) : ALIGN(4K)
         {
                 _sdata = .;
+                _sidata = .;  /* Load addr = virtual addr for QEMU direct load */
                 *(.data*)
                 _edata = .;
         }
-        
-        /* Load address of .data section (in FLASH/ROM) */
-        _sidata = LOADADDR(.data);
-        
+
         /* Read-write data (uninitialized) and stack */
         .bss BLOCK(4K) : ALIGN(4K)
         {
