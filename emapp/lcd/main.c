@@ -101,6 +101,7 @@ void thread_lcd2(){
   while (module_ready <= 0) {
     // sleep();
   }
+  int i=0;
   while(1){
     sleep_ms(200);
   }

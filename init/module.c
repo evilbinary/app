@@ -92,6 +92,7 @@ void modules_init(void) {
   // REGISTER_MODULE(gpu);
   // REGISTER_MODULE(mouse);
   REGISTER_MODULE(sdhci);
+  REGISTER_MODULE(net);
 
 
 #ifdef FAT_MODULE
