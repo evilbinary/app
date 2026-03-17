@@ -283,9 +283,15 @@ void test_queue_pool_page() {
   kprintf("test success %d\n", count);
 }
 
+// XWIN demo (在 xwin-demo.c 中定义)
+extern void xwin_demo(void);
+
 // 内核测试用例
 void test_kernel() {
   // test_pool();
   // test_queue_pool();
   // test_queue_pool_page();
+
+  // 运行 XWIN demo
+  // xwin_demo();
 }

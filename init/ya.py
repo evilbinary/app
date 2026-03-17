@@ -31,8 +31,14 @@ add_files(
     'monitor.c',
     'test.c',
     'cmd.c',
-    'main.c'
+    'main.c',
+    'xwin-demo.c'
 )
+
+modules =get_config('modules')
+# XWIN 模块支持
+if 'xwin' in modules:
+    add_defines('XWIN_MODULE')
 
 add_rules("kernel-objcopy")
 
