@@ -89,8 +89,9 @@ void modules_init(void) {
   // REGISTER_MODULE(gpio);
   // REGISTER_MODULE(i2c);
   // REGISTER_MODULE(spi);
+  REGISTER_MODULE(mouse);
+  REGISTER_MODULE(usb);
   REGISTER_MODULE(gpu);
-  // REGISTER_MODULE(mouse);
   REGISTER_MODULE(sdhci);
   REGISTER_MODULE(net);
   REGISTER_MODULE(test);
