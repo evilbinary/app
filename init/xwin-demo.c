@@ -281,7 +281,7 @@ int xwin_demo_init(void) {
     // 创建第一个窗口 - 计数器窗口
     demo_window = xwin_create_window(demo_display,
                                       demo_display->root_window,
-                                      50, 50, 300, 200,
+                                      50, 50, 600, 400,
                                       XWIN_FLAG_VISIBLE | XWIN_FLAG_BORDERED | 
                                       XWIN_FLAG_FOCUSABLE | XWIN_FLAG_DRAGGABLE);
     if (demo_window == NULL) {

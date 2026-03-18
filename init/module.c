@@ -50,8 +50,10 @@ void modules_init(void) {
   REGISTER_MODULE(gpio);
   REGISTER_MODULE(i2c);
   REGISTER_MODULE(spi);
-  REGISTER_MODULE(gpu);
+  REGISTER_MODULE(usb);
   REGISTER_MODULE(mouse);
+  REGISTER_MODULE(gpu);
+
   REGISTER_MODULE(sdhci);
 
 #ifdef LCD_MODULE

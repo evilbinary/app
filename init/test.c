@@ -1,5 +1,6 @@
 #include "kernel/kernel.h"
 #include "init.h"
+#include "algorithm/pool.h"
 
 #ifdef XTENSA
 
@@ -208,7 +209,7 @@ void run_test_queue_pool_case(u32 size, u32 poll_size, u32 bytes, u32 align) {
   }
 
   // 验证队列池中的元素数量是否正确
-  size_t elements_count = cqueue_count(q->queue);
+  size_t elements_count = queue_pool_count(q);
   if (elements_count != size) {
     kprintf(
         "Incorrect number of elements in the queue pool: expected %d, actual "
@@ -218,8 +219,8 @@ void run_test_queue_pool_case(u32 size, u32 poll_size, u32 bytes, u32 align) {
 
   // 从队列池中取出元素并验证
   for (int i = 0; i < poll_size; i++) {
-    void* element = queue_pool_poll(q);
-    if (element == NULL) {
+    void* element = NULL;
+    if (queue_pool_poll(q, &element) != 0 || element == NULL) {
       kprintf("Failed to poll element %d from the queue pool\n", i);
     } else {
       // 这里假设元素是整数，为了简化测试
@@ -233,7 +234,7 @@ void run_test_queue_pool_case(u32 size, u32 poll_size, u32 bytes, u32 align) {
   }
 
   // 验证队列池中的元素数量是否正确
-  elements_count = cqueue_count(q->queue);
+  elements_count = queue_pool_count(q);
   if (elements_count != 0) {
     kprintf(
         "Incorrect number of elements in the queue pool after polling: "
@@ -272,8 +273,8 @@ void test_queue_pool_page() {
       queue_pool_create_align(num, PAGE_SIZE, PAGE_SIZE);
   int count = 0;
   for (int i = 0; i < num; i++) {
-    void* addr = queue_pool_poll(q);
-    if (addr != NULL) {
+    void* addr = NULL;
+    if (queue_pool_poll(q, &addr) == 0 && addr != NULL) {
       kmemset(addr, 0, PAGE_SIZE);
       count++;
     } else {

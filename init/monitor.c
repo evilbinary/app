@@ -21,6 +21,7 @@ void do_kernel_thread(void) {
     if (i % 4 == 0) {
       i = 0;
     }
+    // xwin_demo();
     // log_debug("count=%d\n",count);
     // test_fb(count);
     schedule_sleep(1000 * 1000 * 10000);
