@@ -176,6 +176,10 @@ void modules_init(void) {
 #endif
 
 
+#ifdef XWIN_MODULE
+  REGISTER_MODULE(xwin);
+#endif
+
   log_info("module regist end\n");
 
   module_run_all();
