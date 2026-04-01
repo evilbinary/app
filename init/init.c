@@ -71,15 +71,15 @@ extern int module_ready;
 #define USE_FORK 1
 #endif
 
-void hello_thread(void) {
-  print_string("hello\n");
-  char env_buf[512];
-  char** env = env_buf;
-  build_env(env);
-  char* cmd = "/ls";
-  syscall3(SYS_EXEC, cmd, NULL, env);
-  syscall1(SYS_EXIT, 0);
-}
+// void hello_thread(void) {
+//   print_string("hello\n");
+//   char env_buf[512];
+//   char** env = env_buf;
+//   build_env(env);
+//   char* cmd = "/ls";
+//   syscall3(SYS_EXEC, cmd, NULL, env);
+//   syscall1(SYS_EXIT, 0);
+// }
 
 char* argv_p[64];
 
