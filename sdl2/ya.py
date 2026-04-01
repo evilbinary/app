@@ -2,12 +2,14 @@ target("showimage2")
 set_type("cli")
 
 add_deps("sdl2","sdl2-image")
+add_cflags(' -DSDL_DISABLE_ARM_NEON_H ')
 
 add_files('showimage.c')
 
 
 target("showfont")
 set_type("cli")
+add_cflags(' -DSDL_DISABLE_ARM_NEON_H ')
 
 add_deps("sdl2","sdl2-ttf")
 
@@ -17,6 +19,7 @@ target("sdl2.elf")
 set_type("cli")
 
 set_filename("sdl2")
+add_cflags(' -DSDL_DISABLE_ARM_NEON_H ')
 
 add_deps("sdl2")
 
