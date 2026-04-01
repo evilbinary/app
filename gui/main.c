@@ -79,7 +79,7 @@ void yiyiya_gui() {
     // }
 
     screen_printf(500, 10, "YiYiYa OS");
-    event_read_mouse(&mouse, sizeof(mouse_data_t));
+    event_read_mouse(&mouse);
     // for (u32 y = 0; y < screen->height; y++) {
     //   screen_put_pixel((screen->width - screen->height) / 2 + y, y,
     //   0x0000ff); screen_put_pixel((screen->height + screen->width) / 2 - y,

@@ -6,6 +6,7 @@ add_deps("socket","yui","quickjs","jsmodule-quickjs","yaml2json"),
 add_files(
     'main.c',
 ) 
+add_cflags(' -DSDL_DISABLE_ARM_NEON_H ')
 
 # add_cflags('-UCONFIG_PRINTF_RNDN -D_GNU_SOURCE -DUSE_FILE32API  -Ieggs/libquickjs -DCONFIG_BIGNUM')
 
