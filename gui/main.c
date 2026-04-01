@@ -9,9 +9,18 @@ char* buf = "hello,gui\n";
 
 void* load_bmp(char* name) {
   char* buffer = malloc(200 * 1024);
+  if (buffer == NULL) {
+    printf("load_bmp: malloc failed for %s\n", name);
+    return NULL;
+  }
   memset(buffer, 0, 200 * 1024);
   FILE* fp;
-  fp = fopen(name, "r+");
+  fp = fopen(name, "rb");
+  if (fp == NULL) {
+    printf("load_bmp: open failed for %s\n", name);
+    free(buffer);
+    return NULL;
+  }
   // printf("fd=%d\n", fp->fd);
   u32 offset = 0;
   for (;;) {
@@ -42,18 +51,32 @@ void yiyiya_gui() {
   printf("mouse fd %d\n", fd);
   screen_init();
   screen_info_t* screen = screen_info();
+  if (screen == NULL) {
+    printf("screen_info failed\n");
+    return;
+  }
 
   bitmap_t* bitmap = load_jpeg("/home.jpg");
   bitmap_t* bitmap2 = load_png("/normal.png");
+  if (bitmap == NULL) {
+    printf("load_jpeg failed: /home.jpg\n");
+  }
+  if (bitmap2 == NULL) {
+    printf("load_png failed: /normal.png\n");
+  }
   // void* bmp = load_bmp("/duck.bmp");
 
   mouse_data_t mouse;
   
- screen_fill_rect(0,0,screen->width,screen->height,0xff0000);
+  screen_fill_rect(0, 0, screen->width, screen->height, 0xff0000);
   for (;;) {
-    screen_show_bitmap(0, 0, 1024, 768, bitmap);
+    if (bitmap != NULL) {
+      screen_show_bitmap(0, 0, 1024, 768, bitmap);
+    }
 
-    // screen_show_bitmap(mouse.x, screen->height - mouse.y, 32, 32, bitmap2);
+    // if (bitmap2 != NULL) {
+    //   screen_show_bitmap(mouse.x, screen->height - mouse.y, 32, 32, bitmap2);
+    // }
 
     screen_printf(500, 10, "YiYiYa OS");
     event_read_mouse(&mouse, sizeof(mouse_data_t));
@@ -92,6 +115,10 @@ void yiyiya_bitmap() {
   screen_init();
   // bitmap_t* bitmap = load_jpeg("/home.jpg");
   bitmap_t* bitmap = load_jpeg("/duck.jpg");
+  if (bitmap == NULL) {
+    printf("load_jpeg failed: /duck.jpg\n");
+    return;
+  }
   //  bitmap_t* bitmap = load_png("/normal.png");
   // void* bmp = load_bmp("/bomb.bmp");
   for (;;) {
