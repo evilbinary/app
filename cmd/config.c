@@ -3,56 +3,84 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/wait.h>
+
+#define MAX_LINE 256
+#define MAX_ARGS 30
+#define MAX_ARG_LEN 128
 
 int main(int argc, char* argv[]) {
   FILE* file;
-  int chr;
-  int count;
+  char line[MAX_LINE];
+  int child_count = 0;
+
   file = fopen("/conf/init.conf", "r");
 
-  int size = 0;
-  char* buff = NULL;
-  int read = 0;
-
   if (file == NULL) {
-    printf("%s: %s : %s\n", argv[0], argv[count], strerror(errno));
+    printf("%s: init.conf : %s\n", argv[0], strerror(errno));
     return -1;
   }
-  while ((read = getline(&buff, &size, file)) != -1) {
-    // int s = strlen(buff);
-    // buff[s - 1] = 0;
-     buff[size - 1] = 0;
-    if(buff[0]=='#'){
+
+  while (fgets(line, sizeof(line), file) != NULL) {
+    if (line[0] == '#' || line[0] == '\n') {
       continue;
     }
 
-    const char* split = " ";
-    char* ptr = strtok(buff, split);
-    char* args[30];
+    // 移除换行符
+    int s = strlen(line);
+    if (s > 0 && line[s - 1] == '\n') {
+      line[s - 1] = 0;
+    }
+
+    printf("line: %s\n", line);
+
+    // 在栈上分配参数存储
+    char proc_copy[MAX_ARG_LEN];
+    char args_copy[MAX_ARGS][MAX_ARG_LEN];
+    char* args[MAX_ARGS];
+
+    char* ptr = strtok(line, " ");
+    if (ptr == NULL) {
+      continue;
+    }
+
+    strncpy(proc_copy, ptr, MAX_ARG_LEN - 1);
+    proc_copy[MAX_ARG_LEN - 1] = 0;
+
     int i = 0;
-    char* proc = ptr;
-
-    while (ptr != NULL) {
-      printf("arg %s\n", ptr);
-      args[i++] = ptr;
-      ptr = strtok(NULL, split);
+    while ((ptr = strtok(NULL, " ")) != NULL && i < MAX_ARGS - 1) {
+      strncpy(args_copy[i], ptr, MAX_ARG_LEN - 1);
+      args_copy[i][MAX_ARG_LEN - 1] = 0;
+      args[i] = args_copy[i];
+      i++;
     }
-    args[i++] = NULL;
+    args[i] = NULL;
 
-    char* arg = ptr;
-
-    pid_t p1 = -1;
-    p1 = fork();  // 返回2次
+    pid_t p1 = fork();
+    if (p1 < 0) {
+      printf("fork failed\n");
+      continue;
+    }
     if (p1 == 0) {
-      sleep(20);
-      execv(proc, args);
-      wait();
+      // 子进程
+      printf("exec proc %s\n", proc_copy);
+      execv(proc_copy, args);
+      _exit(1);
     }
-    if (p1 > 0) {
-    }
+
+    child_count++;
+
+    // 延迟启动下一个进程，避免 XWin 资源竞争
+    usleep(500000);  // 500ms
   }
 
   fclose(file);
+
+  // 等待所有子进程
+  while (child_count-- > 0) {
+    int status;
+    wait(&status);
+  }
 
   return 0;
 }

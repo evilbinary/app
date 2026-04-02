@@ -2,6 +2,7 @@ target("doom")
 set_type("app")
 add_deps("sdl2","sdl2-image")
 add_cflags('-Dlinux -D_THREAD_SAFE -O3')
+add_cflags(' -DSDL_DISABLE_ARM_NEON_H ')
 
 add_files([
 'dummy.c',

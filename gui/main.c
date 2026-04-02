@@ -91,7 +91,7 @@ void yiyiya_gui() {
     screen_printf(10, 100, "mouse=%d,%d", mouse.x, mouse.y);
     screen_fill_rect(mouse.x, screen->height - mouse.y, 4, 4, 0x00ff00);
 
-    display_time();
+    //display_time();
 
     // screen_show_bmp_picture(200, 200, bmp, 0, 0);
     screen_flush();
