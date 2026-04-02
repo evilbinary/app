@@ -1,6 +1,6 @@
 {
     "type":"main",
-    "assets":"font",
+    "assets":"/font",
     "font":"Roboto-Regular.ttf",
     "fontSize":"16",
     "text":"YUI Event App",
