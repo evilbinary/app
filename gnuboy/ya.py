@@ -12,6 +12,7 @@ add_files(
 )
 
 add_cflags("-O2")
+add_cflags(' -DSDL_DISABLE_ARM_NEON_H ')
 
 add_includedirs(
     'sys/sdl2/',

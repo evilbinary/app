@@ -312,8 +312,8 @@ void try_run(char* cmd, char** argv, char** env) {
 }
 
 void load_config() {
-  // char* config_argv[] = {"config", NULL};
-  // try_run("config", config_argv, NULL);
+  char* config_argv[] = {"config", NULL};
+  try_run("config", config_argv, NULL);
 
 
   // char* gmenu_argv[] = {"gmenu", NULL};
@@ -381,6 +381,10 @@ void pre_launch() {
   // try_run("infones", nes_argv, NULL);
   load_config();
 
+#elif defined(ARMV8_A)
+  //  try_run("/bin/shell", shell_argv, env_p);
+  // try_run("infones", nes_argv, NULL);
+  load_config();
 #elif defined(ARMV5)
 
   load_config();

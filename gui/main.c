@@ -49,6 +49,10 @@ void display_time() {
 void yiyiya_gui() {
   int fd = open("/dev/mouse", 0);
   printf("mouse fd %d\n", fd);
+  if (fd < 0) {
+    printf("gui: /dev/mouse not available, exiting\n");
+    return;
+  }
   screen_init();
   screen_info_t* screen = screen_info();
   if (screen == NULL) {
