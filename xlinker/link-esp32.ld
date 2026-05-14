@@ -15,6 +15,7 @@ SECTIONS {
 
    .text.vectors : ALIGN(4) {
     . = ALIGN(0x1000);
+    __vector_base = .;
     KEEP(*(.window_overflow_4.text));
     . = ALIGN(64);
     KEEP(*(.window_underflow_4.text));
@@ -52,7 +53,9 @@ SECTIONS {
   } > iram
 
   .text : ALIGN(64) {
-    *(.text .text.*)
+    __start = .;
+    KEEP(*(.text.boot))    /* Boot code must be first */
+    *(.text*)
     
     *(.iram0.literal*)
     KEEP(*(.kernel_excetpion_handler*))

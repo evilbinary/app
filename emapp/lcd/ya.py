@@ -43,10 +43,17 @@ if has_config('single-kernel'):
     add_defines('SINGLE_KERNEL')
     print("Building single kernel",arch_type)
 
-    if arch_type in['riscv','xtensa']:
+    if arch_type == 'xtensa':
+        add_cflags("-mlongcalls", "-mtext-section-literals", "-mabi=call0")
         add_files(
-                '../../boot/'+arch_type+'/boot.s',
-                '../../boot/'+arch_type+'/init.c',
+                '../../../boot/'+arch_type+'/boot.s',
+                '../../../boot/'+arch_type+'/vectors.s',
+                '../../../boot/'+arch_type+'/init.c',
+                )
+    elif arch_type == 'riscv':
+        add_files(
+                '../../../boot/'+arch_type+'/boot.s',
+                '../../../boot/'+arch_type+'/init.c',
                 )
     elif arch_type in['x86']:
         add_files(

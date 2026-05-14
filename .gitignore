@@ -163,3 +163,7 @@ test/test-call-so
 
 
 app/resource/**
+resource/app/doom/doom
+resource/app/doom2/doom2
+resource/app/gpsp/gpsp
+resource/conf/init.conf
