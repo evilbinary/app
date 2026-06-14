@@ -123,7 +123,7 @@ void modules_init(void) {
   REGISTER_MODULE(fat);
   REGISTER_MODULE(test);
 
-#elif defined(XTENSA)
+#elif defined(XTENSA) || defined(LX6)
   REGISTER_MODULE(hello);
 
 #elif defined(GENERAL)
@@ -175,10 +175,19 @@ void modules_init(void) {
   REGISTER_MODULE(ytrace);
 #endif
 
-
   log_info("module regist end\n");
 
+  extern module_t* modules[];
+  extern u32 module_number;
+  kprintf("MCNT %d\n", module_number);
+  for (int mi = 0; mi < module_number; mi++) {
+    module_t* mod = modules[mi];
+    kprintf("ME %d m=%x n=%x f=%x\n", mi, mod, mod ? mod->name : 0,
+            mod ? mod->init : 0);
+  }
+
   module_run_all();
+
 
   log_info("module run all end\n");
 

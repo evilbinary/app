@@ -49,7 +49,6 @@ if has_config('single-kernel'):
         add_cflags("-mlongcalls", "-mtext-section-literals", "-mabi=call0")
         add_files(
                 '../../boot/'+arch_type+'/boot.s',
-                '../../boot/'+arch_type+'/vectors.s',
                 '../../boot/'+arch_type+'/init.c',
                 )
     elif arch_type == 'riscv':

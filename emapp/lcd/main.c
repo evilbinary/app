@@ -71,27 +71,29 @@ void thread_lcd(){
     while (module_ready <= 0) {
       // sleep();
     }
-
-    lcd_fill_rect(0, 0, 128, 128, BLACK); // WHITE
+    int i=0;
+    // lcd_fill_rect(0, 0, 128, 128, BLACK); // WHITE
     while(1){
+
+      log_debug("lcd=%d\n",i++);
       sleep_ms(100);
       
-      // 填充红色矩形 (x:10-50, y:10-50)
-      lcd_fill_rect(10, 10, 40, 40, RED);  // RED
+      // // 填充红色矩形 (x:10-50, y:10-50)
+      // lcd_fill_rect(10, 10, 40, 40, RED);  // RED
       
-      // 填充蓝色矩形 (x:60-100, y:10-50)
-      lcd_fill_rect(60, 10, 40, 40, BLUE); // BLUE
+      // // 填充蓝色矩形 (x:60-100, y:10-50)
+      // lcd_fill_rect(60, 10, 40, 40, BLUE); // BLUE
       
-      // 循环动画：移动的绿色矩形
-      for (int i = 0; i < 5; i++) {
-          // 绘制绿色矩形
-          lcd_fill_rect(10 + i * 10, 60, 40, 40, GREEN); // GREEN
-          sleep_ms(200);
-          // 擦除（用黑色）
-          lcd_fill_rect(10 + i * 10, 60, 40, 40, BLACK); // BLACK
-      }
-      // 最后绘制黄色矩形
-      lcd_fill_rect(60, 60, 40, 40, YELLOW); // YELLOW
+      // // 循环动画：移动的绿色矩形
+      // for (int i = 0; i < 5; i++) {
+      //     // 绘制绿色矩形
+      //     lcd_fill_rect(10 + i * 10, 60, 40, 40, GREEN); // GREEN
+      //     sleep_ms(200);
+      //     // 擦除（用黑色）
+      //     lcd_fill_rect(10 + i * 10, 60, 40, 40, BLACK); // BLACK
+      // }
+      // // 最后绘制黄色矩形
+      // lcd_fill_rect(60, 60, 40, 40, YELLOW); // YELLOW
   }
     
 }
@@ -103,17 +105,29 @@ void thread_lcd2(){
   }
   int i=0;
   while(1){
+    log_debug("lcd2=%d\n",i++);
     sleep_ms(200);
   }
 }
 
 
 void do_kernel_thread(void) {
+#ifdef LX6
+  kprintf("TK\n");
+#else
   kprintf("init kernel thread\n");
+#endif
+  kprintf("TM0\n");
   modules_init();
+  kprintf("TM1\n");
   mp_init();
+  kprintf("TM2\n");
 
   module_ready=1;
+  kprintf("TM3\n");
+  kprintf("SC0\n");
+  int pid = (int)syscall1(SYS_GETPID, 0);
+  kprintf("SC1 pid=%d\n", pid);
   
   u32 i = 0;
   u32 count = 0;
@@ -122,29 +136,45 @@ void do_kernel_thread(void) {
     if (i % 4 == 0) {
       i = 0;
     }
-    // log_debug("count=%d\n",count);
+    //log_debug("count=%d\n",count);
     // test_fb(count);
-    schedule_sleep(1000 * 1000 * 10000);
+    schedule_sleep(10 * SCHEDULE_FREQUENCY);
     // cpu_wait();
   }
 }
 
 int kmain(int argc, char* argv[]) {
+  kprintf("L0\n");
   kernel_init();
+  kprintf("L1\n");
 
   log_info("kernel thread init\n");
 
   thread_t* t1 = thread_create_name_level("kernel", (void*)&do_kernel_thread,
                                           NULL, LEVEL_KERNEL_SHARE);
-  thread_t* t2 = thread_create_name("lcd", (void*)&thread_lcd, NULL);
+  kprintf("L2\n");
+  thread_t* t2 = thread_create_name_level("lcd", (void*)&thread_lcd, NULL,
+                                          LEVEL_KERNEL_SHARE);
+  kprintf("L3\n");
   thread_run(t1);
+  kprintf("L4\n");
   thread_run(t2);
+  kprintf("L5\n");
 
-  thread_t* t3 = thread_create_name("lcd2", (void*)&thread_lcd2, NULL);
+  thread_t* t3 = thread_create_name_level("lcd2", (void*)&thread_lcd2, NULL,
+                                          LEVEL_KERNEL_SHARE);
+  kprintf("L6\n");
   thread_run(t3);
+  kprintf("L7\n");
 
 
+  kprintf("L8\n");
+#ifdef LX6
+  kprintf("RS\n");
+#else
   log_info("kernel run start\n");
+#endif
+  kprintf("L9\n");
 
   kernel_run();
 
