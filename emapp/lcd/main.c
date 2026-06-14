@@ -44,25 +44,26 @@ void sleep_ms(int ms) {
 }
 
 
+int lcd_fd=-1;
 // 通过系统调用写入LCD填充矩形
 void lcd_fill_rect(int x, int y, int w, int h, u16 color) {
-     
-  // 打开LCD设备
-int fd = syscall2(SYS_OPEN, "/dev/lcd", 0);
-if (fd < 0) {
-  kprintf("open /dev/lcd failed!\n");
-  return;
-}
+  if(lcd_fd<0){
+     lcd_fd = syscall2(SYS_OPEN, "/dev/lcd", 0);
+    if (lcd_fd < 0) {
+      kprintf("open /dev/lcd failed!\n");
+      return;
+    }
+  }
 
-// 构造填充命令: "FILL x y w h color\n"
-char cmd_buf[64];
-sprintf(cmd_buf, "FILL %d %d %d %d %d\n", x, y, w, h, color);
+  // 构造填充命令: "FILL x y w h color\n"
+  char cmd_buf[64];
+  sprintf(cmd_buf, "FILL %d %d %d %d %d\n", x, y, w, h, color);
 
-// 写入命令
-syscall3(SYS_WRITE, fd, cmd_buf, kstrlen(cmd_buf));
+  // 写入命令
+  syscall3(SYS_WRITE, lcd_fd, cmd_buf, kstrlen(cmd_buf));
 
-// 关闭设备
-syscall1(SYS_CLOSE, fd);
+  // 关闭设备
+  //syscall1(SYS_CLOSE, lcd_fd);
 }
 
 
