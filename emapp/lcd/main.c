@@ -96,15 +96,15 @@ static void ui_draw_bar(int x, int y, int w, int h, int fill_w, u16 fg,
 }
 
 static void ui_draw_header_static(void) {
-  lcd_fill_rect(0, 0, LCD_W, 18, BLACK);
-  lcd_draw_text_bg(4, 4, WHITE, BLACK, 8, "PHOTO LIGHT");
+  lcd_fill_rect(0, 0, LCD_W, 30, BLACK);
+  lcd_draw_text_bg(4, 2, WHITE, BLACK, 8, "PHOTO LIGHT");
 }
 
 static void ui_draw_header_dynamic(lamp_ui_state_t* ui) {
   char buf[32];
   ui_format_time(buf, ui);
-  lcd_fill_rect(88, 2, 36, 14, BLACK);
-  lcd_draw_text_bg(90, 4, YELLOW, BLACK, 8, buf);
+  lcd_fill_rect(68, 18, 26, 10, BLACK);
+  lcd_draw_text_bg(68, 20, YELLOW, BLACK, 8, buf);
 }
 
 static void ui_draw_battery(int x, int y, int percent, int charging) {
@@ -118,6 +118,7 @@ static void ui_draw_battery(int x, int y, int percent, int charging) {
     lcd_fill_rect(x + 2, y + 2, level_w, 6, charging ? GREEN : CYAN);
   }
 
+  lcd_fill_rect(x - 2, y + 12, 28, 10, BLACK);
   sprintf(buf, "%d%%", percent);
   lcd_draw_text_bg(x - 2, y + 12, WHITE, BLACK, 8, buf);
 }
@@ -130,10 +131,10 @@ static void ui_draw_status_card_static(int x, int y, int w, int h,
 }
 
 static void ui_draw_dashboard_static(void) {
-  ui_draw_status_card_static(4, 22, 56, 30, "BRI");
-  ui_draw_status_card_static(68, 22, 56, 30, "CCT");
-  ui_draw_status_card_static(4, 56, 56, 30, "BAT");
-  ui_draw_status_card_static(68, 56, 56, 30, "TIME");
+  ui_draw_status_card_static(4, 34, 56, 30, "BRI");
+  ui_draw_status_card_static(68, 34, 56, 30, "CCT");
+  ui_draw_status_card_static(4, 68, 56, 30, "BAT");
+  ui_draw_status_card_static(68, 68, 56, 30, "TIME");
 }
 
 static void ui_draw_status_value(int x, int y, int w, const char* value,
@@ -149,22 +150,22 @@ static void ui_draw_dashboard_dynamic(lamp_ui_state_t* ui) {
   char buf[32];
 
   sprintf(buf, "%d%%", ui->brightness);
-  ui_draw_status_value(8, 40, 40, buf, ui->selected == MENU_BRIGHTNESS, YELLOW);
+  ui_draw_status_value(8, 52, 40, buf, ui->selected == MENU_BRIGHTNESS, YELLOW);
 
   sprintf(buf, "%dK", ui->cct);
-  ui_draw_status_value(72, 40, 40, buf, ui->selected == MENU_CCT, ORANGE);
+  ui_draw_status_value(72, 52, 40, buf, ui->selected == MENU_CCT, ORANGE);
 
   sprintf(buf, "%d%%", ui->battery);
-  ui_draw_status_value(8, 74, 40, buf, ui->selected == MENU_BATTERY, GREEN);
+  ui_draw_status_value(8, 86, 40, buf, ui->selected == MENU_BATTERY, GREEN);
 
   ui_format_time(buf, ui);
-  ui_draw_status_value(72, 74, 40, buf, ui->selected == MENU_CLOCK, CYAN);
+  ui_draw_status_value(72, 86, 40, buf, ui->selected == MENU_CLOCK, CYAN);
 }
 
 static void ui_draw_menu_static(void) {
   static const char* menu_labels[MENU_COUNT] = {"Brightness", "Color Temp",
                                                 "Battery", "Clock"};
-  int y = 92;
+  int y = 102;
 
   lcd_draw_text_bg(4, y, WHITE, BLACK, 8, "MENU");
   for (int i = 0; i < MENU_COUNT; i++) {
@@ -176,7 +177,7 @@ static void ui_draw_menu_static(void) {
 static void ui_draw_menu_dynamic(lamp_ui_state_t* ui) {
   static const char* menu_labels[MENU_COUNT] = {"Brightness", "Color Temp",
                                                 "Battery", "Clock"};
-  int y = 92;
+  int y = 102;
   for (int i = 0; i < MENU_COUNT; i++) {
     int row_y = y + 10 + i * 8;
     u16 color = (i == ui->selected) ? CYAN : GRAY;
@@ -186,37 +187,37 @@ static void ui_draw_menu_dynamic(lamp_ui_state_t* ui) {
 }
 
 static void ui_draw_focus_panel_static(void) {
-  lcd_fill_rect(80, 90, 44, 34, BLACK);
-  lcd_draw_rect(80, 90, 44, 34, WHITE);
+  lcd_fill_rect(80, 102, 44, 24, BLACK);
+  lcd_draw_rect(80, 102, 44, 24, WHITE);
 }
 
 static void ui_draw_focus_panel_dynamic(lamp_ui_state_t* ui) {
   char buf[32];
 
-  lcd_fill_rect(84, 94, 34, 24, BLACK);
+  lcd_fill_rect(84, 106, 34, 16, BLACK);
   if (ui->selected == MENU_BRIGHTNESS) {
-    lcd_draw_text_bg(84, 94, YELLOW, BLACK, 8, "LEVEL");
+    lcd_draw_text_bg(84, 106, YELLOW, BLACK, 8, "LEVEL");
     sprintf(buf, "%d%%", ui->brightness);
-    lcd_draw_text_bg(84, 104, WHITE, BLACK, 8, buf);
-    ui_draw_bar(84, 114, 34, 4, ui_value_to_width(ui->brightness, 100, 34),
+    lcd_draw_text_bg(84, 116, WHITE, BLACK, 8, buf);
+    ui_draw_bar(84, 122, 34, 2, ui_value_to_width(ui->brightness, 100, 34),
                 YELLOW, DARK, YELLOW);
   } else if (ui->selected == MENU_CCT) {
-    lcd_draw_text_bg(84, 94, ORANGE, BLACK, 8, "TEMP");
+    lcd_draw_text_bg(84, 106, ORANGE, BLACK, 8, "TEMP");
     sprintf(buf, "%dK", ui->cct);
-    lcd_draw_text_bg(84, 104, WHITE, BLACK, 8, buf);
-    ui_draw_bar(84, 114, 34, 4, ui_value_to_width(ui->cct - 2700, 3800, 34),
+    lcd_draw_text_bg(84, 116, WHITE, BLACK, 8, buf);
+    ui_draw_bar(84, 122, 34, 2, ui_value_to_width(ui->cct - 2700, 3800, 34),
                 ORANGE, DARK, ORANGE);
   } else if (ui->selected == MENU_BATTERY) {
-    lcd_draw_text_bg(84, 94, GREEN, BLACK, 8, "POWER");
+    lcd_draw_text_bg(84, 106, GREEN, BLACK, 8, "POWER");
     sprintf(buf, "%d%%", ui->battery);
-    lcd_draw_text_bg(84, 104, WHITE, BLACK, 8, buf);
-    ui_draw_bar(84, 114, 34, 4, ui_value_to_width(ui->battery, 100, 34),
+    lcd_draw_text_bg(84, 116, WHITE, BLACK, 8, buf);
+    ui_draw_bar(84, 122, 34, 2, ui_value_to_width(ui->battery, 100, 34),
                 GREEN, DARK, GREEN);
   } else {
     ui_format_time(buf, ui);
-    lcd_draw_text_bg(84, 94, CYAN, BLACK, 8, "CLOCK");
-    lcd_draw_text_bg(84, 104, WHITE, BLACK, 8, buf);
-    ui_draw_bar(84, 114, 34, 4, ui_value_to_width(ui->minute, 59, 34), CYAN,
+    lcd_draw_text_bg(84, 106, CYAN, BLACK, 8, "CLOCK");
+    lcd_draw_text_bg(84, 116, WHITE, BLACK, 8, buf);
+    ui_draw_bar(84, 122, 34, 2, ui_value_to_width(ui->minute, 59, 34), CYAN,
                 DARK, CYAN);
   }
 }
@@ -231,7 +232,7 @@ static void ui_draw_static(void) {
 
 static void ui_draw_dynamic(lamp_ui_state_t* ui) {
   ui_draw_header_dynamic(ui);
-  ui_draw_battery(96, 2, ui->battery, ui->charging);
+  ui_draw_battery(100, 2, ui->battery, ui->charging);
   ui_draw_dashboard_dynamic(ui);
   ui_draw_menu_dynamic(ui);
   ui_draw_focus_panel_dynamic(ui);
