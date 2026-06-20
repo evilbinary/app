@@ -29,6 +29,10 @@ void ls(char* path) {
   struct stat mystat;
   int i;
   dir = opendir(path);
+  if (dir == NULL) {
+    printf("ls: cannot open %s\n", path);
+    return;
+  }
   while ((ptr = readdir(dir)) != NULL) {
     if (long_mode == 1) {
       printf("%-20s", ptr->d_name);
@@ -65,8 +69,9 @@ extern int optind, opterr, optopt;
 
 int main(int argc, char* argv[]) {
   char* path = "/";
-  int ret = getcwd(buf, 512);
-  path=buf;
+  if (getcwd(buf, 512) != NULL) {
+    path = buf;
+  }
   if (argc > 1) {
     int c;
     while ((c = getopt(argc, argv, "ahl?")) != -1) {
