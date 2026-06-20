@@ -1,7 +1,6 @@
+#include <dirent.h>
+#include <stdio.h>
 #include <sys/stat.h>
-
-#include "dirent.h"
-#include "stdio.h"
 
 int show_all = 0;
 int long_mode = 0;
@@ -20,46 +19,62 @@ void show_usage(int argc, char* argv[]) {
       argv[0]);
 }
 
+static int ls_skip_entry(const struct dirent* ent) {
+  if (ent == NULL || ent->d_name[0] == '\0') {
+    return 1;
+  }
+  if (!show_all && ent->d_name[0] == '.' &&
+      (ent->d_name[1] == '\0' ||
+       (ent->d_name[1] == '.' && ent->d_name[2] == '\0'))) {
+    return 1;
+  }
+  return 0;
+}
+
 void ls(char* path) {
+  DIR* dir;
+  struct dirent* ent;
+  struct stat st;
+  int col = 0;
+
   if (path == NULL) {
     return;
   }
-  DIR* dir;
-  struct dirent* ptr;
-  struct stat mystat;
-  int i;
+
   dir = opendir(path);
   if (dir == NULL) {
     printf("ls: cannot open %s\n", path);
     return;
   }
-  while ((ptr = readdir(dir)) != NULL) {
-    if (long_mode == 1) {
-      printf("%-20s", ptr->d_name);
-      if (ptr->d_type == DT_DIR) {
+
+  while ((ent = readdir(dir)) != NULL) {
+    if (ls_skip_entry(ent)) {
+      continue;
+    }
+
+    if (long_mode) {
+      printf("%-20s", ent->d_name);
+      if (ent->d_type == DT_DIR) {
         printf("dir");
-      }
-      if (ptr->d_type == DT_REG) {
+      } else if (ent->d_type == DT_REG) {
         printf("file");
       } else {
-        printf("%x", ptr->d_type);
+        printf("%x", ent->d_type);
       }
-      sprintf(buf, "%s/%s", path, ptr->d_name);
-      stat(buf, &mystat);
-      printf(" %d", mystat.st_size);
-
+      sprintf(buf, "%s/%s", path, ent->d_name);
+      if (stat(buf, &st) == 0) {
+        printf(" %d", (int)st.st_size);
+      }
       printf("\n");
     } else {
-      printf("%-18s", ptr->d_name);
-      if (i % 6 == 0) {
+      if (col > 0 && (col % 6) == 0) {
         printf("\n");
       }
-      i++;
-    }
-    if (ptr->d_name == NULL || strlen(ptr->d_name) == 0) {
-      break;
+      printf("%-18s", ent->d_name);
+      col++;
     }
   }
+
   printf("\n");
   closedir(dir);
 }
@@ -67,9 +82,9 @@ void ls(char* path) {
 extern char* optarg;
 extern int optind, opterr, optopt;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {  
   char* path = "/";
-  if (getcwd(buf, 512) != NULL) {
+  if (getcwd(buf, sizeof(buf)) == buf) {
     path = buf;
   }
   if (argc > 1) {
@@ -90,9 +105,11 @@ int main(int argc, char* argv[]) {
           return 0;
       }
     }
-    path = argv[optind];
+    if (optind < argc && argv[optind] != NULL) {
+      path = argv[optind];
+    }
   }
   ls(path);
-
+  fflush(stdout);
   return 0;
 }
