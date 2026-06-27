@@ -83,6 +83,7 @@ extern char* optarg;
 extern int optind, opterr, optopt;
 
 int main(int argc, char* argv[]) {  
+  printf("ls start\n");
   char* path = "/";
   if (getcwd(buf, sizeof(buf)) == buf) {
     path = buf;
