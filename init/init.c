@@ -133,8 +133,12 @@ int run_exec(char* cmd, char** argv, char** env) {
 
   int pid = syscall0(SYS_FORK);
   if (pid == 0) {
-    syscall3(SYS_EXEC, fork_exec_path, fork_exec_argv, env);
-    syscall1(SYS_EXIT, 0);
+    int ret = syscall3(SYS_EXEC, fork_exec_path, fork_exec_argv, env);
+    syscall1(SYS_EXIT, ret < 0 ? 1 : 0);
+  }
+  if (pid > 0) {
+    int status = 0;
+    syscall4(SYS_WAIT4, pid, &status, 0, 0);
   }
   return pid;
 #else

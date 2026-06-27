@@ -25,7 +25,6 @@ void modules_init(void) {
 
   REGISTER_MODULE(gpio);
   REGISTER_MODULE(serial);
-  REGISTER_MODULE(hello);
   REGISTER_MODULE(spi);
   REGISTER_MODULE(lcd);
 
