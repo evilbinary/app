@@ -102,16 +102,45 @@ void reopen(char* name) {
 
 extern int cmd_exec(const char* name);
 
+static char fork_exec_path[128];
+static char fork_exec_argv0[64];
+static char* fork_exec_argv[2];
+
 int run_exec(char* cmd, char** argv, char** env) {
 #ifdef USE_FORK
-  char temp[128];  // 0xffffffb8 addr fix me
-  int pid = syscall0(SYS_FORK);
-  int p = syscall0(SYS_GETPID);
-  if (pid == 0) {  // 子进程
-    // reopen("/dev/log");
-    syscall3(SYS_EXEC, cmd, argv, env);
-    syscall1(SYS_EXIT, 0);
+  if (cmd != NULL) {
+    kstrncpy(fork_exec_path, cmd, sizeof(fork_exec_path) - 1);
+  } else if (argv != NULL && argv[0] != NULL) {
+    sprintf(fork_exec_path, "/bin/%s", argv[0]);
+  } else {
+    return -1;
   }
+  fork_exec_path[sizeof(fork_exec_path) - 1] = '\0';
+
+  if (argv != NULL && argv[0] != NULL) {
+    kstrncpy(fork_exec_argv0, argv[0], sizeof(fork_exec_argv0) - 1);
+  } else {
+    char* base = fork_exec_path;
+    char* slash = kstrrchr(fork_exec_path, '/');
+    if (slash != NULL && slash[1] != '\0') {
+      base = slash + 1;
+    }
+    kstrncpy(fork_exec_argv0, base, sizeof(fork_exec_argv0) - 1);
+  }
+  fork_exec_argv0[sizeof(fork_exec_argv0) - 1] = '\0';
+  fork_exec_argv[0] = fork_exec_argv0;
+  fork_exec_argv[1] = NULL;
+
+  int pid = syscall0(SYS_FORK);
+  if (pid == 0) {
+    int ret = syscall3(SYS_EXEC, fork_exec_path, fork_exec_argv, env);
+    syscall1(SYS_EXIT, ret < 0 ? 1 : 0);
+  }
+  if (pid > 0) {
+    int status = 0;
+    syscall4(SYS_WAIT4, pid, &status, 0, 0);
+  }
+  return pid;
 #else
   // 先尝试从命令表查找
   return cmd_exec(cmd);

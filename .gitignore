@@ -167,3 +167,6 @@ resource/app/doom/doom
 resource/app/doom2/doom2
 resource/app/gpsp/gpsp
 resource/conf/init.conf
+rust/musl-crt-raspi2/target/
+rust/musl-crt-raspi2/Cargo.lock
+rust/rust-crt-raspi2/target/

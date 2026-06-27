@@ -4,18 +4,45 @@
  * 邮箱: rootdebug@163.com
  ********************************************************************/
 #include "main.h"
+#include "lcd_draw.h"
 
+#define LCD_W 128
+#define LCD_H 128
 
 #define BLACK 0x0000
 #define WHITE 0xFFFF
-
-#define RED 0xf800
-#define BLUE 0x001f
-#define GREEN 0x07e0
-#define YELLOW 0xffe0
+#define RED 0xF800
+#define BLUE 0x001F
+#define GREEN 0x07E0
+#define YELLOW 0xFFE0
 #define MAGENTA 0xF81F
 #define CYAN 0xFFE0
+#define ORANGE 0xFD20
+#define GRAY 0x8410
+#define DARK 0x2104
 
+typedef enum {
+  MENU_BRIGHTNESS = 0,
+  MENU_CCT = 1,
+  MENU_BATTERY = 2,
+  MENU_CLOCK = 3,
+  MENU_COUNT
+} menu_id_t;
+
+typedef struct lamp_ui_state {
+  int brightness;
+  int cct;
+  int battery;
+  int charging;
+  int selected;
+  int hour;
+  int minute;
+  int second;
+} lamp_ui_state_t;
+
+typedef struct lamp_ui_cache {
+  int valid;
+} lamp_ui_cache_t;
 
 extern int module_ready;
 extern void do_kernel_thread();
@@ -43,59 +70,228 @@ void sleep_ms(int ms) {
   syscall4(SYS_CLOCK_NANOSLEEP, 0, 0, &tv, &tv);
 }
 
-
-// 通过系统调用写入LCD填充矩形
-void lcd_fill_rect(int x, int y, int w, int h, u16 color) {
-     
-  // 打开LCD设备
-int fd = syscall2(SYS_OPEN, "/dev/lcd", 0);
-if (fd < 0) {
-  kprintf("open /dev/lcd failed!\n");
-  return;
+static int clamp_i(int value, int min, int max) {
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
 }
 
-// 构造填充命令: "FILL x y w h color\n"
-char cmd_buf[64];
-sprintf(cmd_buf, "FILL %d %d %d %d %d\n", x, y, w, h, color);
-
-// 写入命令
-syscall3(SYS_WRITE, fd, cmd_buf, kstrlen(cmd_buf));
-
-// 关闭设备
-syscall1(SYS_CLOSE, fd);
+static int ui_value_to_width(int value, int max_value, int width) {
+  if (max_value <= 0) return 0;
+  value = clamp_i(value, 0, max_value);
+  return (value * width) / max_value;
 }
 
+static void ui_format_time(char* buf, lamp_ui_state_t* ui) {
+  sprintf(buf, "%02d:%02d", ui->hour, ui->minute);
+}
+
+static void ui_draw_bar(int x, int y, int w, int h, int fill_w, u16 fg,
+                        u16 bg, u16 border) {
+  lcd_fill_rect(x, y, w, h, bg);
+  if (fill_w > 0) {
+    lcd_fill_rect(x, y, fill_w, h, fg);
+  }
+  lcd_draw_rect(x - 1, y - 1, w + 2, h + 2, border);
+}
+
+static void ui_draw_header_static(void) {
+  lcd_fill_rect(0, 0, LCD_W, 30, BLACK);
+  lcd_draw_text_bg(4, 2, WHITE, BLACK, 8, "PHOTO LIGHT");
+}
+
+static void ui_draw_header_dynamic(lamp_ui_state_t* ui) {
+  char buf[32];
+  ui_format_time(buf, ui);
+  lcd_fill_rect(68, 18, 26, 10, BLACK);
+  lcd_draw_text_bg(68, 20, YELLOW, BLACK, 8, buf);
+}
+
+static void ui_draw_battery(int x, int y, int percent, int charging) {
+  char buf[16];
+  int level_w = ui_value_to_width(percent, 100, 18);
+
+  lcd_draw_rect(x, y, 22, 10, WHITE);
+  lcd_fill_rect(x + 22, y + 3, 2, 4, WHITE);
+  lcd_fill_rect(x + 2, y + 2, 18, 6, DARK);
+  if (level_w > 0) {
+    lcd_fill_rect(x + 2, y + 2, level_w, 6, charging ? GREEN : CYAN);
+  }
+
+  lcd_fill_rect(x - 2, y + 12, 28, 10, BLACK);
+  sprintf(buf, "%d%%", percent);
+  lcd_draw_text_bg(x - 2, y + 12, WHITE, BLACK, 8, buf);
+}
+
+static void ui_draw_status_card_static(int x, int y, int w, int h,
+                                       const char* title) {
+  lcd_fill_rect(x, y, w, h, BLACK);
+  lcd_draw_rect(x, y, w, h, GRAY);
+  lcd_draw_text_bg(x + 4, y + 4, WHITE, BLACK, 8, title);
+}
+
+static void ui_draw_dashboard_static(void) {
+  ui_draw_status_card_static(4, 34, 56, 30, "BRI");
+  ui_draw_status_card_static(68, 34, 56, 30, "CCT");
+  ui_draw_status_card_static(4, 68, 56, 30, "BAT");
+  ui_draw_status_card_static(68, 68, 56, 30, "TIME");
+}
+
+static void ui_draw_status_value(int x, int y, int w, const char* value,
+                                 int selected, u16 accent) {
+  lcd_fill_rect(x - 2, y - 2, w + 4, 13, BLACK);
+  if (selected) {
+    lcd_draw_rect(x - 2, y - 2, w + 4, 13, accent);
+  }
+  lcd_draw_text_bg(x, y, WHITE, BLACK, 8, value);
+}
+
+static void ui_draw_dashboard_dynamic(lamp_ui_state_t* ui) {
+  char buf[32];
+
+  sprintf(buf, "%d%%", ui->brightness);
+  ui_draw_status_value(8, 52, 40, buf, ui->selected == MENU_BRIGHTNESS, YELLOW);
+
+  sprintf(buf, "%dK", ui->cct);
+  ui_draw_status_value(72, 52, 40, buf, ui->selected == MENU_CCT, ORANGE);
+
+  sprintf(buf, "%d%%", ui->battery);
+  ui_draw_status_value(8, 86, 40, buf, ui->selected == MENU_BATTERY, GREEN);
+
+  ui_format_time(buf, ui);
+  ui_draw_status_value(72, 86, 40, buf, ui->selected == MENU_CLOCK, CYAN);
+}
+
+static void ui_draw_menu_static(void) {
+  static const char* menu_labels[MENU_COUNT] = {"Brightness", "Color Temp",
+                                                "Battery", "Clock"};
+  int y = 102;
+
+  lcd_draw_text_bg(4, y, WHITE, BLACK, 8, "MENU");
+  for (int i = 0; i < MENU_COUNT; i++) {
+    int row_y = y + 10 + i * 8;
+    lcd_draw_text_bg(4, row_y, GRAY, BLACK, 8, menu_labels[i]);
+  }
+}
+
+static void ui_draw_menu_dynamic(lamp_ui_state_t* ui) {
+  static const char* menu_labels[MENU_COUNT] = {"Brightness", "Color Temp",
+                                                "Battery", "Clock"};
+  int y = 102;
+  for (int i = 0; i < MENU_COUNT; i++) {
+    int row_y = y + 10 + i * 8;
+    u16 color = (i == ui->selected) ? CYAN : GRAY;
+    lcd_fill_rect(4, row_y, 72, 8, BLACK);
+    lcd_draw_text_bg(4, row_y, color, BLACK, 8, menu_labels[i]);
+  }
+}
+
+static void ui_draw_focus_panel_static(void) {
+  lcd_fill_rect(80, 102, 44, 24, BLACK);
+  lcd_draw_rect(80, 102, 44, 24, WHITE);
+}
+
+static void ui_draw_focus_panel_dynamic(lamp_ui_state_t* ui) {
+  char buf[32];
+
+  lcd_fill_rect(84, 106, 34, 16, BLACK);
+  if (ui->selected == MENU_BRIGHTNESS) {
+    lcd_draw_text_bg(84, 106, YELLOW, BLACK, 8, "LEVEL");
+    sprintf(buf, "%d%%", ui->brightness);
+    lcd_draw_text_bg(84, 116, WHITE, BLACK, 8, buf);
+    ui_draw_bar(84, 122, 34, 2, ui_value_to_width(ui->brightness, 100, 34),
+                YELLOW, DARK, YELLOW);
+  } else if (ui->selected == MENU_CCT) {
+    lcd_draw_text_bg(84, 106, ORANGE, BLACK, 8, "TEMP");
+    sprintf(buf, "%dK", ui->cct);
+    lcd_draw_text_bg(84, 116, WHITE, BLACK, 8, buf);
+    ui_draw_bar(84, 122, 34, 2, ui_value_to_width(ui->cct - 2700, 3800, 34),
+                ORANGE, DARK, ORANGE);
+  } else if (ui->selected == MENU_BATTERY) {
+    lcd_draw_text_bg(84, 106, GREEN, BLACK, 8, "POWER");
+    sprintf(buf, "%d%%", ui->battery);
+    lcd_draw_text_bg(84, 116, WHITE, BLACK, 8, buf);
+    ui_draw_bar(84, 122, 34, 2, ui_value_to_width(ui->battery, 100, 34),
+                GREEN, DARK, GREEN);
+  } else {
+    ui_format_time(buf, ui);
+    lcd_draw_text_bg(84, 106, CYAN, BLACK, 8, "CLOCK");
+    lcd_draw_text_bg(84, 116, WHITE, BLACK, 8, buf);
+    ui_draw_bar(84, 122, 34, 2, ui_value_to_width(ui->minute, 59, 34), CYAN,
+                DARK, CYAN);
+  }
+}
+
+static void ui_draw_static(void) {
+  lcd_fill_rect(0, 0, LCD_W, LCD_H, BLACK);
+  ui_draw_header_static();
+  ui_draw_dashboard_static();
+  ui_draw_menu_static();
+  ui_draw_focus_panel_static();
+}
+
+static void ui_draw_dynamic(lamp_ui_state_t* ui) {
+  ui_draw_header_dynamic(ui);
+  ui_draw_battery(100, 2, ui->battery, ui->charging);
+  ui_draw_dashboard_dynamic(ui);
+  ui_draw_menu_dynamic(ui);
+  ui_draw_focus_panel_dynamic(ui);
+}
+
+static void ui_render(lamp_ui_state_t* ui, lamp_ui_cache_t* cache) {
+  if (!cache->valid) {
+    ui_draw_static();
+    cache->valid = 1;
+  }
+  ui_draw_dynamic(ui);
+}
+
+static void ui_tick(lamp_ui_state_t* ui) {
+  ui->second++;
+  if (ui->second >= 60) {
+    ui->second = 0;
+    ui->minute++;
+  }
+  if (ui->minute >= 60) {
+    ui->minute = 0;
+    ui->hour++;
+  }
+  if (ui->hour >= 24) {
+    ui->hour = 0;
+  }
+}
+
+static void ui_demo_update(lamp_ui_state_t* ui, int frame) {
+  ui->selected = (frame / 10) % MENU_COUNT;
+  ui->brightness = 35 + ((frame * 7) % 60);
+  ui->cct = 3200 + ((frame * 120) % 2500);
+  ui->battery = 95 - ((frame / 4) % 40);
+  ui->charging = ((frame / 16) % 2) == 0;
+  ui_tick(ui);
+}
 
 void thread_lcd(){
-    // wait module ready
-    while (module_ready <= 0) {
-      // sleep();
-    }
-    int i=0;
-    // lcd_fill_rect(0, 0, 128, 128, BLACK); // WHITE
-    while(1){
+  lamp_ui_state_t ui = {
+      .brightness = 72,
+      .cct = 5600,
+      .battery = 86,
+      .charging = 0,
+      .selected = MENU_BRIGHTNESS,
+      .hour = 18,
+      .minute = 30,
+      .second = 0,
+  };
+  lamp_ui_cache_t cache = {0};
+  int frame = 0;
 
-      log_debug("lcd=%d\n",i++);
-      sleep_ms(100);
-      
-      // // 填充红色矩形 (x:10-50, y:10-50)
-      // lcd_fill_rect(10, 10, 40, 40, RED);  // RED
-      
-      // // 填充蓝色矩形 (x:60-100, y:10-50)
-      // lcd_fill_rect(60, 10, 40, 40, BLUE); // BLUE
-      
-      // // 循环动画：移动的绿色矩形
-      // for (int i = 0; i < 5; i++) {
-      //     // 绘制绿色矩形
-      //     lcd_fill_rect(10 + i * 10, 60, 40, 40, GREEN); // GREEN
-      //     sleep_ms(200);
-      //     // 擦除（用黑色）
-      //     lcd_fill_rect(10 + i * 10, 60, 40, 40, BLACK); // BLACK
-      // }
-      // // 最后绘制黄色矩形
-      // lcd_fill_rect(60, 60, 40, 40, YELLOW); // YELLOW
+  while (module_ready <= 0) {
   }
-    
+
+  while (1) {
+    ui_demo_update(&ui, frame++);
+    ui_render(&ui, &cache);
+    sleep_ms(250);
+  }
 }
 
 
@@ -105,29 +301,17 @@ void thread_lcd2(){
   }
   int i=0;
   while(1){
-    log_debug("lcd2=%d\n",i++);
-    sleep_ms(200);
+    sleep_ms(1000);
   }
 }
 
 
 void do_kernel_thread(void) {
-#ifdef LX6
-  kprintf("TK\n");
-#else
   kprintf("init kernel thread\n");
-#endif
-  kprintf("TM0\n");
   modules_init();
-  kprintf("TM1\n");
   mp_init();
-  kprintf("TM2\n");
 
-  module_ready=1;
-  kprintf("TM3\n");
-  kprintf("SC0\n");
-  int pid = (int)syscall1(SYS_GETPID, 0);
-  kprintf("SC1 pid=%d\n", pid);
+  module_ready = 1;
   
   u32 i = 0;
   u32 count = 0;
@@ -136,45 +320,29 @@ void do_kernel_thread(void) {
     if (i % 4 == 0) {
       i = 0;
     }
-    //log_debug("count=%d\n",count);
+    // log_debug("count=%d\n",count);
     // test_fb(count);
-    schedule_sleep(10 * SCHEDULE_FREQUENCY);
+    schedule_sleep(1000 * 1000 * 10000);
     // cpu_wait();
   }
 }
 
 int kmain(int argc, char* argv[]) {
-  kprintf("L0\n");
   kernel_init();
-  kprintf("L1\n");
 
   log_info("kernel thread init\n");
 
   thread_t* t1 = thread_create_name_level("kernel", (void*)&do_kernel_thread,
                                           NULL, LEVEL_KERNEL_SHARE);
-  kprintf("L2\n");
-  thread_t* t2 = thread_create_name_level("lcd", (void*)&thread_lcd, NULL,
-                                          LEVEL_KERNEL_SHARE);
-  kprintf("L3\n");
+  thread_t* t2 = thread_create_name("lcd", (void*)&thread_lcd, NULL);
   thread_run(t1);
-  kprintf("L4\n");
   thread_run(t2);
-  kprintf("L5\n");
 
-  thread_t* t3 = thread_create_name_level("lcd2", (void*)&thread_lcd2, NULL,
-                                          LEVEL_KERNEL_SHARE);
-  kprintf("L6\n");
+  thread_t* t3 = thread_create_name("lcd2", (void*)&thread_lcd2, NULL);
   thread_run(t3);
-  kprintf("L7\n");
 
 
-  kprintf("L8\n");
-#ifdef LX6
-  kprintf("RS\n");
-#else
   log_info("kernel run start\n");
-#endif
-  kprintf("L9\n");
 
   kernel_run();
 

@@ -48,6 +48,7 @@ int main(int argc, char* argv[]) {
     proc_copy[MAX_ARG_LEN - 1] = 0;
 
     int i = 0;
+    args[i++] = proc_copy;
     while ((ptr = strtok(NULL, " ")) != NULL && i < MAX_ARGS - 1) {
       strncpy(args_copy[i], ptr, MAX_ARG_LEN - 1);
       args_copy[i][MAX_ARG_LEN - 1] = 0;
