@@ -51,7 +51,7 @@ void yiyiya_gui() {
   printf("mouse fd %d\n", fd);
   if (fd < 0) {
     printf("gui: /dev/mouse not available, exiting\n");
-    return;
+    //return;
   }
   screen_init();
   screen_info_t* screen = screen_info();

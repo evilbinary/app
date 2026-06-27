@@ -37,6 +37,7 @@ void do_monitor_thread(void) {
     if (i % 4 == 0) {
       i = 0;
     }
+    //xwin_demo();
     //schedule_sleep(10 * SCHEDULE_FREQUENCY);
     // cpu_wait();
   }

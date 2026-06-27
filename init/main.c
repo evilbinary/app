@@ -46,11 +46,14 @@ int kmain(int argc, char* argv[]) {
 int ksecondary(int cpu, int argc, char* argv) {
   kernel_init();
   // will start after main start
-  thread_t* t1 = thread_create_name("monitor", (void*)&do_monitor_thread, NULL);
+  thread_t* t1 = thread_create_name_level("monitor", (void*)&do_monitor_thread,
+                                          NULL, LEVEL_KERNEL_SHARE);
   thread_run(t1);
 
-  thread_t* t2 = thread_create_name("monitor2", (void*)&do_monitor_thread, NULL);
-  thread_run(t2);
+  // thread_t* t2 = thread_create_name_level("monitor",
+  //                                         (void*)&do_monitor_thread, NULL,
+  //                                         LEVEL_KERNEL_SHARE);
+  // thread_run(t2);
 
   log_info("kernel run secondary %d\n", cpu);
   kernel_run();
