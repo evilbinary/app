@@ -165,3 +165,4 @@ test/test-call-so
 app/resource/**
 rust/musl-crt-raspi2/target/
 rust/musl-crt-raspi2/Cargo.lock
+rust/rust-crt-raspi2/target/
