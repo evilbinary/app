@@ -170,3 +170,12 @@ resource/conf/init.conf
 rust/musl-crt-raspi2/target/
 rust/musl-crt-raspi2/Cargo.lock
 rust/rust-crt-raspi2/target/
+
+**/**/._*
+**/**/._.
+
+**/PaxHeader/
+**/**/PaxHeader/
+.DS_Store
+*.swp
+*/*._*

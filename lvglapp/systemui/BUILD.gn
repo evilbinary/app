@@ -1,0 +1,118 @@
+LIBIARY_DIR = "$BASE_DIR/ulibs"
+LVGL_DIR = "$BASE_DIR/thrid_party/lvgl"
+
+config("compile_flags") {
+  defines = [
+    "LV_CONF_INCLUDE_SIMPLE",
+  ]
+  cflags = [
+    "-mcpu=cortex-a72+nofp",
+    "-g",
+  ]
+  cflags_c = [
+    "-nostdlib",
+    "-nostdinc",
+    "--no-standard-libraries"
+  ]
+  ldflags = [
+    "-nostdlib",
+    "-v"
+  ]
+}
+
+group("SystemUI") {
+  deps = [
+    ":StatusUI",
+    ":NavUI",
+    ":OverlayUI",
+    ":LockUI",
+    ":DebugUI",
+  ]
+}
+
+_systemui_common_include_dirs = [
+  "$BASE_DIR/thrid_party",
+  "$LIBIARY_DIR/liblvgl/compat",
+  "$LIBIARY_DIR/include",
+  "$LIBIARY_DIR/liblvgl",
+  "$LVGL_DIR",
+  "$LVGL_DIR/src",
+  "$BASE_DIR/uapps/apps/common/include",
+  "include",
+]
+
+_systemui_common_ldflags = [
+  "-T",
+  "$LIBIARY_DIR/libcrt/uapp.lds"
+]
+
+_systemui_common_sources = [
+  "$LIBIARY_DIR/libcrt/start.S",
+  "systemui_shared.c",
+]
+
+executable("StatusUI") {
+  configs += [ ":compile_flags" ]
+  deps = [
+    "//ulibs/libsystem:statemgr_client",
+    "//ulibs:uapp_gui_runtime",
+  ]
+  include_dirs = _systemui_common_include_dirs
+  ldflags += _systemui_common_ldflags
+  sources = _systemui_common_sources + [
+    "status_ui.c",
+  ]
+}
+
+executable("NavUI") {
+  configs += [ ":compile_flags" ]
+  deps = [
+    "//ulibs/liblvgl:lvgl_widget_canvas",
+    "//ulibs/libsystem:statemgr_client",
+    "//ulibs:uapp_gui_runtime",
+  ]
+  include_dirs = _systemui_common_include_dirs
+  ldflags += _systemui_common_ldflags
+  sources = _systemui_common_sources + [
+    "nav_ui.c",
+  ]
+}
+
+executable("OverlayUI") {
+  configs += [ ":compile_flags" ]
+  deps = [
+    "//ulibs/libsystem:statemgr_client",
+    "//ulibs:uapp_gui_runtime",
+  ]
+  include_dirs = _systemui_common_include_dirs
+  ldflags += _systemui_common_ldflags
+  sources = _systemui_common_sources + [
+    "overlay_ui.c",
+  ]
+}
+
+executable("DebugUI") {
+  configs += [ ":compile_flags" ]
+  deps = [
+    "//ulibs/libsystem:statemgr_client",
+    "//ulibs:uapp_gui_runtime",
+  ]
+  include_dirs = _systemui_common_include_dirs
+  ldflags += _systemui_common_ldflags
+  sources = _systemui_common_sources + [
+    "debug_ui.c",
+  ]
+}
+
+executable("LockUI") {
+  configs += [ ":compile_flags" ]
+  deps = [
+    "//ulibs/libsystem:statemgr_client",
+    "//ulibs:uapp_gui_runtime",
+  ]
+  include_dirs = _systemui_common_include_dirs
+  ldflags += _systemui_common_ldflags
+  sources = _systemui_common_sources + [
+    "lock_ui.c",
+  ]
+}

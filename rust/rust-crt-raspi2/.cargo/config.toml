@@ -1,0 +1,13 @@
+[build]
+target = "arm-unknown-linux-musleabi"
+
+[target.arm-unknown-linux-musleabi]
+linker = "arm-none-eabi-gcc"
+rustflags = [
+  "-C", "link-arg=-Tuser-arm-rust-crt.ld",
+  "-C", "link-arg=-g",
+  "-C", "link-arg=-mcpu=cortex-a7",
+  "-C", "link-arg=-mtune=cortex-a7",
+  "-C", "link-arg=-mfpu=vfpv4",
+  "-C", "link-arg=-mfloat-abi=softfp",
+]

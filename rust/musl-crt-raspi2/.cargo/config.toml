@@ -1,0 +1,20 @@
+[build]
+target = "arm-unknown-linux-musleabi"
+
+[target.arm-unknown-linux-musleabi]
+linker = "arm-none-eabi-gcc"
+rustflags = [
+  "-C", "link-self-contained=no",
+  "-C", "link-arg=-Tuser-arm-yiyiya-crt.ld",
+  "-C", "link-arg=-nostdlib",
+  "-C", "link-arg=-nostartfiles",
+  "-C", "link-arg=-nostdinc",
+  "-C", "link-arg=-lc",
+  "-C", "link-arg=-lgcc",
+  "-C", "link-arg=-L../../../build/raspi2/armv7-a/debug/musl/lib/",
+  "-C", "link-arg=-g",
+  "-C", "link-arg=-mcpu=cortex-a7",
+  "-C", "link-arg=-mtune=cortex-a7",
+  "-C", "link-arg=-mfpu=vfpv4",
+  "-C", "link-arg=-mfloat-abi=softfp",
+]

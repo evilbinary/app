@@ -1,0 +1,52 @@
+LIBIARY_DIR = "$BASE_DIR/ulibs"
+LVGL_DIR = "$BASE_DIR/thrid_party/lvgl"
+
+config("compile_flags") {
+  defines = [
+    "LV_CONF_INCLUDE_SIMPLE",
+  ]
+  cflags = [
+    "-mcpu=cortex-a72+nofp",
+    "-g",
+  ]
+  cflags_c = [
+    "-nostdlib",
+    "-nostdinc",
+    "--no-standard-libraries"
+  ]
+  ldflags = [
+    "-nostdlib",
+    "-v"
+  ]
+}
+
+executable("AI") {
+  configs += [
+    ":compile_flags",
+  ]
+  deps = [
+    "//ulibs/libhttps:https_client",
+    "//ulibs/libsystem:fs_client",
+    "//ulibs/libsystem:statemgr_client",
+    "//ulibs:uapp_gui_runtime",
+  ]
+  include_dirs = [
+    "$BASE_DIR/thrid_party",
+    "$LIBIARY_DIR/liblvgl/compat",
+    "$LIBIARY_DIR/include",
+    "$LIBIARY_DIR/liblvgl",
+    "$LVGL_DIR",
+    "$LVGL_DIR/src",
+    "include",
+  ]
+  ldflags += [
+    "-T",
+    "$LIBIARY_DIR/libcrt/uapp.lds"
+  ]
+  sources = [
+    "$LIBIARY_DIR/libcrt/start.S",
+    "$BASE_DIR/uapps/apps/systemui/font/systemui_font_cn_16.c",
+    "$BASE_DIR/uapps/apps/systemui/font/systemui_font_cn_32.c",
+    "main.c",
+  ]
+}
