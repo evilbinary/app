@@ -10,7 +10,6 @@ int module_ready=0;
 void do_kernel_thread(void) {
   kprintf("init kernel thread\n");
   modules_init();
-  mp_init();
 
   module_ready=1;
   

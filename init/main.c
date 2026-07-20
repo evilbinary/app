@@ -5,6 +5,7 @@
  ********************************************************************/
 #include "main.h"
 
+extern void mp_init();
 extern void modules_init();
 extern void do_init_thread(void);
 extern void do_kernel_thread();
@@ -27,6 +28,10 @@ void kstart(int argc, char* argv[], char** envp) {
 
 int kmain(int argc, char* argv[]) {
   kernel_init();
+
+#ifdef MP_ENABLE
+  mp_init();
+#endif
 
   log_info("kernel thread init\n");
 
