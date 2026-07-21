@@ -12,7 +12,7 @@ extern void do_kernel_thread();
 extern void do_monitor_thread();
 
 void kstart(int argc, char* argv[], char** envp) {
-  boot_info_t* boot_info = envp[0];
+  boot_info_t* boot_info = (boot_info_t*)envp[0];
   // int cpu = envp[1];
   int cpu = cpu_get_id();
   arch_init(boot_info, cpu);
@@ -48,7 +48,7 @@ int kmain(int argc, char* argv[]) {
   return 0;
 }
 
-int ksecondary(int cpu, int argc, char* argv) {
+int ksecondary(int cpu, int argc, char* argv[]) {
   kernel_init();
   // will start after main start
   thread_t* t1 = thread_create_name_level("monitor", (void*)&do_monitor_thread,

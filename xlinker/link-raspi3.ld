@@ -56,8 +56,8 @@ SECTIONS
                 . = . + STACK_SIZE;
                 _stack_sys = .;
 
-                . = . + STACK_SIZE*4*4;
                 _stack_other = .;
+                . = . + STACK_SIZE*4*4;
 
                 . = ALIGN(4);
                 _sstack = .;

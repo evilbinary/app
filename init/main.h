@@ -9,7 +9,9 @@
 #include "kernel/kernel.h"
 
 extern void start();
-int kmain();
+void kstart(int argc, char* argv[], char** envp);
+int kmain(int argc, char* argv[]);
+int ksecondary(int cpu, int argc, char* argv[]);
 
 
 #endif
