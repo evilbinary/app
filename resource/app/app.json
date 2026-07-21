@@ -4,7 +4,8 @@
     "font":"Roboto-Regular.ttf",
     "fontSize":"16",
     "text":"YUI Event App",
-    "source":"app/memory-game/memory-game.json",
+    "source":"app/watch-os/apps/game2048/game2048.json",
+    // "source":"app/memory-game/memory-game.json",
     // "source":"app/mquickjs/whack-a-mole.json",  // 打地鼠
     // "source":"app/mquickjs/apple-catcher.json", // 接苹果
     // "source":"app/mquickjs/snake-game.json",
