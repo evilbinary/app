@@ -50,8 +50,7 @@ void yiyiya_gui() {
   int fd = open("/dev/mouse", 0);
   printf("mouse fd %d\n", fd);
   if (fd < 0) {
-    printf("gui: /dev/mouse not available, exiting\n");
-    //return;
+    printf("gui: /dev/mouse not available, continuing without mouse\n");
   }
   screen_init();
   screen_info_t* screen = screen_info();
@@ -60,44 +59,29 @@ void yiyiya_gui() {
     return;
   }
 
-  bitmap_t* bitmap = load_jpeg("/home.jpg");
-  bitmap_t* bitmap2 = load_png("/normal.png");
+  bitmap_t* bitmap = load_jpeg("/res/home.jpg");
+  bitmap_t* bitmap2 = load_png("/res/normal.png");
   if (bitmap == NULL) {
-    printf("load_jpeg failed: /home.jpg\n");
+    printf("load_jpeg failed: /res/home.jpg\n");
   }
   if (bitmap2 == NULL) {
-    printf("load_png failed: /normal.png\n");
+    printf("load_png failed: /res/normal.png\n");
   }
-  // void* bmp = load_bmp("/duck.bmp");
 
   mouse_data_t mouse;
-  
+  memset(&mouse, 0, sizeof(mouse));
+
   screen_fill_rect(0, 0, screen->width, screen->height, 0xff0000);
   for (;;) {
     if (bitmap != NULL) {
       screen_show_bitmap(0, 0, 1024, 768, bitmap);
     }
 
-    // if (bitmap2 != NULL) {
-    //   screen_show_bitmap(mouse.x, screen->height - mouse.y, 32, 32, bitmap2);
-    // }
-
     screen_printf(500, 10, "YiYiYa OS");
     event_read_mouse(&mouse);
-    // for (u32 y = 0; y < screen->height; y++) {
-    //   screen_put_pixel((screen->width - screen->height) / 2 + y, y,
-    //   0x0000ff); screen_put_pixel((screen->height + screen->width) / 2 - y,
-    //   y, 0xff0000);
-    // }
-    // screen_draw_line(0, 0, 140, 140, 0xff0000);
-    // screen_fill_rect(10, 20, 30, 30, 0xff0000);
-
     screen_printf(10, 100, "mouse=%d,%d", mouse.x, mouse.y);
     screen_fill_rect(mouse.x, screen->height - mouse.y, 4, 4, 0x00ff00);
 
-    //display_time();
-
-    // screen_show_bmp_picture(200, 200, bmp, 0, 0);
     screen_flush();
   }
 }
@@ -136,8 +120,8 @@ void yiyiya_bitmap() {
 
 int main(int argc, char* argv[]) {
   printf(buf);
-  yiyiya_gui();
-  // yiyiya_display();
+  // yiyiya_gui();
+  yiyiya_display();
   // yiyiya_bitmap();
 
   return 0;

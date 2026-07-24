@@ -70,7 +70,10 @@ cJSON* parse_yaml_json_file(const char* file_path) {
 // ====================== 主入口 ======================
 int main(int argc, char* argv[]) {
 
-    backend_init();
+    if (backend_init() != 0) {
+        fprintf(stderr, "backend_init failed\n");
+        return -1;
+    }
     popup_manager_init();
 
     // 初始化 JS 引擎
