@@ -82,8 +82,7 @@ void ls(char* path) {
 extern char* optarg;
 extern int optind, opterr, optopt;
 
-int main(int argc, char* argv[]) {  
-  printf("ls start\n");
+int main(int argc, char* argv[]) {
   char* path = "/";
   if (getcwd(buf, sizeof(buf)) == buf) {
     path = buf;

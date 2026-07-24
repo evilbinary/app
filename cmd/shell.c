@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 enum {
@@ -140,13 +141,15 @@ void do_shell_cmd(char* cmd) {
 
 int run_exec(char* cmd, char** argv) {
   int pid = fork();
-  int p = syscall(SYS_GETPID);
-  if (pid == 0) {  // 子进程
-    // reopen( "/dev/log");
+  if (pid == 0) {
     execv(cmd, argv);
-    exit(0);
+    exit(1);
   }
-  return p;
+  if (pid > 0) {
+    int status = 0;
+    waitpid(pid, &status, 0);
+  }
+  return pid;
 }
 
 int do_exec(char* cmd) {
