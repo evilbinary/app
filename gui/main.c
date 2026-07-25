@@ -87,15 +87,27 @@ void yiyiya_gui() {
 }
 
 void yiyiya_display() {
-  printf("screen_init\n");
-  screen_init();
-  int i=0;
-  printf("screen_init end\n");
+  screen_info_t* screen = screen_info();
+  if (screen == NULL || screen->width == 0 || screen->buffer == NULL) {
+    printf("screen_init\n");
+    screen_init();
+    printf("screen_init end\n");
+    screen = screen_info();
+  }
+  int i = 0;
+  u32 w = screen != NULL && screen->width > 0 ? screen->width : 480;
+  u32 h = screen != NULL && screen->height > 0 ? screen->height : 320;
   for (;;) {
-    screen_fill_rect(0,0,480,272,0xff0000);
-    screen_printf(0, 0, "hello display YiYiYa Os %d\n",i);
+    screen_fill_rect(0, 0, w, h, 0xffff0000);
+    screen_printf(0, 0, "hello display YiYiYa Os %d\n", i);
     screen_flush();
     i++;
+    {
+      struct timespec tv;
+      tv.tv_sec = 0;
+      tv.tv_nsec = 16 * 1000 * 1000;
+      nanosleep(&tv, NULL);
+    }
   }
 }
 
@@ -120,6 +132,15 @@ void yiyiya_bitmap() {
 
 int main(int argc, char* argv[]) {
   printf(buf);
+  if (argc > 1 && argv[1] != NULL && argv[1][0] == 'f') {
+    printf("screen_init fb\n");
+    screen_init_with_mode(SCREEN_MODE_FB);
+    printf("screen_init end\n");
+  } else {
+    printf("screen_init\n");
+    screen_init();
+    printf("screen_init end\n");
+  }
   // yiyiya_gui();
   yiyiya_display();
   // yiyiya_bitmap();
