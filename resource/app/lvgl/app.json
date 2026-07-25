@@ -1,0 +1,454 @@
+{
+    "id": "lvgl_demo",
+    "type": "View",
+    "text": "YUI LVGL Demo",
+    "size": [690, 480],
+    "bgColor": "#1a1a2e",
+    "scrollable": 1,
+    "js": ["app.js"],
+    "events": {
+        "onLoad": "@onAppLoad",
+        "togglePerfOverlayBtn.onClick": "@togglePerfOverlay",
+        "refreshPerfStatsBtn.onClick": "@refreshPerfStats",
+        "autoTestBtn.onClick": "@runPerfAutoTest",
+        "stressBtn.onClick": "@togglePerfStress",
+        "exportPerfBtn.onClick": "@exportPerfStats",
+        "disablePerfBtn.onClick": "@disablePerf"
+    },
+    "layout": {
+        "type": "vertical",
+        "spacing": 8,
+        "padding": [12, 12, 12, 12]
+    },
+    "children": [
+        {
+            "id": "perf_panel",
+            "type": "View",
+            "size": [666, 180],
+            "style": {
+                "bgColor": "#16213e",
+                "borderRadius": 8
+            },
+            "layout": {
+                "type": "vertical",
+                "spacing": 6,
+                "padding": [8, 8, 8, 8]
+            },
+            "children": [
+                {
+                    "id": "perf_title",
+                    "type": "LvLabel",
+                    "text": "性能检测 (YUI.perf)",
+                    "size": [650, 20],
+                    "style": { "color": "#f5a623", "fontSize": 14 }
+                },
+                {
+                    "id": "perf_status_label",
+                    "type": "LvLabel",
+                    "text": "状态：等待 onLoad…",
+                    "size": [650, 18],
+                    "style": { "color": "#a0a0b0", "fontSize": 11 }
+                },
+                {
+                    "id": "perf_stats_label",
+                    "type": "LvLabel",
+                    "text": "统计：（点击「刷新」或「自动检测」）",
+                    "size": [650, 52],
+                    "style": { "color": "#a6e3a1", "fontSize": 10 }
+                },
+                {
+                    "id": "perf_toolbar_row1",
+                    "type": "View",
+                    "size": [650, 30],
+                    "layout": { "type": "horizontal", "spacing": 6 },
+                    "children": [
+                        {
+                            "id": "togglePerfOverlayBtn",
+                            "type": "LvBtn",
+                            "text": "HUD 开",
+                            "size": [172, 28],
+                            "style": { "bgColor": "#4a90d9", "color": "#ffffff", "fontSize": 10 }
+                        },
+                        {
+                            "id": "refreshPerfStatsBtn",
+                            "type": "LvBtn",
+                            "text": "刷新",
+                            "size": [172, 28],
+                            "style": { "bgColor": "#45475a", "color": "#cdd6f4", "fontSize": 10 }
+                        },
+                        {
+                            "id": "autoTestBtn",
+                            "type": "LvBtn",
+                            "text": "自动检测",
+                            "size": [172, 28],
+                            "style": { "bgColor": "#0f9b8e", "color": "#ffffff", "fontSize": 10 }
+                        },
+                        {
+                            "id": "exportPerfBtn",
+                            "type": "LvBtn",
+                            "text": "导出",
+                            "size": [172, 28],
+                            "style": { "bgColor": "#7b68ee", "color": "#ffffff", "fontSize": 10 }
+                        }
+                    ]
+                },
+                {
+                    "id": "perf_toolbar_row2",
+                    "type": "View",
+                    "size": [650, 30],
+                    "layout": { "type": "horizontal", "spacing": 6 },
+                    "children": [
+                        {
+                            "id": "stressBtn",
+                            "type": "LvBtn",
+                            "text": "开始压测",
+                            "size": [100, 28],
+                            "style": { "bgColor": "#e94560", "color": "#ffffff", "fontSize": 10 }
+                        },
+                        {
+                            "id": "disablePerfBtn",
+                            "type": "LvBtn",
+                            "text": "关闭 perf",
+                            "size": [100, 28],
+                            "style": { "bgColor": "#313244", "color": "#a6adc8", "fontSize": 10 }
+                        },
+                        {
+                            "id": "perf_pulse_label",
+                            "type": "LvLabel",
+                            "text": "脉冲：0",
+                            "size": [200, 28],
+                            "style": { "color": "#f9e2af", "fontSize": 11 }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "lvgl_title",
+            "type": "LvLabel",
+            "text": "YUI + LVGL Widget Gallery",
+            "size": [340, 28],
+            "color": "#f5a623"
+        },
+        {
+            "id": "lvgl_subtitle",
+            "type": "LvLabel",
+            "text": "LVGL widgets below; perf panel at top",
+            "size": [340, 22],
+            "color": "#a0a0b0"
+        },
+        {
+            "id": "native_panel",
+            "type": "View",
+            "size": [340, 72],
+            "bgColor": "#16213e",
+            "radius": 8,
+            "layout": { "type": "absolute" },
+            "children": [
+                {
+                    "id": "native_btn",
+                    "type": "Button",
+                    "text": "Native Button",
+                    "size": [140, 32],
+                    "position": [12, 20]
+                },
+                {
+                    "id": "native_label",
+                    "type": "Label",
+                    "text": "Native Label",
+                    "size": [160, 24],
+                    "position": [160, 26]
+                },
+                {
+                    "id": "native_input",
+                    "type": "Text",
+                    "text": "Native Text",
+                    "size": [160, 24],
+                    "position": [160, 26]
+                }
+            ]
+        },
+        {
+            "id": "sec_core",
+            "type": "LvLabel",
+            "text": "--- Core LVGL Widgets ---",
+            "size": [340, 22],
+            "color": "#f5a623"
+        },
+        {
+            "id": "demo_label",
+            "type": "LvLabel",
+            "text": "LvLabel: Hello from LvLabel (click me)",
+            "size": [340, 24],
+            "color": "#ff0000",
+            "events": {
+                "onClick": "@onDemoLabelClick"
+            }
+        },
+        {
+            "id": "demo_btn",
+            "type": "LvBtn",
+            "text": "LvBtn",
+            "style": {
+                "color": "#eaeaea",
+                "bgColor": "rgba(0,0,255,80)",
+                "radius": 14
+            },
+            "size": [120, 36]
+        },
+        {
+            "id": "demo_bar",
+            "type": "LvBar",
+            "size": [340, 20],
+            "value": 65,
+            "min": 0,
+            "max": 100
+        },
+        {
+            "id": "demo_slider",
+            "type": "LvSlider",
+            "size": [340, 20],
+            "value": 40,
+            "min": 0,
+            "max": 100,
+            "events": {
+                "onChange": "@onDemoSliderChange"
+            }
+        },
+        {
+            "id": "row_switch",
+            "type": "View",
+            "size": [340, 36],
+            "layout": { "type": "horizontal", "spacing": 16 },
+            "children": [
+                {
+                    "id": "demo_switch",
+                    "type": "LvSwitch",
+                    "size": [52, 28],
+                    "checked": true,
+                    "events": {
+                        "onChange": "@onDemoSwitchChange"
+                    }
+                },
+                {
+                    "id": "demo_checkbox",
+                    "type": "LvCheckbox",
+                    "text": "LvCheckbox",
+                    "size": [160, 28],
+                    "checked": true
+                },
+                {
+                    "id": "demo_led",
+                    "type": "LvLed",
+                    "size": [24, 24],
+                    "on": true,
+                    "color": "#00ff88",
+                    "brightness": 220
+                }
+            ]
+        },
+        {
+            "id": "demo_arc",
+            "type": "LvArc",
+            "size": [80, 80],
+            "value": 70,
+            "min": 0,
+            "max": 100
+        },
+        {
+            "id": "demo_dropdown",
+            "type": "LvDropdown",
+            "size": [200, 36],
+            "options": ["Option A", "Option B", "Option C"]
+        },
+        {
+            "id": "demo_roller",
+            "type": "LvRoller",
+            "size": [120, 80],
+            "options": ["Mon", "Tue", "Wed", "Thu", "Fri"]
+        },
+        {
+            "id": "demo_btnmatrix",
+            "type": "LvBtnMatrix",
+            "size": [340, 48],
+            "buttons": ["1", "2", "3", "4", "5", "+", "-", "="]
+        },
+        {
+            "id": "demo_textarea",
+            "type": "LvTextarea",
+            "text": "LvTextarea input",
+            "size": [340, 56]
+        },
+        {
+            "id": "demo_line",
+            "type": "LvLine",
+            "size": [340, 24],
+            "lineWidth": 3,
+            "color": "#4a90d9",
+            "points": [[0, 12], [80, 4], [160, 20], [240, 8], [320, 16]]
+        },
+        {
+            "id": "demo_img",
+            "type": "LvImg",
+            "size": [48, 48]
+        },
+        {
+            "id": "demo_canvas",
+            "type": "LvCanvas",
+            "size": [120, 48]
+        },
+        {
+            "id": "demo_table",
+            "type": "LvTable",
+            "size": [340, 72],
+            "rows": 2,
+            "cols": 3,
+            "cells": [
+                ["Name", "Type", "Value"],
+                ["LvTable", "widget", "OK"]
+            ]
+        },
+        {
+            "id": "demo_spinbox",
+            "type": "LvSpinbox",
+            "size": [100, 36],
+            "value": 42,
+            "min": 0,
+            "max": 99
+        },
+        {
+            "id": "demo_spinner",
+            "type": "LvSpinner",
+            "size": [40, 40],
+            "time": 1000,
+            "arcLength": 60
+        },
+        {
+            "id": "sec_extra",
+            "type": "LvLabel",
+            "text": "--- Extra LVGL Widgets ---",
+            "size": [340, 22],
+            "color": "#f5a623"
+        },
+        {
+            "id": "demo_chart",
+            "type": "LvChart",
+            "size": [340, 100],
+            "points": [10, 25, 15, 40, 30, 35, 50, 45, 38, 55]
+        },
+        {
+            "id": "demo_list",
+            "type": "LvList",
+            "size": [340, 88],
+            "items": ["List item 1", "List item 2", "List item 3"]
+        },
+        {
+            "id": "demo_span",
+            "type": "LvSpan",
+            "text": "LvSpan rich text line",
+            "size": [340, 24],
+            "color": "#7ec8ff"
+        },
+        {
+            "id": "demo_imgbtn",
+            "type": "LvImgbtn",
+            "size": [48, 48]
+        },
+        {
+            "id": "row_meter_color",
+            "type": "View",
+            "size": [340, 100],
+            "layout": { "type": "horizontal", "spacing": 12 },
+            "children": [
+                {
+                    "id": "demo_meter",
+                    "type": "LvMeter",
+                    "size": [100, 100],
+                    "value": 65
+                },
+                {
+                    "id": "demo_colorwheel",
+                    "type": "LvColorwheel",
+                    "size": [100, 100]
+                },
+                {
+                    "id": "demo_animimg",
+                    "type": "LvAnimimg",
+                    "size": [48, 48]
+                }
+            ]
+        },
+        {
+            "id": "demo_tabview",
+            "type": "LvTabview",
+            "size": [340, 120],
+            "tabHeight": 28,
+            "tabs": ["Tab A", "Tab B", "Tab C"]
+        },
+        {
+            "id": "demo_tileview",
+            "type": "LvTileview",
+            "size": [340, 100]
+        },
+        {
+            "id": "demo_win",
+            "type": "LvWin",
+            "text": "LvWin Title",
+            "size": [280, 100],
+            "headerHeight": 28
+        },
+        {
+            "id": "demo_menu",
+            "type": "LvMenu",
+            "text": "LvMenu",
+            "size": [340, 120]
+        },
+        {
+            "id": "demo_calendar",
+            "type": "LvCalendar",
+            "size": [340, 200]
+        },
+        {
+            "id": "demo_keyboard",
+            "type": "LvKeyboard",
+            "size": [340, 120],
+            "textarea": "demo_textarea"
+        },
+        {
+            "id": "demo_msgbox",
+            "type": "LvMsgbox",
+            "title": "LvMsgbox",
+            "text": "Message box example",
+            "size": [280, 120],
+            "buttons": [
+            {
+                "text": "确认",
+                "default": true,
+                "style": {
+                "width": 72,
+                "height": 28
+                }
+            }
+            ]
+        },
+        {
+            "id": "color_row",
+            "type": "View",
+            "size": [340, 44],
+            "layout": { "type": "horizontal", "spacing": 8 },
+            "children": [
+                { "id": "box_red", "type": "View", "size": [76, 36], "bgColor": "#e94560", "radius": 4 },
+                { "id": "box_teal", "type": "View", "size": [76, 36], "bgColor": "#0f9b8e", "radius": 4 },
+                { "id": "box_gold", "type": "View", "size": [76, 36], "bgColor": "#f5a623", "radius": 4 },
+                { "id": "box_blue", "type": "View", "size": [76, 36], "bgColor": "#4a90d9", "radius": 4 }
+            ]
+        },
+        {
+            "id": "footer",
+            "type": "LvLabel",
+            "text": "Scroll to see all widgets",
+            "size": [340, 20],
+            "color": "#666680"
+        }
+    ]
+}

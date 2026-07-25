@@ -1,0 +1,156 @@
+{
+    "id": "page_face",
+    "title": "表盘",
+    "icon": "◉",
+    "watchApp": { "id": "face", "path": "/", "order": 0, "launcher": false, "system": true },
+    "js": ["face.js"],
+    "type": "View",
+    "variant": "surface",
+    "flex": 1,
+    "layout": {
+        "type": "vertical",
+        "spacing": 10,
+        "padding": [6, 16, 12, 16]
+    },
+    "events": {
+        "onLoad": "@onFaceLoad",
+        "onShow": "@onFaceShow",
+        "onHide": "@onFaceHide"
+    },
+    "children": [
+        {
+            "id": "watch_face_container",
+            "type": "View",
+            "flex": 1,
+            "layout": { "type": "vertical", "spacing": 8, "align": "center" },
+            "children": [
+                {
+                    "id": "face_date",
+                    "type": "Label",
+                    "variant": "watch-secondary",
+                    "text": "SUNDAY · JUL 12",
+                    "size": [350, 14]
+                },
+                {
+                    "id": "face_time",
+                    "type": "Label",
+                    "variant": "watch-display",
+                    "text": "10:09",
+                    "size": [350, 80]
+                },
+                {
+                    "id": "activity_rings",
+                    "type": "View",
+                    "size": [350, 88],
+                    "layout": { "type": "horizontal", "spacing": 16, "align": "center", "justifyContent": "center" },
+                    "children": [
+                        {
+                            "id": "ring_move",
+                            "type": "Progress",
+                            "size": [56, 56],
+                            "shape": "circle",
+                            "value": 75,
+                            "showPercentage": false,
+                            "fillColor": "#FA114F",
+                            "style": { "bgColor": "#1C1C1E", "circleWidth": 6 }
+                        },
+                        {
+                            "id": "ring_exercise",
+                            "type": "Progress",
+                            "size": [76, 76],
+                            "shape": "circle",
+                            "value": 60,
+                            "showPercentage": false,
+                            "fillColor": "#30D158",
+                            "style": { "bgColor": "#1C1C1E", "circleWidth": 7 }
+                        },
+                        {
+                            "id": "ring_stand",
+                            "type": "Progress",
+                            "size": [56, 56],
+                            "shape": "circle",
+                            "value": 90,
+                            "showPercentage": false,
+                            "fillColor": "#00D4FF",
+                            "style": { "bgColor": "#1C1C1E", "circleWidth": 6 }
+                        }
+                    ]
+                },
+                {
+                    "id": "complication_row",
+                    "type": "View",
+                    "size": [350, 76],
+                    "layout": { "type": "horizontal", "spacing": 8 },
+                    "children": [
+                        {
+                            "id": "comp_weather",
+                            "type": "View",
+                            "variants": ["complication", "accent-a"],
+                            "flex": 1,
+                            "size": [0, 76],
+                            "layout": { "type": "vertical", "spacing": 4, "padding": [10, 12, 10, 12], "align": "center" },
+                            "children": [
+                                { "id": "face_weather_icon", "type": "Label", "variant": "accent-yellow", "text": "☀", "size": [24, 24] },
+                                { "id": "face_weather_temp", "type": "Label", "variant": "accent-cyan", "text": "26°", "size": [120, 22] },
+                                { "id": "face_weather_cond", "type": "Label", "variant": "caption", "text": "MOSTLY CLEAR", "size": [140, 10] }
+                            ]
+                        },
+                        {
+                            "id": "comp_steps",
+                            "type": "View",
+                            "variants": ["complication", "accent-b"],
+                            "flex": 1,
+                            "size": [0, 76],
+                            "layout": { "type": "vertical", "spacing": 2, "padding": [12, 12, 12, 12], "align": "center" },
+                            "children": [
+                                { "id": "face_steps", "type": "Label", "variant": "metric-value", "text": "8,432", "size": [140, 26] },
+                                { "id": "face_steps_lbl", "type": "Label", "variant": "caption", "text": "STEPS", "size": [80, 10] },
+                                { "id": "face_heart", "type": "Label", "variant": "accent-pink", "text": "72 BPM", "size": [100, 16] }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "dock",
+            "type": "View",
+            "size": [350, 54],
+            "layout": { "type": "horizontal", "spacing": 10, "justifyContent": "center" },
+            "children": [
+                {
+                    "id": "dock_app_messages",
+                    "type": "Button",
+                    "variant": "dock-flat",
+                    "text": "💬",
+                    "size": [52, 52],
+                    "events": { "onClick": "@onDockAppClick" }
+                },
+                {
+                    "id": "dock_app_phone",
+                    "type": "Button",
+                    "variant": "dock-flat",
+                    "text": "📞",
+                    "size": [52, 52],
+                    "events": { "onClick": "@onDockAppClick" }
+                },
+                {
+                    "id": "dock_app_health",
+                    "type": "Button",
+                    "variant": "dock-flat",
+                    "text": "🩺",
+                    "size": [52, 52],
+                    "events": { "onClick": "@onDockAppClick" }
+                },
+                {
+                    "id": "dock_launcher",
+                    "type": "Button",
+                    "variant": "dock-accent",
+                    "text": "🚀",
+                    "size": [52, 52],
+                    "events": { "onClick": "@openLauncher" }
+                }
+            ]
+        }
+    ]
+}

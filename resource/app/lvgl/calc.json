@@ -1,0 +1,115 @@
+{
+    "id": "lvgl_calc",
+    "type": "View",
+    "text": "LVGL Calculator",
+    "size": [400, 600],
+    "bgColor": "#121218",
+    "js": ["calc.js"],
+    "events": {
+        "onLoad": "@initCalculator"
+    },
+    "layout": {
+        "type": "vertical",
+        "spacing": 10,
+        "padding": [20, 20, 20, 20],
+        "align": "center",
+        "justify": "center"
+    },
+    "children": [
+        {
+            "id": "calc_display",
+            "type": "View",
+            "size": [0, 96],
+            "bgColor": "#1e1e2e",
+            "radius": 10,
+            "layout": {
+                "type": "vertical",
+                "spacing": 4,
+                "padding": [10, 12, 10, 12],
+                "align": "center"
+            },
+            "children": [
+                {
+                    "id": "calc_expression",
+                    "type": "LvLabel",
+                    "text": "",
+                    "size": [0, 24],
+                    "color": "#c8c8d8",
+                    "fontSize": 16,
+                    "textAlign": "right"
+                },
+                {
+                    "id": "calc_result",
+                    "type": "LvLabel",
+                    "text": "0",
+                    "size": [0, 44],
+                    "color": "#383848",
+                    "fontSize": 32,
+                    "textAlign": "right"
+                }
+            ]
+        },
+        {
+            "id": "calc_keypad",
+            "type": "LvBtnMatrix",
+            "size": [0, 300],
+            "style":{
+                "padding": [10, 12, 10, 12]
+            },
+            "buttons": [
+                "C", "<-", "%", "/",
+                "\n",
+                "7", "8", "9", "x",
+                "\n",
+                "4", "5", "6", "-",
+                "\n",
+                "1", "2", "3", "+",
+                "\n",
+                "+/-", "0", ".", "="
+            ],
+            "events": {
+                "onChange": "@onKeypadChange"
+            }
+        },
+        {
+            "id": "calc_memory",
+            "type": "View",
+            "size": [0, 40],
+            "layout": {
+                "type": "horizontal",
+                "spacing": 8,
+                "justify": "center"
+            },
+            "children": [
+                {
+                    "id": "mem_mc",
+                    "type": "LvBtn",
+                    "text": "MC",
+                    "size": [64, 32],
+                    "events": { "onClick": "@memoryClear" }
+                },
+                {
+                    "id": "mem_mr",
+                    "type": "LvBtn",
+                    "text": "MR",
+                    "size": [64, 32],
+                    "events": { "onClick": "@memoryRecall" }
+                },
+                {
+                    "id": "mem_mplus",
+                    "type": "LvBtn",
+                    "text": "M+",
+                    "size": [64, 32],
+                    "events": { "onClick": "@memoryAdd" }
+                },
+                {
+                    "id": "mem_mminus",
+                    "type": "LvBtn",
+                    "text": "M-",
+                    "size": [64, 32],
+                    "events": { "onClick": "@memorySubtract" }
+                }
+            ]
+        }
+    ]
+}

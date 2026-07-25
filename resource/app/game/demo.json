@@ -1,0 +1,82 @@
+{
+  "id": "game_demo_root",
+  "type": "View",
+  "size": [800, 480],
+  "autoTest": false,
+  "js": ["demo.js"],
+  "style": {
+    "bgColor": "transparent"
+  },
+  "events": {
+    "onLoad": "@onGameDemoLoad"
+  },
+  "layout": {
+    "type": "vertical",
+    "padding": [8, 8, 8, 8]
+  },
+  "children": [
+    {
+      "id": "hudBar",
+      "type": "View",
+      "size": [784, 36],
+      "layout": {
+        "type": "horizontal",
+        "spacing": 12
+      },
+      "style": {
+        "bgColor": "#202028cc",
+        "borderRadius": 6
+      },
+      "children": [
+        {
+          "id": "hudTitle",
+          "type": "Label",
+          "text": "Level 1 — Training Ground",
+          "size": [340, 28],
+          "style": {
+            "color": "#ffffff",
+            "fontSize": 14,
+            "bgColor": "transparent"
+          }
+        },
+        {
+          "id": "hudLevel",
+          "type": "Label",
+          "text": "Lv 1/2",
+          "size": [70, 28],
+          "style": {
+            "color": "#a5d8ff",
+            "fontSize": 14,
+            "bgColor": "transparent"
+          }
+        },
+        {
+          "id": "hudScore",
+          "type": "Label",
+          "text": "Score: 0",
+          "size": [100, 28],
+          "style": {
+            "color": "#ffe066",
+            "fontSize": 14,
+            "bgColor": "transparent"
+          }
+        },
+        {
+          "id": "btnDebugBoxes",
+          "type": "Button",
+          "text": "Debug Off",
+          "size": [100, 28],
+          "style": {
+            "fontSize": 13,
+            "bgColor": "#495057",
+            "color": "#ffffff",
+            "borderRadius": 4
+          },
+          "events": {
+            "onClick": "@onToggleDebugBoxes"
+          }
+        }
+      ]
+    }
+  ]
+}

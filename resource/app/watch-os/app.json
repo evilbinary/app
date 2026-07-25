@@ -1,0 +1,101 @@
+{
+    "id": "watch_os",
+    "type": "View",
+    "variant": "watch-bezel",
+    "assets": "app/assets",
+    "font": "Roboto-Regular.ttf",
+    "fontFallback": "NotoColorEmoji.ttf",
+    "size": [420, 420],
+    "text": "YUI Watch",
+    "js": [
+        "../lib/router.js",
+        "../lib/theme.js",
+        "lib/watch-app-registry.js",
+        "app.js"
+    ],
+    "layout": {
+        "type": "vertical",
+        "spacing": 0,
+        "padding": [0, 0, 0, 0]
+    },
+    "events": {
+        "onLoad": "@onWatchLoad",
+        "onShow": "@onWatchShow",
+        "onTouch": "@onPageTouch"
+    },
+    "children": [
+        {
+            "id": "status_bar",
+            "type": "View",
+            "variant": "toolbar",
+            "size": [0, 24],
+            "layout": {
+                "type": "horizontal",
+                "spacing": 0,
+                "padding": [4, 18, 4, 18],
+                "align": "center"
+            },
+            "children": [
+                {
+                    "id": "btn_back",
+                    "type": "Button",
+                    "text": "<",
+                    "size": [28, 18],
+                    "visible": false,
+                    "style": { "bgColor": "transparent", "color": "#8E8E93", "fontSize": 14 },
+                    "events": { "onClick": "@goWatchBack" }
+                },
+                {
+                    "id": "status_time",
+                    "type": "Label",
+                    "variant": "status-time",
+                    "text": "10:09",
+                    "flex": 1,
+                    "textAlign": "left"
+                },
+                {
+                    "id": "btn_status_notif",
+                    "type": "Button",
+                    "icon": "🔔",
+                    "text": "",
+                    "size": [22, 18],
+                    "style": { "bgColor": "transparent" },
+                    "events": { "onClick": "@openNotifications" }
+                },
+                {
+                    "id": "status_battery",
+                    "type": "Button",
+                    "icon": "🔋",
+                    "text": "",
+                    "size": [42, 18],
+                    "style": { "bgColor": "transparent" },
+                    "events": { "onClick": "@openBattery" }
+                }
+            ]
+        },
+        {
+            "id": "page_outlet",
+            "type": "View",
+            "variant": "surface",
+            "flex": 1,
+            "layout": { "type": "vertical" }
+        },
+        {
+            "id": "swipe_index",
+            "type": "View",
+            "size": [390, 14],
+            "layout": {
+                "type": "horizontal",
+                "spacing": 4,
+                "padding": [0, 0, 4, 0],
+                "align": "center",
+                "justifyContent": "center"
+            },
+            "children": [
+                { "id": "swipe_dot_left", "type": "Label", "variant": "caption", "text": "•", "size": [10, 10] },
+                { "id": "swipe_dot_center", "type": "Label", "variant": "caption", "text": "●", "size": [10, 10] },
+                { "id": "swipe_dot_right", "type": "Label", "variant": "caption", "text": "•", "size": [10, 10] }
+            ]
+        }
+    ]
+}
