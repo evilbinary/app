@@ -158,15 +158,46 @@ static void initmem(void *mem, int size)
 static byte *loadfile(FILE *f, int *len)
 {
 	/*
-	 * 仍按块读（避免一次 malloc 整文件），但用容量倍增 realloc，
-	 * 避免旧逻辑每次 +512 导致 O(n²) 拷贝（1MB≈拷贝 1GB，看起来像“没反应”）。
+	 * Prefer one-shot malloc when the file is seekable. Growing realloc
+	 * uses mremap; on some boards (t113) mismatched kernel/user page
+	 * attrs used to corrupt mallocng → a_crash/UNDEF mid-load.
 	 */
+	long sz;
+	byte *d;
+	size_t got = 0;
 	int c, l = 0, cap = 0;
-	byte *d = 0;
 	byte buf[4096];
 	int last_report = -1;
 
 	printf("loading rom...\n");
+
+	if (fseek(f, 0, SEEK_END) == 0) {
+		sz = ftell(f);
+		if (sz > 0 && fseek(f, 0, SEEK_SET) == 0) {
+			d = malloc((size_t)sz);
+			if (!d) {
+				printf("loadfile: out of memory for %ld bytes\n", sz);
+				return 0;
+			}
+			while (got < (size_t)sz) {
+				size_t n = fread(d + got, 1, (size_t)sz - got, f);
+				if (n == 0)
+					break;
+				got += n;
+				if ((int)(got / 65536) != last_report) {
+					last_report = (int)(got / 65536);
+					printf("  %d KB\n", (int)(got / 1024));
+				}
+			}
+			*len = (int)got;
+			printf("loadfile done: %d bytes\n", *len);
+			return d;
+		}
+		fseek(f, 0, SEEK_SET);
+	}
+
+	/* Fallback: capacity-doubling realloc (non-seekable streams). */
+	d = 0;
 	for (;;) {
 		c = (int)fread(buf, 1, sizeof buf, f);
 		if (c <= 0)
