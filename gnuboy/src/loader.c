@@ -16,7 +16,8 @@
 #include "rtc.h"
 #include "rc.h"
 #include "lcd.h"
-#include "inflate.h"
+/* 必须用相对路径：deps 里的 zlib inflate.h 会抢先匹配 "inflate.h" */
+#include "../include/inflate.h"
 #include "lib/xz/xz.h"
 #include "save.h"
 #include "sound.h"
@@ -156,21 +157,38 @@ static void initmem(void *mem, int size)
 
 static byte *loadfile(FILE *f, int *len)
 {
-	int c, l = 0, p = 0;
-	byte *d = 0, buf[512];
+	long sz;
+	byte *d;
+	size_t n;
 
-	for(;;)
-	{
-		c = fread(buf, 1, sizeof buf, f);
-		if (c <= 0) break;
-		l += c;
-		d = realloc(d, l);
-		if (!d) return 0;
-		memcpy(d+p, buf, c);
-		p += c;
+	if (fseek(f, 0, SEEK_END) == 0) {
+		sz = ftell(f);
+		if (sz > 0 && fseek(f, 0, SEEK_SET) == 0) {
+			d = malloc((size_t)sz);
+			if (!d) return 0;
+			n = fread(d, 1, (size_t)sz, f);
+			*len = (int)n;
+			return d;
+		}
 	}
-	*len = l;
-	return d;
+
+	/* fallback: growing buffer */
+	{
+		int c, l = 0, p = 0;
+		byte buf[4096];
+		d = 0;
+		for (;;) {
+			c = fread(buf, 1, sizeof buf, f);
+			if (c <= 0) break;
+			l += c;
+			d = realloc(d, l);
+			if (!d) return 0;
+			memcpy(d + p, buf, c);
+			p += c;
+		}
+		*len = l;
+		return d;
+	}
 }
 
 static byte *inf_buf;
@@ -272,14 +290,13 @@ int rom_load()
 	FILE *f;
 	byte c, *data, *header;
 	int len = 0, rlen;
-	f = rom_loadfile(romfile, &data, &len);
-	header = data;
 
 	if (strcmp(romfile, "-")) f = fopen(romfile, "rb");
 	else f = stdin;
 	if (!f) die("cannot open rom file: %s\n", romfile);
 
 	data = loadfile(f, &len);
+	if (!data || len < 0x150) die("failed to read rom file: %s\n", romfile);
 	header = data = decompress(data, &len);
 	
 	memcpy(rom.name, header+0x0134, 16);
@@ -315,6 +332,8 @@ int rom_load()
 
 	if (strcmp(romfile, "-")) fclose(f);
 
+	printf("rom: %s size=%d banks=%d ram=%d cgb=%d\n",
+	       rom.name, len, mbc.romsize, mbc.ramsize, hw.cgb);
 	return 0;
 }
 

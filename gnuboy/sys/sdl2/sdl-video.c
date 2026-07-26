@@ -19,6 +19,7 @@
 #include "fb.h"
 #include "rc.h"
 #include "sys.h"
+#include "screen.h"
 
 struct fb fb;
 
@@ -167,15 +168,52 @@ void vid_fullscreen_toggle()
 
 void vid_end()
 {
+	screen_info_t *screen;
+	uint32_t *dst;
+	byte *src = pix;
+	int x, y;
+	int sc = scale;
+	int dw, dh, ox, oy;
+
 	fb.ptr = pix;
-	if(fb.enabled)
-	{
-		//SDL_RenderClear(renderer);
-		SDL_UpdateTexture(texture, NULL, pix, vmode[0] * sizeof(uint32_t));
+	if (!fb.enabled)
+		return;
+
+	/* 直写 libgui LCD（绕过 SDL Render 在 DIRECT 下不可靠的 present） */
+	screen = screen_info();
+	if (screen == NULL || screen->buffer == NULL) {
+		SDL_UpdateTexture(texture, NULL, pix, vmode[0] * (int)sizeof(uint32_t));
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		SDL_RenderPresent(renderer);
+		return;
 	}
 
+	if (sc < 1) sc = 1;
+	dw = vmode[0] * sc;
+	dh = vmode[1] * sc;
+	ox = (screen->width > dw) ? (screen->width - dw) / 2 : 0;
+	oy = (screen->height > dh) ? (screen->height - dh) / 2 : 0;
+	dst = (uint32_t *)screen->buffer;
+
+	for (y = 0; y < vmode[1]; y++) {
+		for (int sy = 0; sy < sc; sy++) {
+			int dy = oy + y * sc + sy;
+			if (dy < 0 || dy >= screen->height) continue;
+			uint32_t *row = dst + dy * screen->width + ox;
+			byte *s = src + y * vmode[0] * 4;
+			for (x = 0; x < vmode[0]; x++) {
+				uint32_t c = (uint32_t)s[0] | ((uint32_t)s[1] << 8) |
+				             ((uint32_t)s[2] << 16) | ((uint32_t)s[3] << 24);
+				s += 4;
+				for (int sx = 0; sx < sc; sx++) {
+					int dx = x * sc + sx;
+					if (ox + dx < screen->width)
+						row[dx] = c;
+				}
+			}
+		}
+	}
+	screen_flush();
 }
 
 

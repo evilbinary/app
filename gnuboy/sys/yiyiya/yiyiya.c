@@ -35,14 +35,17 @@ int sys_elapsed(Uint32 *cl)
 	now = SDL_GetTicks() * 1000;
 	usecs = now - *cl;
 	*cl = now;
-	return usecs;
+	/* 防御：时钟回绕/异常会得到超大间隔，导致 sys_sleep 卡死无画面 */
+	if (usecs > 200000) /* >200ms */
+		usecs = 0;
+	return (int)usecs;
 }
 
 void sys_sleep(int us)
 {
-	if(us <= 0) return;
-	
-	SDL_Delay(us/1000);
+	if (us <= 0) return;
+	if (us > 50000) us = 50000; /* 最多睡 50ms */
+	SDL_Delay(us / 1000);
 }
 
 void sys_checkdir(char *path, int wr)
