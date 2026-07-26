@@ -157,38 +157,21 @@ static void initmem(void *mem, int size)
 
 static byte *loadfile(FILE *f, int *len)
 {
-	long sz;
-	byte *d;
-	size_t n;
+	int c, l = 0, p = 0;
+	byte *d = 0, buf[512];
 
-	if (fseek(f, 0, SEEK_END) == 0) {
-		sz = ftell(f);
-		if (sz > 0 && fseek(f, 0, SEEK_SET) == 0) {
-			d = malloc((size_t)sz);
-			if (!d) return 0;
-			n = fread(d, 1, (size_t)sz, f);
-			*len = (int)n;
-			return d;
-		}
-	}
-
-	/* fallback: growing buffer */
+	for(;;)
 	{
-		int c, l = 0, p = 0;
-		byte buf[4096];
-		d = 0;
-		for (;;) {
-			c = fread(buf, 1, sizeof buf, f);
-			if (c <= 0) break;
-			l += c;
-			d = realloc(d, l);
-			if (!d) return 0;
-			memcpy(d + p, buf, c);
-			p += c;
-		}
-		*len = l;
-		return d;
+		c = fread(buf, 1, sizeof buf, f);
+		if (c <= 0) break;
+		l += c;
+		d = realloc(d, l);
+		if (!d) return 0;
+		memcpy(d+p, buf, c);
+		p += c;
 	}
+	*len = l;
+	return d;
 }
 
 static byte *inf_buf;
