@@ -179,3 +179,4 @@ rust/rust-crt-raspi2/target/
 .DS_Store
 *.swp
 */*._*
+resource/app/doom/doom
