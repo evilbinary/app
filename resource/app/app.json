@@ -1,16 +1,15 @@
 {
     "type":"main",
     "assets":"/font",
-    "font":"Roboto-Regular.ttf",
+    "font":"font.ttf",
     "fontSize":"16",
     "text":"YUI Event App",
-    "source":"app/watch-os/apps/launcher/launcher.json",
+    "source":"app/watch-os/apps/game2048/game2048.json",
+    // "source":"app/watch-os/apps/launcher/launcher.json",
     // "source":"app/memory-game/memory-game.json",
-    // "source":"app/mquickjs/whack-a-mole.json",  // 打地鼠
-    // "source":"app/mquickjs/apple-catcher.json", // 接苹果
+    // "source":"app/mquickjs/whack-a-mole.json",
+    // "source":"app/mquickjs/apple-catcher.json",
     // "source":"app/mquickjs/snake-game.json",
-
-
 
     "style": {
         "color": "#2C3E50"

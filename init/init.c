@@ -81,8 +81,6 @@ extern int module_ready;
 //   syscall1(SYS_EXIT, 0);
 // }
 
-char* argv_p[64];
-
 void reopen(char* name) {
   int series = syscall2(SYS_OPEN, name, 0);
   if (series <= 0) {
@@ -102,38 +100,37 @@ void reopen(char* name) {
 
 extern int cmd_exec(const char* name);
 
-static char fork_exec_path[128];
-static char fork_exec_argv0[64];
-static char* fork_exec_argv[2];
-
 int run_exec(char* cmd, char** argv, char** env) {
 #ifdef USE_FORK
+  char path[128];
+  char* exec_argv[64];
+  int argc = 0;
+
   if (cmd != NULL) {
-    kstrncpy(fork_exec_path, cmd, sizeof(fork_exec_path) - 1);
+    kstrncpy(path, cmd, sizeof(path) - 1);
   } else if (argv != NULL && argv[0] != NULL) {
-    sprintf(fork_exec_path, "/bin/%s", argv[0]);
+    sprintf(path, "/bin/%s", argv[0]);
   } else {
     return -1;
   }
-  fork_exec_path[sizeof(fork_exec_path) - 1] = '\0';
+  path[sizeof(path) - 1] = '\0';
 
-  if (argv != NULL && argv[0] != NULL) {
-    kstrncpy(fork_exec_argv0, argv[0], sizeof(fork_exec_argv0) - 1);
-  } else {
-    char* base = fork_exec_path;
-    char* slash = kstrrchr(fork_exec_path, '/');
-    if (slash != NULL && slash[1] != '\0') {
-      base = slash + 1;
+  /* Pass full argv through to exec (was wrongly truncated to argv[0] only). */
+  if (argv != NULL) {
+    while (argc < 63 && argv[argc] != NULL) {
+      exec_argv[argc] = argv[argc];
+      argc++;
     }
-    kstrncpy(fork_exec_argv0, base, sizeof(fork_exec_argv0) - 1);
   }
-  fork_exec_argv0[sizeof(fork_exec_argv0) - 1] = '\0';
-  fork_exec_argv[0] = fork_exec_argv0;
-  fork_exec_argv[1] = NULL;
+  if (argc == 0) {
+    exec_argv[0] = path;
+    argc = 1;
+  }
+  exec_argv[argc] = NULL;
 
   int pid = syscall0(SYS_FORK);
   if (pid == 0) {
-    int ret = syscall3(SYS_EXEC, fork_exec_path, fork_exec_argv, env);
+    int ret = syscall3(SYS_EXEC, path, exec_argv, env);
     syscall1(SYS_EXIT, ret < 0 ? 1 : 0);
   }
   if (pid > 0) {
@@ -154,13 +151,13 @@ int do_exec(char* cmd, int count, char** env) {
   int i = 0;
   const char* split = " ";
   char* ptr = kstrtok(cmd, split);
-  memset(argv, 0, 64);
-  while (ptr != NULL) {
-    argv_p[i] = ptr;
+  memset(argv, 0, sizeof(argv));
+  while (ptr != NULL && i < 63) {
     argv[i++] = ptr;
     ptr = kstrtok(NULL, split);
   }
-  if (i <= 0 || argv[1] == ' ' || argv[0] == NULL) {
+  argv[i] = NULL;
+  if (i <= 0 || argv[0] == NULL) {
     return 0;
   }
   int ret =0;

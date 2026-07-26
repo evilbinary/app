@@ -158,13 +158,14 @@ int do_exec(char* cmd) {
   int i = 0;
   const char* split = " ";
   char* ptr = strtok(cmd, split);
-  memset(cmd_buf,0,64);
-  memset(cmd_argv,0,64);
-  while (ptr != NULL) {
+  memset(cmd_buf, 0, sizeof(cmd_buf));
+  memset(cmd_argv, 0, sizeof(cmd_argv));
+  while (ptr != NULL && i < 63) {
     cmd_argv[i++] = ptr;
     ptr = strtok(NULL, split);
   }
-  if (i <= 0 || cmd_argv[1] == ' ' || cmd_argv[0] == NULL) {
+  cmd_argv[i] = NULL;
+  if (i <= 0 || cmd_argv[0] == NULL) {
     return 0;
   }
   sprintf(cmd_buf, "/bin/%s", cmd_argv[0]);

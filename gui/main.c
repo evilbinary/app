@@ -97,6 +97,9 @@ void yiyiya_display() {
   int i = 0;
   u32 w = screen != NULL && screen->width > 0 ? screen->width : 480;
   u32 h = screen != NULL && screen->height > 0 ? screen->height : 320;
+  printf("display: loop %dx%d buffer=%p direct=%d\n", w, h,
+         screen != NULL ? (void*)screen->buffer : NULL,
+         screen != NULL ? (int)screen->xwin_direct : -1);
   for (;;) {
     screen_fill_rect(0, 0, w, h, 0xffff0000);
     screen_printf(0, 0, "hello display YiYiYa Os %d\n", i);
