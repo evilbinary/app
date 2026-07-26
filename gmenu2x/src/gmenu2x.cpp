@@ -104,6 +104,15 @@ static const std::pair<unsigned int, unsigned int> supported_resolutions[] = {
 	{ 240, 160 },
 };
 
+/* Skin packs on disk (largest first). Display may be 1024x768 while only
+ * handheld-sized skins are shipped — fall back so icons load. */
+static const char *const skin_fallback_resolutions[] = {
+	"640x480",
+	"480x272",
+	"320x240",
+	"240x240",
+};
+
 static enum color stringToColor(const string &name)
 {
 	for (unsigned int i = 0; i < NUM_COLORS; i++) {
@@ -168,6 +177,22 @@ static void handle_sigusr1(int sig)
 const string GMenu2X::getHome()
 {
 	return gmenu2x_home;
+}
+
+string GMenu2X::resolveSkinTopPath(const string &skinsRoot) const
+{
+	string exact = skinsRoot + "/" + to_string(width()) + "x" + to_string(height());
+	if (fileExists(exact))
+		return exact;
+
+	for (const char *res : skin_fallback_resolutions) {
+		string path = skinsRoot + "/" + res;
+		if (fileExists(path)) {
+			DEBUG("No skin for %ux%u; using %s\n", width(), height(), path.c_str());
+			return path;
+		}
+	}
+	return exact;
 }
 
 static void set_handler(int signal, void (*handler)(int))

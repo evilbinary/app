@@ -104,14 +104,15 @@ private:
 	void initMenu();
 	void initBG();
 
+	/* Prefer exact WxH skin dir; else fall back to a shipped resolution. */
+	std::string resolveSkinTopPath(const std::string &skinsRoot) const;
+
 	std::string getLocalSkinTopPath() const {
-		return getHome() + "/skins/" + std::to_string(width())
-			+ "x" + std::to_string(height());
+		return resolveSkinTopPath(getHome() + "/skins");
 	}
 
 	std::string getSystemSkinTopPath() const {
-		return GMENU2X_SYSTEM_DIR "/skins/" + std::to_string(width())
-			+ "x" + std::to_string(height());
+		return resolveSkinTopPath(GMENU2X_SYSTEM_DIR "/skins");
 	}
 
 public:

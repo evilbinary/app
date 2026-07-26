@@ -253,7 +253,8 @@ void Menu::paint(Surface &s) {
 			int t = sectionDelta < 0 ? sectionDelta + linkWidth : sectionDelta;
 			x += (((t * t) / linkWidth) * t) / linkWidth;
 		}
-		icon->blit(s, x - 16, sectionLinkPadding, 32, 32);
+		if (icon)
+			icon->blit(s, x - 16, sectionLinkPadding, 32, 32);
 		
 		// Center text horizontally and align to bottom.
 		const auto *text_surface = section_text_surfaces[j].get();
@@ -313,9 +314,11 @@ void Menu::paint(Surface &s) {
 				Font::HAlignLeft, Font::VAlignMiddle);
 #endif
 		//Manual indicator
-		if (!linkApp->getManual().empty())
-			sc.skinRes("imgs/manual.png")->blit(
-					s, gmenu2x.manualX, gmenu2x.bottomBarIconY);
+		if (!linkApp->getManual().empty()) {
+			auto manual = sc.skinRes("imgs/manual.png");
+			if (manual)
+				manual->blit(s, gmenu2x.manualX, gmenu2x.bottomBarIconY);
+		}
 	}
 }
 

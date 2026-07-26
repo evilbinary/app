@@ -74,7 +74,7 @@ Surface::Surface(Surface const& other)
 }
 
 void Surface::blit(SDL_Surface *destination, int x, int y, int w, int h, int a) const {
-	if (destination == NULL || a==0) return;
+	if (destination == NULL || raw == NULL || a==0) return;
 
 	SDL_Rect src = { 0, 0, static_cast<Uint16>(w), static_cast<Uint16>(h) };
 	SDL_Rect dest;
@@ -89,6 +89,7 @@ void Surface::blit(Surface& destination, int x, int y, int w, int h, int a) cons
 }
 
 void Surface::blitCenter(SDL_Surface *destination, int x, int y, int w, int h, int a) const {
+	if (raw == NULL) return;
 	int ow = raw->w / 2; if (w != 0) ow = min(ow, w / 2);
 	int oh = raw->h / 2; if (h != 0) oh = min(oh, h / 2);
 	blit(destination, x - ow, y - oh, w, h, a);
@@ -98,10 +99,12 @@ void Surface::blitCenter(Surface& destination, int x, int y, int w, int h, int a
 }
 
 void Surface::blitRight(SDL_Surface *destination, int x, int y, int w, int h, int a) const {
+	if (raw == NULL) return;
 	if (!w) w = raw->w;
 	blit(destination, x - min(raw->w, w), y, w, h, a);
 }
 void Surface::blitRight(Surface& destination, int x, int y, int w, int h, int a) const {
+	if (raw == NULL) return;
 	if (!w) w = raw->w;
 	blitRight(destination.raw, x, y, w, h, a);
 }

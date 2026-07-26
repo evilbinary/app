@@ -157,20 +157,43 @@ static void initmem(void *mem, int size)
 
 static byte *loadfile(FILE *f, int *len)
 {
-	int c, l = 0, p = 0;
-	byte *d = 0, buf[512];
+	/*
+	 * 仍按块读（避免一次 malloc 整文件），但用容量倍增 realloc，
+	 * 避免旧逻辑每次 +512 导致 O(n²) 拷贝（1MB≈拷贝 1GB，看起来像“没反应”）。
+	 */
+	int c, l = 0, cap = 0;
+	byte *d = 0;
+	byte buf[4096];
+	int last_report = -1;
 
-	for(;;)
-	{
-		c = fread(buf, 1, sizeof buf, f);
-		if (c <= 0) break;
+	printf("loading rom...\n");
+	for (;;) {
+		c = (int)fread(buf, 1, sizeof buf, f);
+		if (c <= 0)
+			break;
+		if (l + c > cap) {
+			int ncap = cap ? cap * 2 : (int)sizeof(buf) * 2;
+			byte *nd;
+			while (ncap < l + c)
+				ncap *= 2;
+			nd = realloc(d, (size_t)ncap);
+			if (!nd) {
+				free(d);
+				printf("loadfile: out of memory at %d bytes\n", l);
+				return 0;
+			}
+			d = nd;
+			cap = ncap;
+		}
+		memcpy(d + l, buf, (size_t)c);
 		l += c;
-		d = realloc(d, l);
-		if (!d) return 0;
-		memcpy(d+p, buf, c);
-		p += c;
+		if (l / 65536 != last_report) {
+			last_report = l / 65536;
+			printf("  %d KB\n", l / 1024);
+		}
 	}
 	*len = l;
+	printf("loadfile done: %d bytes\n", l);
 	return d;
 }
 
