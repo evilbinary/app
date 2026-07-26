@@ -24,7 +24,7 @@ int GetJoypadInput(void) {
   u32 key = 0;
   u32 press = event_read_joystick(&key);
   if (press > 0) {
-    printf("press =%d key=%x\n",press,key);
+    //printf("press =%d key=%x\n",press,key);
     if (press == 2) {  // down
       switch (key) {
         case KEY_RIGHT:  // 右

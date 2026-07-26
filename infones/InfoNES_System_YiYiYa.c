@@ -71,18 +71,35 @@ static int lcd_fb_display_px(WORD color, int x, int y) {
   return 0;
 }
 screen_info_t *screen = NULL;
+
+/* 输出像素格式：可用命令行 -argb / -rgb555 切换 */
+enum { PIX_ARGB8888 = 0, PIX_RGB555 = 1 };
+static int g_pix_fmt = -1; /* -1=按屏幕 bpp 自动选择 */
+
 static int lcd_fb_init() {
   screen_init();
   screen = screen_info();
-  fb_mem = (unsigned char *)screen->fb.frambuffer;
-  fb_fd = screen->fd;
-  if (screen->fb.bpp == 16) {
+  if (screen == NULL || screen->buffer == NULL) {
+    fb_fd = -1;
+    return -1;
+  }
+  /* XWIN 下 screen->fd 常为 -1；用 buffer 是否就绪作可用标志 */
+  fb_mem = (unsigned char *)screen->buffer;
+  fb_fd = 1;
+  /* 未强制指定时：16bpp 屏默认 rgb555，否则 argb */
+  if (g_pix_fmt < 0) {
+    g_pix_fmt =
+        (screen->bpp == 16 || screen->fb.bpp == 16) ? PIX_RGB555 : PIX_ARGB8888;
+  }
+  if (g_pix_fmt == PIX_RGB555 || screen->fb.bpp == 16) {
     lcd_height = NES_DISP_HEIGHT * 2;
     lcd_width = NES_DISP_WIDTH * 2;
   } else {
     lcd_height = NES_DISP_HEIGHT;
     lcd_width = NES_DISP_WIDTH;
   }
+  printf("infones pixel format: %s\n",
+         g_pix_fmt == PIX_RGB555 ? "rgb555" : "argb8888");
   return 0;
 }
 
@@ -235,7 +252,8 @@ WORD NesPalette[64] = {
 
 /* Application main */
 int main(int argc, char **argv) {
-  char cmd;
+  const char *rom = NULL;
+  int i;
 
   /*-------------------------------------------------------------------*/
   /*  Pad Control                                                      */
@@ -253,7 +271,32 @@ int main(int argc, char **argv) {
   /* Initialize thread state */
   bThread = FALSE;
 
-  int i;
+  /* 默认未指定：lcd_fb_init 里按屏幕 bpp 自动选 */
+  g_pix_fmt = -1;
+
+  for (i = 1; i < argc; i++) {
+    if (argv[i] == NULL) {
+      continue;
+    }
+    if (argv[i][0] == '-') {
+      if (strcmp(argv[i], "-rgb555") == 0 || strcmp(argv[i], "-555") == 0) {
+        g_pix_fmt = PIX_RGB555;
+      } else if (strcmp(argv[i], "-argb") == 0 ||
+                 strcmp(argv[i], "-rgb888") == 0 ||
+                 strcmp(argv[i], "-888") == 0) {
+        g_pix_fmt = PIX_ARGB8888;
+      } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-help") == 0) {
+        printf("usage: infones [-rgb555|-argb] <rom.nes>\n");
+        return 0;
+      } else {
+        printf("unknown option: %s\n", argv[i]);
+        printf("usage: infones [-rgb555|-argb] <rom.nes>\n");
+        return 1;
+      }
+    } else if (rom == NULL) {
+      rom = argv[i];
+    }
+  }
 
   InitJoypadInput();
 
@@ -263,8 +306,10 @@ int main(int argc, char **argv) {
   make_zoom_tab();
 
   /* If a rom name specified, start it */
-  if (argc >= 2) {
-    start_application(argv[1]);
+  if (rom != NULL) {
+    start_application((char *)rom);
+  } else {
+    printf("usage: infones [-rgb555|-argb] <rom.nes>\n");
   }
   printf("exit\n");
   return (0);
@@ -642,50 +687,109 @@ void *InfoNES_MemorySet(void *dest, int c, int count) {
 /*                                                                   */
 /*===================================================================*/
 
-/* Transfer the contents of work frame on the screen */
-static inline void InfoNes_LoadLineScale2(uint32_t *fb, WORD *frame,
-                                          int width) {
-  do {
-    int i = *frame++ % 64;
-    *fb++ = *fb++ = RGBPalette[i];
-  } while (width--);
+/* WorkFrame 存的是 NesPalette 的 RGB555（非索引） */
+static inline u32 rgb555_to_argb(WORD c) {
+  u32 r = (c >> 10) & 0x1f;
+  u32 g = (c >> 5) & 0x1f;
+  u32 b = c & 0x1f;
+  r = (r << 3) | (r >> 2);
+  g = (g << 3) | (g >> 2);
+  b = (b << 3) | (b >> 2);
+  return 0xff000000u | (r << 16) | (g << 8) | b;
+}
+
+static inline WORD work_rgb555(WORD c) { return (WORD)(c & 0x7fff); }
+
+/* ---- ARGB8888（32bpp buffer） ---- */
+static inline void InfoNes_LoadLineScale2_argb(uint32_t *fb, WORD *frame,
+                                               int width) {
+  while (width-- > 0) {
+    u32 c = rgb555_to_argb(*frame++);
+    *fb++ = c;
+    *fb++ = c;
+  }
+}
+
+static inline void InfoNes_LoadLineScale1_argb(uint32_t *fb, WORD *frame,
+                                               int width) {
+  while (width-- > 0) {
+    *fb++ = rgb555_to_argb(*frame++);
+  }
+}
+
+/* ---- RGB555（16bpp buffer，每像素 2 字节） ---- */
+static inline void InfoNes_LoadLineScale2_rgb555(WORD *fb, WORD *frame,
+                                                 int width) {
+  while (width-- > 0) {
+    WORD c = work_rgb555(*frame++);
+    *fb++ = c;
+    *fb++ = c;
+  }
+}
+
+static inline void InfoNes_LoadLineScale1_rgb555(WORD *fb, WORD *frame,
+                                                 int width) {
+  while (width-- > 0) {
+    *fb++ = work_rgb555(*frame++);
+  }
 }
 
 static inline void InfoNES_LoadFrameScale2(void) {
   int offX = (screen->width - NES_DISP_WIDTH * 2) / 2;
   int offY = (screen->height - NES_DISP_HEIGHT * 2) / 2;
-  uint32_t *d = (uint32_t *)screen->buffer + offY * screen->width + offX;
   WORD *s = WorkFrame;
-  for (int y = 0; y < NES_DISP_HEIGHT; y++) {
-    InfoNes_LoadLineScale2(d, s, NES_DISP_WIDTH);
-    d += screen->width;
-    InfoNes_LoadLineScale2(d, s, NES_DISP_WIDTH);
-    d += screen->width;
-    s += NES_DISP_WIDTH;
+  int y;
+
+  if (g_pix_fmt == PIX_RGB555) {
+    WORD *d = (WORD *)screen->buffer + offY * screen->width + offX;
+    for (y = 0; y < NES_DISP_HEIGHT; y++) {
+      InfoNes_LoadLineScale2_rgb555(d, s, NES_DISP_WIDTH);
+      d += screen->width;
+      InfoNes_LoadLineScale2_rgb555(d, s, NES_DISP_WIDTH);
+      d += screen->width;
+      s += NES_DISP_WIDTH;
+    }
+  } else {
+    uint32_t *d =
+        (uint32_t *)screen->buffer + offY * screen->width + offX;
+    for (y = 0; y < NES_DISP_HEIGHT; y++) {
+      InfoNes_LoadLineScale2_argb(d, s, NES_DISP_WIDTH);
+      d += screen->width;
+      InfoNes_LoadLineScale2_argb(d, s, NES_DISP_WIDTH);
+      d += screen->width;
+      s += NES_DISP_WIDTH;
+    }
   }
 }
 
-static inline void InfoNes_LoadLineScale1(uint32_t *fb, WORD *frame,
-                                          int width) {
-  do {
-    int i = *frame++ % 64;
-    *fb++ = RGBPalette[i];
-  } while (width--);
-}
-
-static inline InfoNES_LoadFrameScale1(void) {
+static inline void InfoNES_LoadFrameScale1(void) {
   int offX = (screen->width - NES_DISP_WIDTH) / 2;
   int offY = (screen->height - NES_DISP_HEIGHT) / 2;
-  uint32_t *d = (uint32_t *)screen->buffer + offY * screen->width + offX;
   WORD *s = WorkFrame;
-  for (int y = 0; y < NES_DISP_HEIGHT; y++) {
-    InfoNes_LoadLineScale1(d, s, NES_DISP_WIDTH);
-    d += screen->width;
-    s += NES_DISP_WIDTH;
+  int y;
+
+  if (g_pix_fmt == PIX_RGB555) {
+    WORD *d = (WORD *)screen->buffer + offY * screen->width + offX;
+    for (y = 0; y < NES_DISP_HEIGHT; y++) {
+      InfoNes_LoadLineScale1_rgb555(d, s, NES_DISP_WIDTH);
+      d += screen->width;
+      s += NES_DISP_WIDTH;
+    }
+  } else {
+    uint32_t *d =
+        (uint32_t *)screen->buffer + offY * screen->width + offX;
+    for (y = 0; y < NES_DISP_HEIGHT; y++) {
+      InfoNes_LoadLineScale1_argb(d, s, NES_DISP_WIDTH);
+      d += screen->width;
+      s += NES_DISP_WIDTH;
+    }
   }
 }
 
 void InfoNES_LoadFrame2() {
+  if (screen == NULL || screen->buffer == NULL) {
+    return;
+  }
   if (screen->width >= NES_DISP_WIDTH * 2 &&
       screen->height >= NES_DISP_HEIGHT * 2)
     InfoNES_LoadFrameScale2();
@@ -695,25 +799,11 @@ void InfoNES_LoadFrame2() {
 }
 
 void InfoNES_LoadFrame() {
-  int x, y;
-  int line_width;
-  unsigned int wColor;
-
-  if (0 < fb_fd) {
-    for (y = 0; y < lcd_height; y++) {
-      line_width = zoom_y_tab[y] * NES_DISP_WIDTH;
-      for (x = 0; x < lcd_width; x++) {
-        wColor = WorkFrame[line_width + zoom_x_tab[x]];
-        /* 16-bit to 24-bit  RGB565 to RGB888*/
-        unsigned int color = ((wColor & 0x7c00) << 9) |
-                             ((wColor & 0x03e0) << 6) |
-                             ((wColor & 0x001f) << 3) | (0xff << 24);
-        screen_put_pixel(x, y, color);
-        // lcd_fb_display_px(wColor, x, y);
-      }
-    }
-    screen_flush();
+  /* XWIN/DIRECT：fd 为 -1，旧逻辑 if (fb_fd>0) 会整帧跳过 → 黑屏。 */
+  if (fb_fd <= 0 || screen == NULL || screen->buffer == NULL) {
+    return;
   }
+  InfoNES_LoadFrame2();
 }
 
 void InfoNES_ReadJoypad() {
