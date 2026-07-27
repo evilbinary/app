@@ -99,6 +99,7 @@ static const std::pair<unsigned int, unsigned int> supported_resolutions[] = {
 	{ 1024, 768},
 	{ 800, 480 },
 	{ 640, 480 },
+	{ 480, 320 },
 	{ 480,272 },
 	{ 320, 240 },
 	{ 240, 160 },
@@ -302,11 +303,19 @@ GMenu2X::GMenu2X() : input(*this), sc(this)
 #if defined(G2X_BUILD_OPTION_SCREEN_WIDTH) && defined(G2X_BUILD_OPTION_SCREEN_HEIGHT) && defined(G2X_BUILD_OPTION_SCREEN_DEPTH)
 	s = OutputSurface::open(G2X_BUILD_OPTION_SCREEN_WIDTH, G2X_BUILD_OPTION_SCREEN_HEIGHT, G2X_BUILD_OPTION_SCREEN_DEPTH);
 #else
-	// find largest resolution available
-	for (const auto res : supported_resolutions) {
-		if (OutputSurface::resolutionSupported(res.first, res.second) &&
-		    (s = OutputSurface::open(res.first, res.second, 32)))
-			break;
+	/* Prefer the mode SDL already saw from the display (e.g. T113 480x320). */
+	{
+		const SDL_VideoInfo *vi = SDL_GetVideoInfo();
+		if (vi != nullptr && vi->current_w > 0 && vi->current_h > 0) {
+			s = OutputSurface::open(vi->current_w, vi->current_h, 32);
+		}
+	}
+	if (!s) {
+		for (const auto res : supported_resolutions) {
+			if (OutputSurface::resolutionSupported(res.first, res.second) &&
+			    (s = OutputSurface::open(res.first, res.second, 32)))
+				break;
+		}
 	}
 #endif
 

@@ -89,27 +89,20 @@ unsigned int Clock::Timer::update()
 	
 	auto time = system_clock::now();
 	time_t tt = system_clock::to_time_t(time);
-	tm local = *localtime(&tt);
+	/* SDL timer 在独立线程；localtime() 非线程安全且会碰静态缓冲。 */
+	struct tm local;
+	if (localtime_r(&tt, &local) == nullptr) {
+		timestamp.hours = 0;
+		timestamp.minutes = 0;
+		return 1000;
+	}
 	
 	timestamp.hours=static_cast<unsigned char>(local.tm_hour);
 	timestamp.minutes=static_cast<unsigned char>(local.tm_min);
 
-	// timestamp.store({
-	// 	static_cast<unsigned char>(local.tm_hour),
-	// 	static_cast<unsigned char>(local.tm_min)
-	// 	});
 	DEBUG("Time updated: %02i:%02i:%02i\n",
 		local.tm_hour, local.tm_min, local.tm_sec);
 
-	// Compute number of milliseconds to next minute boundary.
-	// We don't need high precision, but it is important that any deviation is
-	// past the minute mark, so the fetched hour and minute number belong to
-	// the freshly started minute.
-	// TODO: Does the SDL timer in fact guarantee we're never called early?
-	//       "ms = t->interval - SDL_TIMESLICE;" worries me.
-	// Clamping it at 1 sec both avoids overloading the system in case our
-	// computation goes haywire and avoids passing 0 to SDL, which would stop
-	// the recurring timer.
 	return std::max(1, (60 - local.tm_sec)) * 1000;
 }
 
