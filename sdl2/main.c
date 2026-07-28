@@ -44,6 +44,12 @@ int main(int argc, char* args[]) {
   // Give us time to see the window.
   // SDL_Delay(5000);
   int is_quit = 0;
+
+  /* FPS 统计 */
+  Uint32 fps_count = 0;
+  Uint32 fps_t0 = SDL_GetTicks();
+  int color_toggle = 0;
+
   while (!is_quit) {
     SDL_Event event;
     if (SDL_PollEvent(&event)) {
@@ -98,7 +104,29 @@ int main(int argc, char* args[]) {
           break;
       }
     }
-    SDL_Delay(10);
+
+    /* 实际渲染：交替红/蓝 + RenderPresent */
+    color_toggle = !color_toggle;
+    if (color_toggle) {
+      SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    } else {
+      SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+    }
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+
+    /* FPS 统计：每 60 帧打印一次 */
+    fps_count++;
+    if (fps_count >= 60) {
+      Uint32 now = SDL_GetTicks();
+      Uint32 dt = now - fps_t0;
+      Uint32 fps = dt > 0 ? (fps_count * 1000) / dt : 0;
+      printf("sdl2_fps: %d  (n=%d dt=%dms)\n", fps, fps_count, dt);
+      fps_count = 0;
+      fps_t0 = now;
+    }
+
+    SDL_Delay(1);
   }
   printf("sdl exit\n");
   SDL_Quit();
