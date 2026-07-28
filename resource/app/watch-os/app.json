@@ -2,7 +2,7 @@
     "id": "watch_os",
     "type": "View",
     "variant": "watch-bezel",
-    "assets": "app/assets",
+    "assets": "/font",
     "font": "Roboto-Regular.ttf",
     "fontFallback": "NotoColorEmoji.ttf",
     "size": [420, 420],
