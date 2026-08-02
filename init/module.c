@@ -1,6 +1,8 @@
 
 #include "kernel/kernel.h"
 
+extern int module_ready;
+
 // 定义模块注册宏
 #define REGISTER_MODULE(module_name)      \
   {                                       \
@@ -199,4 +201,6 @@ void modules_init(void) {
 
   /* 内核 fault 回溯测试：需要时取消注释（会终止 init 线程） */
   test_kernel();
+
+  module_ready = 1;
 }

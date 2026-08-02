@@ -268,13 +268,12 @@ void do_init_thread(void) {
   char buf[64];
   int count = 0;
   int ret = 0;
-  print_string("init\n");
 
-  // wait module ready
+  /* Must not SYS_PRINT or schedule_sleep until posix is registered. */
   while (module_ready <= 0) {
-    // sleep();
   }
 
+  print_string("init\n");
   print_logo();
   print_promot();
 

@@ -11,8 +11,7 @@ void do_kernel_thread(void) {
   kprintf("init kernel thread\n");
   modules_init();
 
-  module_ready=1;
-  
+
   u32 i = 0;
   u32 count = 0;
   for (;;) {
@@ -23,7 +22,7 @@ void do_kernel_thread(void) {
     // xwin_demo();
     // log_debug("count=%d\n",count);
     // test_fb(count);
-    schedule_sleep(10 * SCHEDULE_FREQUENCY);
+    // schedule_sleep(10 * SCHEDULE_FREQUENCY);
     // cpu_wait();
   }
 }
@@ -36,8 +35,8 @@ void do_monitor_thread(void) {
     if (i % 4 == 0) {
       i = 0;
     }
-    //xwin_demo();
-    //schedule_sleep(10 * SCHEDULE_FREQUENCY);
-    // cpu_wait();
+    // xwin_demo();
+    // schedule_sleep(10 * SCHEDULE_FREQUENCY);
+    cpu_wait();
   }
 }

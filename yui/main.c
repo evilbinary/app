@@ -3,6 +3,8 @@
 #include <limits.h>
 #include <string.h>
 
+#include <sys/syscall.h>
+
 #include "cJSON.h"
 #include "event.h"
 #include "layer.h"
@@ -74,6 +76,9 @@ int main(int argc, char* argv[]) {
 
     backend_init();
     popup_manager_init();
+
+    /* perf 采样（内核模块）：启动即开始，10 秒后自动停止并打印热点 */
+    syscall(519, 1000, 20000);
 
     // 初始化 JS 引擎
     if (js_module_init() != 0) {
@@ -197,6 +202,7 @@ int main(int argc, char* argv[]) {
     js_module_cleanup();  // 清理 JS 引擎
     // destroy_layer(ui_root);  // 暂时注释掉以避免内存问题
     popup_manager_cleanup();
+    syscall(520);  // SYS_PERF_STOP：打印采样汇总
     backend_quit();
     return 0;
 }
