@@ -2,7 +2,7 @@ ENTRY(_kstart)
 K_VIR_ADDR = 0x42000000;
 K_PHY_ADDR = 0x42000000;
 PAGE_SIZE    = 0x100;
-STACK_SIZE = 0x200;
+STACK_SIZE = 0x1000;
 SECTIONS
 {
         /* Code. */

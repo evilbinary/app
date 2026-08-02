@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
     backend_init();
     popup_manager_init();
 
-    /* perf 采样（内核模块）：启动即开始，10 秒后自动停止并打印热点 */
+    /* perf：启动采样；duration 到期只停采，退出时再 SYS_PERF_STOP dump */
     syscall(519, 1000, 20000);
 
     // 初始化 JS 引擎
@@ -202,7 +202,7 @@ int main(int argc, char* argv[]) {
     js_module_cleanup();  // 清理 JS 引擎
     // destroy_layer(ui_root);  // 暂时注释掉以避免内存问题
     popup_manager_cleanup();
-    syscall(520);  // SYS_PERF_STOP：打印采样汇总
+    syscall(520);  // SYS_PERF_STOP：时长到期后也须再调一次才会打印汇总
     backend_quit();
     return 0;
 }
