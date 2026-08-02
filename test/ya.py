@@ -141,3 +141,9 @@ add_files(
    'test-check-file.c'
 )
 add_cflags('-DHAVE_SIGNAL_H')
+
+target("test-fault")
+set_type("cli")
+add_files(
+   'test-fault.c'
+)

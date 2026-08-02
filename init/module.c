@@ -178,6 +178,10 @@ void modules_init(void) {
   REGISTER_MODULE(ytrace);
 #endif
 
+#ifdef BACKTRACE_MODULE
+  REGISTER_MODULE(backtrace);
+#endif
+
 
 #ifdef XWIN_MODULE
   REGISTER_MODULE(xwin);
