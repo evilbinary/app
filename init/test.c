@@ -284,6 +284,13 @@ void test_queue_pool_page() {
   kprintf("test success %d\n", count);
 }
 
+void test_kernel_fault(){
+  // 故意触发内核态空指针 fault，验证 fault backtrace 模块
+  kprintf("test kernel fault start\n");
+  int *p = (int *)0;
+  *p = 1;
+  kprintf("test kernel fault end\n");
+}
 // XWIN demo (在 xwin-demo.c 中定义)
 extern void xwin_demo(void);
 
@@ -292,6 +299,8 @@ void test_kernel() {
   // test_pool();
   // test_queue_pool();
   // test_queue_pool_page();
+
+  // test_kernel_fault();
 
   // 运行 XWIN demo
   // xwin_demo();

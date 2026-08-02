@@ -193,5 +193,6 @@ void modules_init(void) {
 
   log_info("module run all end\n");
 
+  /* 内核 fault 回溯测试：需要时取消注释（会终止 init 线程） */
   test_kernel();
 }
