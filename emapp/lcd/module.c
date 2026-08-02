@@ -170,8 +170,8 @@ void modules_init(void) {
   REGISTER_MODULE(gaga);
 #endif
 
-#ifdef DEBUG_MODULE
-  REGISTER_MODULE(ytrace);
+#ifdef TRACE_MODULE
+  REGISTER_MODULE(trace);
 #endif
 
   log_info("module regist end\n");
