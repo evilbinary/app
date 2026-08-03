@@ -5,38 +5,30 @@
  ********************************************************************/
 #include "main.h"
 
-int module_ready=0;
+int module_ready = 0;
+
+/* Per-CPU idle: stay RUNNING + WFI. Ticks on this thread = idle time. */
+void do_idle_thread(void) {
+  for (;;) {
+    cpu_wait();
+  }
+}
 
 void do_kernel_thread(void) {
   kprintf("init kernel thread\n");
   modules_init();
 
-
-  u32 i = 0;
-  u32 count = 0;
-  for (;;) {
-    count++;
-    if (i % 4 == 0) {
-      i = 0;
+  /* Become CPU0 idle so busy% = 100 - idle_ticks/cpu_ticks. */
+  {
+    thread_t* cur = thread_current();
+    if (cur != NULL) {
+      cur->name = (u8*)"idle";
+      cur->priority = THREAD_PRIORITY_IDLE;
+      cur->priority_base = THREAD_PRIORITY_IDLE;
     }
-    // xwin_demo();
-    // log_debug("count=%d\n",count);
-    // test_fb(count);
-    // schedule_sleep(10 * SCHEDULE_FREQUENCY);
-    // cpu_wait();
   }
+  do_idle_thread();
 }
 
-void do_monitor_thread(void) {
-  u32 i = 0;
-  u32 count = 0;
-  for (;;) {
-    count++;
-    if (i % 4 == 0) {
-      i = 0;
-    }
-    // xwin_demo();
-    // schedule_sleep(10 * SCHEDULE_FREQUENCY);
-    cpu_wait();
-  }
-}
+/* Kept for older call sites; same as idle. */
+void do_monitor_thread(void) { do_idle_thread(); }

@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <string.h>
+#include <time.h>
 
 #include <sys/syscall.h>
 
@@ -30,6 +31,33 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 #include <emscripten.h>
 #endif
 
+/* 与 syscall(519,...,20000) 对齐：内核 1000Hz 下 20000 tick ≈ 20s */
+#define YUI_PERF_DURATION_SEC 20
+
+static int g_perf_dumped;
+static struct timespec g_perf_t0;
+
+static void yui_perf_dump_once(void) {
+    struct timespec now;
+    long sec;
+
+    if (g_perf_dumped) {
+        return;
+    }
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        return;
+    }
+    sec = (long)(now.tv_sec - g_perf_t0.tv_sec);
+    if (now.tv_nsec < g_perf_t0.tv_nsec) {
+        sec--;
+    }
+    if (sec < YUI_PERF_DURATION_SEC) {
+        return;
+    }
+    g_perf_dumped = 1;
+    printf("ymain: SYS_PERF_STOP (dump after %ds)\n", YUI_PERF_DURATION_SEC);
+    syscall(520);
+}
 
 // 检查文件扩展名是否为 YAML
 static bool is_yaml_file(const char* filename) {
@@ -77,8 +105,11 @@ int main(int argc, char* argv[]) {
     backend_init();
     popup_manager_init();
 
-    /* perf：启动采样；duration 到期只停采，退出时再 SYS_PERF_STOP dump */
+    /* 内核采样；到期只停采。满 20s 由 ymain 再调 520 dump（勿在 IRQ 里 dump） */
+    clock_gettime(CLOCK_MONOTONIC, &g_perf_t0);
+    g_perf_dumped = 0;
     syscall(519, 1000, 20000);
+    backend_register_update_callback(yui_perf_dump_once);
 
     // 初始化 JS 引擎
     if (js_module_init() != 0) {
@@ -202,7 +233,9 @@ int main(int argc, char* argv[]) {
     js_module_cleanup();  // 清理 JS 引擎
     // destroy_layer(ui_root);  // 暂时注释掉以避免内存问题
     popup_manager_cleanup();
-    syscall(520);  // SYS_PERF_STOP：时长到期后也须再调一次才会打印汇总
+    if (!g_perf_dumped) {
+        syscall(520);  // 提前退出时补一次 dump
+    }
     backend_quit();
     return 0;
 }
