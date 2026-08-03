@@ -134,8 +134,8 @@ int run_exec(char* cmd, char** argv, char** env) {
     syscall1(SYS_EXIT, ret < 0 ? 1 : 0);
   }
   if (pid > 0) {
-    int status = 0;
-    syscall4(SYS_WAIT4, pid, &status, 0, 0);
+    // int status = 0;
+    // syscall4(SYS_WAIT4, pid, &status, 0, 0);
   }
   return pid;
 #else
@@ -264,6 +264,16 @@ void sleep() {
   syscall4(SYS_CLOCK_NANOSLEEP, 0, 0, &tv, &tv);
 }
 
+#ifndef WNOHANG
+#define WNOHANG 1
+#endif
+
+static void reap_zombies(void) {
+  int status = 0;
+  while (syscall4(SYS_WAIT4, -1, &status, WNOHANG, 0) > 0) {
+  }
+}
+
 void do_init_thread(void) {
   char buf[64];
   int count = 0;
@@ -298,6 +308,7 @@ void do_init_thread(void) {
 
   for (;;) {
     int ch = 0;
+    reap_zombies();
     ret = syscall3(SYS_READ, 0, &ch, 1);
     if (ret > 0) {
       if (ch == '\r' || ch == '\n') {
