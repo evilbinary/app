@@ -4,6 +4,7 @@ K_PHY_ADDR = 0x4010000;
 PAGE_SIZE    = 0x100;
 /* IRQ/UND/ABT on each core: 512B was too small for timer→perf/schedule. */
 STACK_SIZE = 0x1000;
+__stack_size = STACK_SIZE;
 SECTIONS
 {
         /* Code. */

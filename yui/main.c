@@ -32,7 +32,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 #endif
 
 /* 与 syscall(519,...,20000) 对齐：内核 1000Hz 下 20000 tick ≈ 20s */
-#define YUI_PERF_DURATION_SEC 20
+#define YUI_PERF_DURATION_SEC 60
 
 static int g_perf_dumped;
 static struct timespec g_perf_t0;
@@ -108,8 +108,8 @@ int main(int argc, char* argv[]) {
     /* 内核采样；到期只停采。满 20s 由 ymain 再调 520 dump（勿在 IRQ 里 dump） */
     clock_gettime(CLOCK_MONOTONIC, &g_perf_t0);
     g_perf_dumped = 0;
-    syscall(519, 1000, 20000);
     backend_register_update_callback(yui_perf_dump_once);
+    syscall(519, 1000, 60000);
 
     // 初始化 JS 引擎
     if (js_module_init() != 0) {

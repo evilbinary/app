@@ -3,6 +3,7 @@ K_VIR_ADDR = 0x4010000;
 K_PHY_ADDR = 0x4010000;
 PAGE_SIZE    = 0x100;
 STACK_SIZE = 0x200;
+__stack_size = STACK_SIZE;
 SECTIONS
 {
         /* Code. */

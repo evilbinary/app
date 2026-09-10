@@ -8,6 +8,7 @@ MEMORY {
 }
 
 STACK_SIZE = 0x400;
+__stack_size = STACK_SIZE;
 
 ENTRY(_start)
 
