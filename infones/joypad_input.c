@@ -24,7 +24,17 @@ int GetJoypadInput(void) {
   u32 key = 0;
   u32 press = event_read_joystick(&key);
   if (press > 0) {
-    //printf("press =%d key=%x\n",press,key);
+    /* 【诊断·可删】按键打印（只在变化时打，避免按住时每帧刷屏）：
+     * press=2 为按下、1 为松开；key 为键码。用于判定"内核已收到按键（看到 keypad
+     * raw=…）但应用是否真的收到事件"（xwin 模式下手柄设备的读取链路）。 */
+    {
+      static u32 last_key = 0xffff, last_press = 0;
+      if (key != last_key || press != last_press) {
+        last_key = key;
+        last_press = press;
+        printf("joypad press=%d key=%x\n", press, key);
+      }
+    }
     if (press == 2) {  // down
       switch (key) {
         case KEY_RIGHT:  // 右
@@ -153,9 +163,13 @@ int GetJoypadInput(void) {
           break;
       }
     }
-  } else {
-    return -1;
   }
-
+  /* 【修复·按键完全无效】原来这里是 `else { return -1; }`：
+   * 本板子上没有 /dev/keyboard（libgui 里只有手柄设备打开成功，input_fd 一直为 -1）
+   * ⇒ event_read_key() 恒返回 -1 ⇒ 每次都从这里直接 return -1 ⇒ 上面刚由实体手柄
+   * 设置的 keyPad 被整个丢弃 ⇒ InfoNES_ReadJoypad() 因 ret < 0 而不更新 dwKeyPad1
+   * ⇒ 游戏永远看不到任何按键（现象：日志里能看到 joypad press=2 key=6c，但按了
+   * Start 游戏也不开始）。
+   * 键盘没有事件 ≠ 没有输入 ⇒ 直接返回当前的 keyPad。 */
   return keyPad;
 }

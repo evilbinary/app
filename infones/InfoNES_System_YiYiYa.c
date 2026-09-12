@@ -22,6 +22,7 @@
 #include "InfoNES_System.h"
 #include "InfoNES_pAPU.h"
 #include "screen.h"
+#include "time.h"  /* clock_gettime / nanosleep：帧节流用 */
 
 // bool define
 #define TRUE 1
@@ -158,7 +159,10 @@ DWORD dwKeyPad2;
 DWORD dwKeySystem;
 
 /* For Sound Emulation */
-BYTE final_wave[2048];
+/* 【缓冲必须 ≥ samples*4】samples 默认 735（44100/60）⇒ 立体声 16bit 需要
+ * 2940 字节。原来只给 2048 字节，却按 samples*4 写出 ⇒ 越界 892 字节；
+ * 且循环只填了前 samples*2 字节 ⇒ 后半截是上一帧的陈旧数据 ⇒ 听感"嘈杂"。 */
+BYTE final_wave[8192];
 int waveptr;
 int wavflag;
 int sound_fd;
@@ -798,7 +802,58 @@ void InfoNES_LoadFrame2() {
   screen_flush();
 }
 
+/*===================================================================*/
+/*       InfoNES_FramePace() : 帧节流（绝对时基，60.00Hz）           */
+/*===================================================================*/
+/* 【为什么必须节流】InfoNES_Wait() 在本移植里是【空实现】⇒ 模拟器完全不受
+ * 时间约束，主循环 for(;;) 全速运行 ⇒ 实测 app_fps=81（NES 应为 60fps，
+ * 快 1.35 倍），后果有两个：
+ *   ① 游戏速度偏快（动作/音乐节拍都偏快）；
+ *   ② 音频按 81 帧/秒生产（81×735×4 = 238KB/s），而编解码器只按 44.1kHz
+ *      消费（176.4KB/s）⇒ 环形缓冲持续净增 ⇒ 溢出 ⇒ 周期性爆响/断续。
+ * 【为什么放这里】本函数在 InfoNES_LoadFrame() 里被调用，而 FrameSkip 恒为 0
+ * （InfoNES.c 初始化后不再修改）⇒ LoadFrame 每帧恰好一次；且 APU 的音频写出
+ * （InfoNES_SoundOutput）就发生在本函数之前 ⇒ 音频生产间隔天然均匀。
+ * 【周期为什么是 16667us】NES 每帧产 735 个采样（samples_per_sync=735），
+ * 44100 / 735 = 60.00Hz ⇒ 只有帧率恰好 60.00 时音高才正确（用 60.0988 会让
+ * 音高系统性偏高 0.16%，听不出来，但与 735 样本严格配对更简单）。
+ * 【绝对排程】累加"目标时刻"而不是睡固定时长：nanosleep 的唤醒延迟会在下一帧
+ * 自动被扣回 ⇒ 平均帧率精确；若落后超过一帧（被抢占/阻塞）则重同步，避免
+ * 追赶风暴导致连续爆音。 */
+static void InfoNES_FramePace(void) {
+  static unsigned int next_us;
+  unsigned int now;
+  struct timespec ts;
+
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  now = (unsigned int)((u32)ts.tv_sec * 1000000u + (u32)ts.tv_nsec / 1000u);
+
+  if (next_us == 0) { /* 首帧：只建立基准 */
+    next_us = now + 16667u;
+    printf("frame pace: target 60.00Hz (16667us/frame)\n");
+    return;
+  }
+  if ((int)(now - next_us) < 0) {
+    return; /* 还没到下一帧的目标时刻：直接返回，不睡 */
+  }
+
+  next_us += 16667u; /* 推进到下一帧的目标时刻 */
+  {
+    int wait = (int)(next_us - now);
+    if (wait > 0) {
+      ts.tv_sec = 0;
+      ts.tv_nsec = (long)wait * 1000L;
+      nanosleep(&ts, NULL);
+    } else {
+      /* 已落后超过一帧（被抢占/阻塞）⇒ 重同步，防止追赶风暴 */
+      next_us = now + 16667u;
+    }
+  }
+}
+
 void InfoNES_LoadFrame() {
+  /* 帧节流：每帧恰好一次，详见上面 InfoNES_FramePace() 的说明 */
+  InfoNES_FramePace();
   /* XWIN/DIRECT：fd 为 -1，旧逻辑 if (fb_fd>0) 会整帧跳过 → 黑屏。 */
   if (fb_fd <= 0 || screen == NULL || screen->buffer == NULL) {
     return;
@@ -852,6 +907,20 @@ void InfoNES_PadState(DWORD *pdwPad1, DWORD *pdwPad2, DWORD *pdwSystem) {
 /*        InfoNES_SoundInit() : Sound Emulation Initialize           */
 /*                                                                   */
 /*===================================================================*/
+/* YiYiYa OSS ioctl 常量（duck/modules/sound/sound.h），自行声明避免依赖内核头 */
+#ifndef AFMT_S16_LE
+#define AFMT_S16_LE 16
+#endif
+#ifndef SNDCTL_DSP_SETFMT
+#define SNDCTL_DSP_SETFMT 11
+#endif
+#ifndef SNDCTL_DSP_CHANNELS
+#define SNDCTL_DSP_CHANNELS 33
+#endif
+#ifndef SNDCTL_DSP_SPEED
+#define SNDCTL_DSP_SPEED 44
+#endif
+
 void InfoNES_SoundInit(void) {}
 
 /*===================================================================*/
@@ -862,13 +931,24 @@ void InfoNES_SoundInit(void) {}
 int InfoNES_SoundOpen(int samples_per_sync, int sample_rate) {
   // sample_rate 采样率 44100
   // samples_per_sync  735
+  int fmt = AFMT_S16_LE;
+  int ch = 2;
+  int hz = sample_rate;
   printf("InfoNES_SoundOpen: samples_per_sync=%d, sample_rate=%d\n",
          samples_per_sync, sample_rate);
-  sound_fd = open(SOUND_DEVICE, 0);
+  /* O_WRONLY：原来写的是 0（=O_RDONLY），本内核虽不检查，但语义是错的 */
+  sound_fd = open(SOUND_DEVICE, O_WRONLY);
   if (sound_fd < 0) {
     sound_fd = -1;
     return 0;
   }
+  /* 【必须显式设定格式】原来只 open 不设参数 ⇒ 设备会沿用"上一个应用"留下的
+   * 配置（例如先跑 loopwave 播过 22.05k 单声道文件，设备就停在 mono/22050）
+   * ⇒ 同样的数据时而能听、时而怪。这里固定成 16bit 小端 / 立体声 / 44100，
+   * 与本文件写出的数据布局严格一致。 */
+  ioctl(sound_fd, SNDCTL_DSP_SETFMT, &fmt);
+  ioctl(sound_fd, SNDCTL_DSP_CHANNELS, &ch);
+  ioctl(sound_fd, SNDCTL_DSP_SPEED, &hz);
   return 1;
 }
 
@@ -887,27 +967,74 @@ void InfoNES_SoundClose(void) {}
 void InfoNES_SoundOutput(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3,
                          BYTE *wave4, BYTE *wave5) {
   int i;
-  int ret;
-  unsigned char wav;
+  int mn = (1 << 20), mx = -1;
 
-  if (sound_fd > 0) {
-    for (int i = 0; i < samples; i++) {
-      final_wave[i * 2 + 1] = final_wave[i * 2] =
-          (wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i]) * 50;
+  if (sound_fd > 0 && samples > 0) {
+    int maxs = (int)(sizeof(final_wave) / 4); /* 缓冲能容纳的立体声帧数 */
+    if (samples > maxs) {
+      samples = maxs;
+    }
+    /* 【数据映射·实查 InfoNES_pAPU.c 得到】各通道值域：
+     *   脉冲1/2 = pulse_xx[] * 音量 ⇒ 0..255（表元值 0x11 × 音量 0..15）
+     *   三角     = triangle_50[]   ⇒ 0..255
+     *   噪声     = ApuC4Vol/Env    ⇒ 0..15
+     *   DMC      = 1 + (dpcm << 1) ⇒ 很小
+     * ⇒ 求和 0..~1020，【静音 = 0】（不是 128）。
+     * 因此：静音必须输出 0；按 sum*32 映射到 0..32640（≈满幅、不溢出），
+     * 等价于原 8bit 写法 (sum/5) 的 160 倍。原代码 (sum*50) 存进 BYTE 会回绕
+     * ⇒ 失真"嘈杂"；上一版按"中心 128"偏移 ⇒ 压成 −32k 附近的窄摆幅 ⇒ 几乎无声。
+     * 布局：设备为 16bit 小端 / 2 声道 / 44100 ⇒ 一帧 4 字节（L 低高、R 低高）。 */
+    /* 【去直流·关键的一步】NES 的合成输出是【单极性】的（0..~1020，静音 = 0）。
+     * 直接线性映射到 16bit 会带一个接近半幅的【直流分量】；而真实的 NES 是交流
+     * 耦合输出，本 codec 的 DAC→耳放 通路未必能过直流 —— 实测现象正是"数据在流、
+     * DMA 在跑、却完全没声音"（直流把后级顶死/被削掉）。原代码的 BYTE 回绕恰好
+     * 制造了巨大交流分量，所以它"有声但嘈杂"。
+     * 这里加一级一阶高通（去直流），并保证静音仍输出 0：
+     *   y[n] = x[n] - x[n-1] + a*y[n-1],  a = 32700/32768 (≈0.998 ⇒ 截止 ~11Hz@44.1k)
+     * 状态跨帧保持，保证滤波连续。 */
+    {
+      static int xp, yp;
+      for (i = 0; i < samples; i++) {
+        int sum = wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i];
+        int x = sum * 32;
+        int y = x - xp + ((yp * 32700) >> 15);
+        short s;
+        if (sum < mn) {
+          mn = sum;
+        }
+        if (sum > mx) {
+          mx = sum;
+        }
+        xp = x;
+        if (y > 32767) {
+          y = 32767;
+        } else if (y < -32768) {
+          y = -32768;
+        }
+        yp = y;
+        s = (short)y;
+        final_wave[i * 4 + 0] = (BYTE)(s & 0xff);
+        final_wave[i * 4 + 1] = (BYTE)((s >> 8) & 0xff);
+        final_wave[i * 4 + 2] = final_wave[i * 4 + 0];
+        final_wave[i * 4 + 3] = final_wave[i * 4 + 1];
+      }
+    }
+
+    /* 【诊断·可删】前 3 帧 + 之后每 256 帧打一行：
+     *   sum = 五路求和原始范围（游戏中有音乐时应明显起伏，>0）
+     * 若长期 sum=0..0 ⇒ APU 没产生波形（问题在模拟侧）；若 sum 明显 >0 而仍无声
+     * ⇒ 问题在设备/后级（codec 增益、直流、DMA 数据）。 */
+    {
+      static int dbg;
+      dbg++;
+      if (dbg <= 3 || (dbg & 255) == 0) {
+        printf("apu out: n=%d sum=%d..%d\n", samples, mn, mx);
+      }
     }
 
     if (write(sound_fd, final_wave, samples * 4) < samples * 4) {
-      printf("wrote less than 1024 bytes\n");
+      printf("wrote less than %d bytes\n", samples * 4);
     }
-
-    // for (int i = 0; i < samples; i++) {
-    //   wav = (wave1[i] + wave2[i] + wave3[i] + wave4[i] + wave5[i]) / 5;
-    //   final_wave[i] = wav;
-    // }
-
-    // if (write(sound_fd, final_wave, samples)<0) {
-    //   printf("wrote less than 1024 bytes\n");
-    // }
   }
   return;
 }

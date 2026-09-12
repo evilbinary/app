@@ -453,6 +453,27 @@ static inline void K6502_Write( WORD wAddr, BYTE byData )
       {
         /* Write to APU Register */
         APU_Reg[ wAddr & 0x1f ] = byData;
+        /* 【接线修复·关键】原来只把值存进 APU_Reg[]，从未送进 APU 的事件队列
+         * —— 本工程里 pAPUSoundRegs[] 与 ApuWriteControl/InfoNES_pAPUWriteControl
+         * 全都只有定义、没有调用点 ⇒ 五个声道的音量/周期/使能永远是初值
+         * ⇒ 无论玩到哪都【完全没声音】（实测：每帧五路求和恒为 0..0，而画面与
+         * 操作都正常，与此完全吻合）。这里补上原版 InfoNES 的分发：
+         *   $4000..$4013 → pAPUSoundRegs[0..19]（表只有 20 项，索引必须限定）
+         *   $4015        → ApuWriteControl（声道使能 / DMC 等） */
+        {
+          WORD wa = (WORD)( wAddr & 0x1f );
+          if ( wa < 0x14 )
+          {
+            if ( pAPUSoundRegs[ wa ] != NULL )
+            {
+              pAPUSoundRegs[ wa ]( wAddr, byData );
+            }
+          }
+          else if ( wa == 0x15 )
+          {
+            ApuWriteControl( wAddr, byData );
+          }
+        }
       }
       else
       {
