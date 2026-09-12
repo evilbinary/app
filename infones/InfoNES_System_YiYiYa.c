@@ -22,7 +22,8 @@
 #include "InfoNES_System.h"
 #include "InfoNES_pAPU.h"
 #include "screen.h"
-#include "time.h"  /* clock_gettime / nanosleep：帧节流用 */
+#include "time.h"       /* nanosleep：帧节流用 */
+#include "xwin_user.h"  /* xwin_get_ticks()：与 libgui 同一个时钟源 */
 
 // bool define
 #define TRUE 1
@@ -823,30 +824,37 @@ void InfoNES_LoadFrame2() {
 static void InfoNES_FramePace(void) {
   static unsigned int next_us;
   unsigned int now;
-  struct timespec ts;
 
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  now = (unsigned int)((u32)ts.tv_sec * 1000000u + (u32)ts.tv_nsec / 1000u);
+  /* 【时钟源】用 xwin_get_ticks()（libgui 自己统计 app_fps 用的时钟，毫秒）。
+   * 不用 clock_gettime：本平台自带 libc 的 clock_gettime 是残缺实现（只给到
+   * 秒、nsec 恒 0），用它时"是否到达下一帧目标时刻"的比较永远不成立。
+   * 1ms 粒度带来的量化误差会由"绝对目标时刻"在下一帧自动扣回。 */
+  now = xwin_get_ticks() * 1000u; /* ms -> us */
 
-  if (next_us == 0) { /* 首帧：只建立基准 */
+  if (next_us == 0u) { /* 首帧：只建立基准 */
     next_us = now + 16667u;
-    printf("frame pace: target 60.00Hz (16667us/frame)\n");
     return;
   }
-  if ((int)(now - next_us) < 0) {
-    return; /* 还没到下一帧的目标时刻：直接返回，不睡 */
+  /* 【关键修正·必须"每帧睡一次"】原实现写成"到点才推进目标并睡"，于是被跳过睡眠
+   * 的那些帧同时也少推进了一次目标 ⇒ 系统会稳定在"睡眠占比 × 16.67ms"这个错误
+   * 平衡点上（实测：每帧只过去 12.06ms = 83fps，而 sleeps 只占 69% 调用）。
+   * 现在改成：每次调用都把目标推进到"未来最近的一格"，然后一定补睡到该时刻
+   * ⇒ 每帧恰好睡一次、周期恒 16667us ⇒ 帧率精确 60.00Hz。 */
+  if ((int)(now - next_us) >= 0) {
+    next_us += 16667u;
+    if ((int)(now - next_us) >= 0) {
+      /* 落后超过一帧（被抢占/阻塞）⇒ 重同步，不追赶以免连续爆音 */
+      next_us = now + 16667u;
+      return;
+    }
   }
-
-  next_us += 16667u; /* 推进到下一帧的目标时刻 */
   {
     int wait = (int)(next_us - now);
     if (wait > 0) {
+      struct timespec ts;
       ts.tv_sec = 0;
       ts.tv_nsec = (long)wait * 1000L;
       nanosleep(&ts, NULL);
-    } else {
-      /* 已落后超过一帧（被抢占/阻塞）⇒ 重同步，防止追赶风暴 */
-      next_us = now + 16667u;
     }
   }
 }
