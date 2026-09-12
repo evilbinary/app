@@ -17,7 +17,7 @@ bind del loadstate
 set joy 1
 set scale 2
 set sound 1
-set density 4
+set density 16
 set fullscreen 0
 set integer_scale 1
 set savedir ./
