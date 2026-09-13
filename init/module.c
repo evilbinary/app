@@ -93,6 +93,11 @@ void modules_init(void) {
   // REGISTER_MODULE(gpio);
   // REGISTER_MODULE(i2c);
   // REGISTER_MODULE(spi);
+#ifdef RASPI5
+  /* raspi5 bring-up: 还没有 DWC2 USB / BCM2836 外设驱动
+   * （Pi5 用 xHCI + GIC），先只注册有平台支持的模块 */
+  REGISTER_MODULE(test);
+#else
   REGISTER_MODULE(mouse);
   REGISTER_MODULE(usb);
   REGISTER_MODULE(gpu);
@@ -100,6 +105,7 @@ void modules_init(void) {
   REGISTER_MODULE(net);
   REGISTER_MODULE(test);
   REGISTER_MODULE(rtc);
+#endif
 
 
 #ifdef FAT_MODULE
