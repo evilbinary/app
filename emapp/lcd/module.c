@@ -158,6 +158,13 @@ void modules_init(void) {
   REGISTER_MODULE(loader);
 #endif
 
+/* 【系统配置】必须排在 fatfs/fat 之后：它们把 SD 卡挂到 "/"，sysconf 才能读到
+ * /conf/system.conf；同时要在 xwin/用户态应用开始画之前。
+ * 见 duck/modules/sysconf/sysconf.c。 */
+#ifdef SYSCONF_MODULE
+  REGISTER_MODULE(sysconf);
+#endif
+
 #ifdef MUSL_MODULE
   REGISTER_MODULE(musl);
 #endif
