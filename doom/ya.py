@@ -28,6 +28,7 @@ add_files([
 'i_joystick.c',
 'i_scale.c',
 'i_sound.c',
+'i_yiyiyasound.c',
 'i_system.c',
 'i_timer.c',
 'memio.c',

@@ -18,7 +18,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(FEATURE_SOUND) && !defined(__DJGPP__)
+/* 【YiYiYa】只有走 i_sdlsound.c（SDL_mixer）那条路才需要这个头。
+ * 本平台的声音后端是 i_yiyiyasound.c（自己混音后写 /dev/dsp），
+ * 而仓库里并没有 SDL_mixer，所以用 HAVE_SDL_MIXER 显式区分。 */
+#if defined(FEATURE_SOUND) && !defined(__DJGPP__) && defined(HAVE_SDL_MIXER)
 #include <SDL_mixer.h>
 #endif
 

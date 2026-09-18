@@ -32,8 +32,12 @@
 #undef FEATURE_MULTIPLAYER
 
 // Enables sound output
+//
+// 【YiYiYa】打开音效：后端是 i_yiyiyasound.c（自己混音后写 /dev/dsp，见该文件注释），
+// 不依赖 SDL_mixer。音乐（music_module_t）目前是空实现 —— Doom 的音乐是 MUS→MIDI，
+// 还需要合成器，本平台先只做音效。
 
-//#undef FEATURE_SOUND
+#define FEATURE_SOUND
 
 #endif /* #ifndef DOOM_FEATURES_H */
 
