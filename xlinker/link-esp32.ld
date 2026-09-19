@@ -86,6 +86,7 @@ SECTIONS {
   	_data_end = .;
   } > dram
 
+        . = ALIGN(4K) + STACK_SIZE;
   .stack :  ALIGN(4K) {
       _estack = .;
       . = . + STACK_SIZE;

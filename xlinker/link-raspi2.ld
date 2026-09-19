@@ -38,6 +38,7 @@ SECTIONS
                 __bss_end = .;
         }
         
+        . = ALIGN(4K) + STACK_SIZE;
         .stack :  ALIGN(4K) {
                 _estack = .;
                 . = . + STACK_SIZE;
