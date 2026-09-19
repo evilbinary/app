@@ -52,6 +52,14 @@ void modules_init(void) {
   REGISTER_MODULE(gpio);
   REGISTER_MODULE(i2c);
   REGISTER_MODULE(spi);
+
+#ifdef NET_DRIVER
+  /* 只有真的有网卡驱动的平台才注册（drivers 见 duck/modules/net/ya.py）。
+   * 用 NET_DRIVER 而不是 NET_MODULE：模块库是静态库，net_module 一旦被引用就会
+   * 拉入 net.o 并要求 net_init_device 有定义。 */
+  REGISTER_MODULE(net);
+#endif
+
   REGISTER_MODULE(usb);
   REGISTER_MODULE(mouse);
   REGISTER_MODULE(gpu);
