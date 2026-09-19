@@ -47,11 +47,10 @@ void display_time() {
 }
 
 void yiyiya_gui() {
-  int fd = open("/dev/mouse", 0);
-  printf("mouse fd %d\n", fd);
-  if (fd < 0) {
-    printf("gui: /dev/mouse not available, continuing without mouse\n");
-  }
+  /* 【必须初始化事件子系统】原来这里 open("/dev/mouse") 的 fd 被丢弃、也没调
+   * event_init()（对比 yiyiya_display 是调了的）⇒ libgui 的 event_info 全 0，
+   * event_read_mouse 会走非 xwin 分支去 read(fd 0)=stdin，永远拿不到鼠标数据。 */
+  event_init();
   screen_init();
   screen_info_t* screen = screen_info();
   if (screen == NULL) {
@@ -94,6 +93,12 @@ void yiyiya_display() {
     printf("screen_init end\n");
     screen = screen_info();
   }
+  event_init();
+
+  mouse_data_t mouse;
+  memset(&mouse, 0, sizeof(mouse));
+
+
   int i = 0;
   u32 w = screen != NULL && screen->width > 0 ? screen->width : 480;
   u32 h = screen != NULL && screen->height > 0 ? screen->height : 320;
@@ -101,8 +106,12 @@ void yiyiya_display() {
          screen != NULL ? (void*)screen->buffer : NULL,
          screen != NULL ? (int)(screen->screen_mode == SCREEN_MODE_XWIN) : -1);
   for (;;) {
+
+    event_read_mouse(&mouse);
+ 
     screen_fill_rect(0, 0, w, h, 0xffff0000);
     screen_printf(0, 0, "hello display YiYiYa Os %d\n", i);
+    screen_printf(0, 20, "mouse=%d,%d", mouse.x, mouse.y);
     screen_flush();
     i++;
     {

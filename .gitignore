@@ -181,3 +181,4 @@ rust/rust-crt-raspi2/target/
 */*._*
 resource/app/doom/doom
 resource/app/gpsp/gpsp
+resource/app/doom/doom
