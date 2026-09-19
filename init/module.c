@@ -19,6 +19,11 @@ void modules_init(void) {
   // require
   REGISTER_MODULE(devfs);
 
+  /* 诊断：/dev/irq（统一中断框架的 IRQ 表，只读）。
+   * 放在 devfs 之后：它要往 /dev 里挂节点；本身不依赖任何平台特性，
+   * 没注册 irq_chip 的平台只会看到一行提示（不是错误）。 */
+  REGISTER_MODULE(irq);
+
 
 #ifdef ARMV7
 
