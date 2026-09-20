@@ -1,0 +1,87 @@
+{
+    "id": "page_settings",
+    "title": "设置",
+    "icon": "⚙",
+    "watchApp": { "id": "settings", "path": "/settings", "order": 90 },
+    "js": ["settings.js"],
+    "type": "View",
+    "variant": "surface",
+    "flex": 1,
+    "scrollable": 1,
+    "layout": { "type": "vertical", "spacing": 8, "padding": [4, 16, 12, 16] },
+    "events": { "onLoad": "@onSettingsLoad", "onShow": "@onSettingsShow" },
+    "children": [
+        { "id": "settings_brand", "type": "Label", "variant": "overline", "text": "SYSTEM" },
+        { "id": "settings_title", "type": "Label", "variant": "title", "text": "设置" },
+        {
+            "id": "settings_theme_row",
+            "type": "View",
+            "variant": "list-row",
+            "size": [358, 48],
+            "layout": { "type": "horizontal", "spacing": 8, "padding": [10, 12, 10, 12], "align": "space-between" },
+            "children": [
+                { "id": "settings_theme_lbl", "type": "Label", "variant": "body", "text": "外观" },
+                { "id": "btn_toggle_theme", "type": "Button", "variant": "pill", "text": "切换", "size": [56, 32], "events": { "onClick": "@toggleWatchTheme" } }
+            ]
+        },
+        { "id": "settings_theme_val", "type": "Label", "variant": "caption", "text": "当前：暗色" },
+        {
+            "id": "settings_launcher_row",
+            "type": "View",
+            "variant": "list-row",
+            "size": [358, 48],
+            "layout": { "type": "horizontal", "spacing": 8, "padding": [10, 12, 10, 12], "align": "space-between" },
+            "children": [
+                { "id": "settings_launcher_lbl", "type": "Label", "variant": "body", "text": "App 视图" },
+                {
+                    "id": "settings_launcher_btns",
+                    "type": "View",
+                    "size": [120, 32],
+                    "layout": { "type": "horizontal", "spacing": 6, "align": "center" },
+                    "children": [
+                        {
+                            "id": "btn_launcher_bubble",
+                            "type": "Button",
+                            "variant": "pill",
+                            "text": "◎",
+                            "size": [56, 32],
+                            "events": { "onClick": "@setWatchLauncherBubble" }
+                        },
+                        {
+                            "id": "btn_launcher_grid",
+                            "type": "Button",
+                            "variant": "pill",
+                            "text": "⊞",
+                            "size": [56, 32],
+                            "events": { "onClick": "@setWatchLauncherGrid" }
+                        }
+                    ]
+                }
+            ]
+        },
+        { "id": "settings_launcher_val", "type": "Label", "variant": "caption", "text": "当前：蜂窝" },
+        {
+            "id": "settings_battery_row",
+            "type": "View",
+            "variant": "list-row",
+            "size": [358, 48],
+            "layout": { "type": "horizontal", "spacing": 8, "padding": [10, 12, 10, 12], "align": "center" },
+            "children": [
+                { "id": "settings_battery_lbl", "type": "Label", "variant": "body", "text": "电量", "flex": 1, "textAlign": "left" },
+                { "id": "settings_battery", "type": "Label", "variant": "caption", "text": "85%", "size": [48, 14], "textAlign": "right" },
+                { "id": "btn_settings_battery", "type": "Button", "variant": "pill", "text": "详情", "size": [44, 28], "events": { "onClick": "@openBattery" } }
+            ]
+        },
+        {
+            "id": "settings_about",
+            "type": "View",
+            "variant": "card",
+            "size": [358, 64],
+            "layout": { "type": "vertical", "spacing": 4, "padding": [10, 12, 10, 12] },
+            "children": [
+                { "id": "settings_about_title", "type": "Label", "variant": "heading", "text": "YUI Watch OS" },
+                { "id": "settings_about_ver", "type": "Label", "variant": "caption", "text": "v0.4 · 动态应用扫描" }
+            ]
+        }
+    ]
+}
