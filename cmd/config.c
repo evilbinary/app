@@ -77,10 +77,16 @@ int main(int argc, char* argv[]) {
 
   fclose(file);
 
-  // 等待所有子进程
-  while (child_count-- > 0) {
+  while (child_count > 0) {
     int status;
-    wait(&status);
+    pid_t ret = waitpid(-1, &status, WNOHANG);
+    if (ret > 0) {
+      child_count--;
+    } else if (ret < 0) {
+      break;
+    } else {
+      usleep(20000);
+    }
   }
 
   return 0;
