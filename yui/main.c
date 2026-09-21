@@ -118,7 +118,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    char* json_path="app/watch-os/app.json";
+    char* json_path="app/console-os/app.json"; //"app/watch-os/app.json";
     // 加载UI描述文件
     if(argc>1){
         json_path=argv[1];

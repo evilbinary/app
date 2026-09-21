@@ -210,6 +210,13 @@ function formatConsoleNumber(n) {
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+/* Label 宽度超 rect.w-10 会被截断成 "…" 并在悬停时弹出 tooltip，这里先按字数收敛 */
+function consoleShortText(text, max) {
+    if (!text) return "";
+    if (text.length <= max) return text;
+    return text.substring(0, max) + "…";
+}
+
 /* ==================== 电量 / 存储 / 常用信息 ==================== */
 
 function consoleBatteryIcon() {
@@ -388,6 +395,14 @@ function goConsoleBack() {
     }
     updateConsoleChrome();
     applyConsoleTheme();
+}
+
+/* 应用级按键：Esc/手柄 B 返回 */
+function onConsoleKey(layerId) {
+    var code = (typeof YUI.keyCode === "function") ? YUI.keyCode() : 0;
+    if (code === 27) {
+        goConsoleBack();
+    }
 }
 
 function onConsoleTouch(layerId, event) {

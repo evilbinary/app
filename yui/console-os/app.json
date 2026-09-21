@@ -3,7 +3,7 @@
     "icon": "🎮",
     "type": "View",
     "variant": "console-shell",
-    "assets": "app/assets",
+    "assets":"/font",
     "font": "Roboto-Regular.ttf",
     "fontFallback": "NotoColorEmoji.ttf",
     "size": [640, 480],
