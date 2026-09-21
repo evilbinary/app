@@ -48,6 +48,7 @@ void modules_init(void) {
   REGISTER_MODULE(fatfs);
 #endif
   REGISTER_MODULE(test);
+  REGISTER_MODULE(rtc);
 
 
 #elif defined(ARMV7_A)
