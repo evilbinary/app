@@ -33,6 +33,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
 /* 与 syscall(519,...,20000) 对齐：内核 1000Hz 下 20000 tick ≈ 20s */
 #define YUI_PERF_DURATION_SEC 60
+// #define YUI_PERF_ENABLE 1
+
 
 static int g_perf_dumped;
 static struct timespec g_perf_t0;
@@ -109,7 +111,9 @@ int main(int argc, char* argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &g_perf_t0);
     g_perf_dumped = 0;
     backend_register_update_callback(yui_perf_dump_once);
+#ifdef YUI_PERF_ENABLE
     syscall(519, 1000, 60000);
+#endif
 
     // 初始化 JS 引擎
     if (js_module_init() != 0) {
@@ -233,9 +237,12 @@ int main(int argc, char* argv[]) {
     js_module_cleanup();  // 清理 JS 引擎
     // destroy_layer(ui_root);  // 暂时注释掉以避免内存问题
     popup_manager_cleanup();
+
+    #ifdef YUI_PERF_ENABLE
     if (!g_perf_dumped) {
         syscall(520);  // 提前退出时补一次 dump
     }
+    #endif
     backend_quit();
     return 0;
 }
