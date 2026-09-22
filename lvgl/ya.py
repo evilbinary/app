@@ -2,7 +2,7 @@ target("lvgl.elf")
 set_type("cli")
 set_filename("lvgl")
 
-add_deps("lvgl")
+add_deps("lvgl-8.0.0")
 
 add_files(
     'lvgl.c',
