@@ -49,6 +49,7 @@ void modules_init(void) {
 #endif
   REGISTER_MODULE(test);
   REGISTER_MODULE(rtc);
+  REGISTER_MODULE(sound);
 
 
 #elif defined(ARMV7_A)
