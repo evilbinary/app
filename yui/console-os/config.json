@@ -1,5 +1,6 @@
 {
   "themeMode": "dark",
+  "emulatorRunMode": "external",
   "gridColumns": 6,
   "volume": 50,
   "brightness": 60,
