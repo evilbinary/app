@@ -155,3 +155,9 @@ add_files(
    'test-net.c'
 )
 add_cflags('-DHAVE_SIGNAL_H')
+
+target("test-system")
+set_type("cli")
+add_files(
+   'test-system.c'
+)

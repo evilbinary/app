@@ -218,6 +218,11 @@ void shell_loop() {
 int main(int argc, char* argv[]) {
   setenv("PATH", "/bin:/app/", 1);
 
+  /* `sh -c "cmd"`：供 system()/popen 等使用，执行完即退出 */
+  if (argc >= 3 && strcmp(argv[1], "-c") == 0) {
+    return do_exec(argv[2]);
+  }
+
   const char* home = getenv("HOME");
   if (home == NULL || home[0] == 0) {
     home = "/";
