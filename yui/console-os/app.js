@@ -181,6 +181,16 @@ function consoleRunEmulator(emuId, romPath) {
     if (!cmd || typeof YUI.spawn !== "function") {
         return "fullscreen";
     }
+    /* 没有真实 ROM 路径就不走外部进程：
+       listRoms() 返回两类条目 —— romDir 下扫描到的真实文件带 path，
+       而 gb.json 这类配置里的内置演示条目（俄罗斯方块等）没有 path 字段。
+       对 demo 条目 spawn 会得到不带参数的 `/bin/gnuboy`，它打印完 banner
+       就退出、system() 返回 -1（日志：backend_spawn: system failed），
+       还会顺着失败路径把 yui 拖进异常。走内嵌 fullscreen。 */
+    if (!romPath) {
+        YUI.log("[console] no rom path, skip external spawn: " + cmd);
+        return "fullscreen";
+    }
     if (romPath) {
         cmd = cmd + " " + consoleShellQuote(romPath);
     }
