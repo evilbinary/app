@@ -1,0 +1,10 @@
+Package: fceux
+Version: 
+Description: RS97 port of FCEUX; Fceux 2.2.2 for OpenDingux (with gui from Fceu320 v0.3)
+Section: emus
+Priority: optional
+Maintainer: pingflood
+Architecture: mipsel
+Homepage: https://github.com/pingflood/FCEUX
+Depends:
+Source: https://github.com/pingflood/FCEUX
