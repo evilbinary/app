@@ -606,7 +606,10 @@ int main(int argc, char *argv[])
     // specify a rom  filename
 	g_config->getOption("SDL.NoConfig", &noconfig);
 	if (!noconfig)
-		g_config->save();
+	{
+		// YiYiYa: 文件系统不可写时保存配置可能失败，不能让它结束进程
+		try { g_config->save(); } catch(...) { }
+	}
 	
 	std::string s;
 

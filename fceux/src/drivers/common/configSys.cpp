@@ -591,8 +591,8 @@ Config::reload(const std::string &cfgname)
     std::string line, name, value;
     char buf[1024];
 
-    // set the exception handling to catch i/o errors
-    config.exceptions(std::fstream::badbit);
+    // YiYiYa: 不开启 iostream 异常。根文件系统不可写（FAT 创建文件失败）时
+    // libc++ 会抛 ios_base::failure，libc++abi 随后直接 abort；改为检查流状态。
 
     try {
         // open the file for reading (create if it doesn't exist)
@@ -636,8 +636,7 @@ Config::reload(const std::string &cfgname)
 
         // close the file
         config.close();
-    } catch(std::fstream::failure e) {
-        std::cerr << e.what() << std::endl;
+    } catch(...) {
         return -1;
     }
 
@@ -656,8 +655,8 @@ Config::_load()
     std::string line, name, value;
     char buf[1024];
 
-    // set the exception handling to catch i/o errors
-    config.exceptions(std::fstream::badbit);
+    // YiYiYa: 不开启 iostream 异常。根文件系统不可写（FAT 创建文件失败）时
+    // libc++ 会抛 ios_base::failure，libc++abi 随后直接 abort；改为检查流状态。
 
     try {
         // open the file for reading (create if it doesn't exist)
@@ -701,8 +700,7 @@ Config::_load()
 
         // close the file
         config.close();
-    } catch(std::fstream::failure e) {
-        std::cerr << e.what() << std::endl;
+    } catch(...) {
         return -1;
     }
 
@@ -722,8 +720,7 @@ Config::save()
     std::string configFile = _dir + "/" + cfgFile;
     char buf[1024];
 
-    // set the exception handling to catch i/o errors
-    config.exceptions(std::ios::failbit | std::ios::badbit);
+    // YiYiYa: 不开启 iostream 异常，见本文件 reload() 的注释
 
     try {
         // open the file, truncate and for write
@@ -752,8 +749,7 @@ Config::save()
 
         // close the file
         config.close();
-    } catch(std::fstream::failure e) {
-        std::cerr << e.what() << std::endl;
+    } catch(...) {
         return -1;
     }
 
@@ -769,8 +765,7 @@ Config::save(const std::string &name)
     std::map<std::string, std::string>::iterator str_i;
     char buf[1024];
 
-    // set the exception handling to catch i/o errors
-    config.exceptions(std::ios::failbit | std::ios::badbit);
+    // YiYiYa: 不开启 iostream 异常，见本文件 reload() 的注释
 
     try {
         // open the file, truncate and for write
@@ -799,8 +794,7 @@ Config::save(const std::string &name)
 
         // close the file
         config.close();
-    } catch(std::fstream::failure e) {
-        std::cerr << e.what() << std::endl;
+    } catch(...) {
         return -1;
     }
 
