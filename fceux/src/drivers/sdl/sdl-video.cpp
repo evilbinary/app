@@ -56,6 +56,9 @@ extern Config *g_config;
 
 // STATIC GLOBALS
 extern SDL_Surface *s_screen;
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+static SDL_Window *s_window; // YiYiYa: yiyiya（libgui）后端的窗口
+#endif
 
 static SDL_Surface *s_BlitBuf; // Buffer when using hardware-accelerated blits.
 static SDL_Surface *s_IconSurface = NULL;
@@ -120,6 +123,11 @@ KillVideo()
 
 	// shut down the SDL video sub-system
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	/* SDL2：s_screen 是窗口表面，随子系统一起销毁，这里只清指针 */
+	s_screen = NULL;
+	s_window = NULL;
+#endif
 
 	s_inited = 0;
 	return 0;
@@ -151,11 +159,93 @@ void FCEUD_VideoChanged()
 }
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+/* YiYiYa: 原本这里是空实现（s_screen 一直为 NULL，BlitScreen 第一句
+   `if(!s_screen) return;` 直接返回），所以窗口建出来了、画面却全黑。
+   这里用 yiyiya 后端的窗口表面补上：
+     · 窗口尺寸由后端统一成 libgui 屏幕大小（如 640x480）；
+     · 该窗口表面的像素就是 libgui 的屏幕缓冲（ARGB8888）；
+     · 每帧 blit 完再 SDL_UpdateWindowSurface()，后端会 screen_flush() 到 LCD。
+   缩放与调色板沿用本文件已有的 Blit8ToHigh / SetPaletteBlitToHigh。 */
 int InitVideo(FCEUGI *gi)
 {
-	// This is a big TODO.  Stubbing this off into its own function,
-	// as the SDL surface routines have changed drastically in SDL2
-	// TODO - SDL2
+	int xstretch, ystretch;
+
+	FCEUI_printf("Initializing video...");
+
+	// load the relevant configuration variables
+	g_config->getOption("SDL.Fullscreen", &s_fullscreen);
+	g_config->getOption("SDL.SpecialFilter", &s_sponge);
+	g_config->getOption("SDL.XStretch", &xstretch);
+	g_config->getOption("SDL.YStretch", &ystretch);
+	g_config->getOption("SDL.ClipSides", &s_clipSides);
+	g_config->getOption("SDL.XScale", &s_exs);
+	g_config->getOption("SDL.YScale", &s_eys);
+	g_config->getOption("SDL.SpecialFX", &s_eefx);
+	(void)xstretch;
+	(void)ystretch;
+
+	// check the starting, ending, and total scan lines
+	FCEUI_GetCurrentVidSystem(&s_srendline, &s_erendline);
+	s_tlines = s_erendline - s_srendline + 1;
+
+	// initialize the SDL video subsystem if it is not already active
+	if(!SDL_WasInit(SDL_INIT_VIDEO)) {
+		if(SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+			FCEUD_PrintError(SDL_GetError());
+			return -1;
+		}
+	}
+	s_inited = 1;
+
+	if(s_window == NULL) {
+		// 传 0,0：后端会把窗口尺寸恢复成 libgui 屏幕大小
+		s_window = SDL_CreateWindow(FCEU_NAME_AND_VERSION, SDL_WINDOWPOS_UNDEFINED,
+		                            SDL_WINDOWPOS_UNDEFINED, 0, 0, 0);
+		if(s_window == NULL) {
+			FCEUD_PrintError(SDL_GetError());
+			return -1;
+		}
+	}
+	s_screen = SDL_GetWindowSurface(s_window);
+	if(s_screen == NULL) {
+		FCEUD_PrintError(SDL_GetError());
+		KillVideo();
+		return -1;
+	}
+	s_curbpp = s_screen->format->BitsPerPixel;
+	if(s_curbpp != 8 && s_curbpp != 16 && s_curbpp != 24 && s_curbpp != 32) {
+		FCEU_printf("  Sorry, %dbpp modes are not supported by FCE Ultra.\n",
+		            s_curbpp);
+		KillVideo();
+		return -1;
+	}
+
+	// 用配置的缩放，并保证不超出屏幕
+	if(s_exs < 1) {
+		s_exs = 1;
+	}
+	if(s_eys < 1) {
+		s_eys = 1;
+	}
+	if(s_screen->w < NWIDTH * s_exs) {
+		s_exs = (s_screen->w >= NWIDTH) ? (s_screen->w / NWIDTH) : 1;
+	}
+	if(s_screen->h < s_tlines * s_eys) {
+		s_eys = (s_screen->h >= s_tlines) ? (s_screen->h / s_tlines) : 1;
+	}
+
+	FCEU_printf(" Video Mode: %d x %d x %d bpp %s\n", s_screen->w, s_screen->h,
+	            s_screen->format->BitsPerPixel, s_fullscreen ? "full screen" : "");
+
+	// if using more than 8bpp, initialize the conversion routines
+	if(s_curbpp > 8) {
+		InitBlitToHigh(s_curbpp >> 3, s_screen->format->Rmask,
+		               s_screen->format->Gmask, s_screen->format->Bmask, s_eefx,
+		               s_sponge, 0);
+	}
+	s_paletterefresh = 1;
+	(void)gi;
+	return 0;
 }
 #else
 /**
@@ -727,7 +817,11 @@ BlitScreen(uint8 *XBuf)
 
 	 // ensure that the display is updated
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	//TODO - SDL2
+	/* YiYiYa: yiyiya 后端基于 libgui，UpdateWindowSurface 内部会
+	   screen_flush() 把窗口表面推到 LCD/xwin */
+	if(s_window != NULL) {
+		SDL_UpdateWindowSurface(s_window);
+	}
 #else
 	SDL_UpdateRect(s_screen, xo, yo,
 				(Uint32)(scrw * s_exs), (Uint32)(s_tlines * s_eys));
