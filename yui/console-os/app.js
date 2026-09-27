@@ -555,13 +555,18 @@ function consoleShellQuote(s) {
     return "\"" + String(s).replace(/"/g, "\\\"") + "\"";
 }
 
-function consolePushRecent(emuId, romTitle) {
+function consolePushRecent(emuId, romTitle, romPath) {
     var emu = EmulatorRegistry.findById(emuId);
     if (!emu) return;
     var entry = {
         emu: emu.id,
         icon: emu.icon,
         title: romTitle,
+        /* 必须把 ROM 路径一起存下来：desktop 的"最近游玩"卡片启动时
+           只拿得到这里的 entry。少了它，consoleRunEmulator 收到的
+           romPath 是 undefined ⇒ spawn 出不带参数的 `/bin/gnuboy`
+           （日志：spawn external: /bin/gnuboy，后面没有路径）。 */
+        path: romPath || "",
         meta: emu.short + " · 本次新增",
         when: "刚刚"
     };

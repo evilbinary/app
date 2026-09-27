@@ -220,7 +220,9 @@ function onRecentCardClick(layerId) {
     if (!entry) return;
 
     if (!consoleSelectEmulator(entry.emu)) return;
-    consoleLaunchAndRun(entry.emu, entry.title);
+    // entry.path 来自 consolePushRecent；老存档里没有该字段，传 "" 退化为
+    // 与改动前一致的行为（不带 ROM 参数）。
+    consoleLaunchAndRun(entry.emu, entry.title, entry.path || "");
 }
 
 function onDesktopClearRecent() {

@@ -156,6 +156,7 @@ int do_exec(char* cmd) {
   char cmd_buf[64];
   char* cmd_argv[64];
   int i = 0;
+  int k;
   const char* split = " ";
   char* ptr = strtok(cmd, split);
   memset(cmd_buf, 0, sizeof(cmd_buf));
@@ -165,6 +166,20 @@ int do_exec(char* cmd) {
     ptr = strtok(NULL, split);
   }
   cmd_argv[i] = NULL;
+  /* 剥离成对外层引号：system()/popen() 传进来的 cmd，其参数是调用方
+     （console-os 的 consoleShellQuote()）加的双引号，标准 sh 会解析掉。
+     我们不实现 shell 语法，但必须至少去掉外层引号，否则 gnuboy 会收到
+     "/rom/pokemon.gbc"（含字面引号）而打不开文件。
+     局限：strtok 按空格分词，参数内部含空格仍然不支持。 */
+  for (k = 0; k < i; k++) {
+    char* a = cmd_argv[k];
+    int len = strlen(a);
+    if (len >= 2 && ((a[0] == '"' && a[len - 1] == '"') ||
+                     (a[0] == '\'' && a[len - 1] == '\''))) {
+      memmove(a, a + 1, len - 2);
+      a[len - 2] = '\0';
+    }
+  }
   if (i <= 0 || cmd_argv[0] == NULL) {
     return 0;
   }

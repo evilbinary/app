@@ -141,7 +141,8 @@ function playerFinishBoot() {
     YUI.setText("player_screen_tip", "模拟器已接管画面输出 · 快捷键见底部提示");
 
     if (Console.running && !playerRecentPushed) {
-        consolePushRecent(Console.running.emuId, Console.running.rom);
+        consolePushRecent(Console.running.emuId, Console.running.rom,
+            Console.running.romPath);
         playerRecentPushed = true;
     }
 
