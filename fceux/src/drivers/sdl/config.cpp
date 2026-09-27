@@ -130,7 +130,7 @@ InitConfig()
 	// YiYiYa: 先默认关声音。AACI（PL041）首个中断在未映射寄存器页上出过异常，
 	// FIFO 不再被排空，驱动 write() 的自旋保底（2e7 次/字）把主循环拖到几秒一帧。
 	// 修好音频中断映射后再改回 1。
-	config->addOption('s', "sound", "SDL.Sound", 0);
+	config->addOption('s', "sound", "SDL.Sound", 1);
 	config->addOption("volume", "SDL.Sound.Volume", 150);
 	config->addOption("trianglevol", "SDL.Sound.TriangleVolume", 256);
 	config->addOption("square1vol", "SDL.Sound.Square1Volume", 256);

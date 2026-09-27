@@ -77,7 +77,18 @@ SpeedThrottle()
     
 	/*fprintf(stderr, "attempting to sleep %Ld ms, frame complete=%s\n",
 		time_left, InFrame?"no":"yes");*/
-	SDL_Delay(time_left);
+	/* YiYiYa: 内核 tick 虽是 1ms，但被控制台 UI（ymain）抢占时 SDL_Delay 会
+	   晚回约 3ms，实测帧率只有 ~40fps，而 fceux 只用 24% CPU —— 时间都花在
+	   等睡眠上。先睡到还剩 2ms，再用 SDL_GetTicks 自旋等到目标时刻，把唤醒
+	   延迟补回来；代价是每帧约 2ms 自旋（约 8% CPU）。 */
+	if(time_left > 3) {
+		SDL_Delay((Uint32)(time_left - 2));
+		while(SDL_GetTicks() < Nexttime) {
+			/* busy-wait the last ~2ms */
+		}
+	} else {
+		SDL_Delay(time_left);
+	}
     
 	if(!InFrame)
 	{
