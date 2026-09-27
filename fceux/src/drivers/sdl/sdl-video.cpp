@@ -729,6 +729,23 @@ BlitScreen(uint8 *XBuf)
 		s_paletterefresh = 0;
 	}
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	/* YiYiYa: 临时调试——确认 BlitScreen 真被调用、源缓冲与调色板有内容。
+	   定位完可删。 */
+	{
+		static int s_dbg_blit = 0;
+		if(s_dbg_blit < 3) {
+			printf("fceux blit#%d XBuf=%p [%02x %02x %02x %02x] psdl1=%d,%d,%d "
+			       "screen=%p %dx%d pitch=%d exs=%d eys=%d tlines=%d srend=%d\n",
+			       s_dbg_blit, (void *)XBuf, XBuf[0], XBuf[1], XBuf[2], XBuf[3],
+			       s_psdl[1].r, s_psdl[1].g, s_psdl[1].b, (void *)s_screen->pixels,
+			       s_screen->w, s_screen->h, s_screen->pitch, (int)s_exs, (int)s_eys,
+			       s_tlines, s_srendline);
+			s_dbg_blit++;
+		}
+	}
+#endif
+
 #ifdef OPENGL
 	// OpenGL is handled separately
 	if(s_useOpenGL) {

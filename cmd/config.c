@@ -77,15 +77,19 @@ int main(int argc, char* argv[]) {
 
   fclose(file);
 
+  /* YiYiYa: 原来用 waitpid(WNOHANG) + usleep(20000) 每 20ms 轮询，单核下常驻
+     约 40% CPU，和模拟器抢核。子进程退出本来就会唤醒父进程，直接阻塞等即可
+     （即使子进程是常驻服务不退出，阻塞在这里也是零开销）。 */
   while (child_count > 0) {
     int status;
-    pid_t ret = waitpid(-1, &status, WNOHANG);
+    pid_t ret = waitpid(-1, &status, 0);
     if (ret > 0) {
       child_count--;
     } else if (ret < 0) {
+      if (errno == EINTR) {
+        continue;  // 被信号打断，重试
+      }
       break;
-    } else {
-      usleep(20000);
     }
   }
 

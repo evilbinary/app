@@ -107,7 +107,10 @@ fceux_defines = (
     ' -D_GLIBCXX_USE_WCHAR_T'
 )
 
-add_cflags(fceux_defines + ' -g -ffreestanding -fpic')
+# YiYiYa: 原先没有任何 -O（gcc 默认 -O0），模拟核心 + 8bit→32bit 缩放拖到
+# 40ms/帧（约 21fps）。这里显式开 -O2；fceux 是老代码（有类型双关），
+# 同时关掉严格别名以防 -O2 下出问题。
+add_cflags(fceux_defines + ' -O2 -fno-strict-aliasing -g -ffreestanding -fpic')
 
 # 合并成单个字符串传：add_cxxflags 分多个参数时后段会被静默丢掉，
 # 而 -D_LIBCPP_BUILDING_LIBRARY 一丢，libcxx 的 <__availability> 里
@@ -118,7 +121,8 @@ add_cflags(fceux_defines + ' -g -ffreestanding -fpic')
 add_cxxflags(
     fceux_defines
     # 2.2.3 是老代码（src 下有 34 处 register），停在 c++11
-    + ' -std=c++11 -g -fpermissive'
+    # -O2/-fno-strict-aliasing：见上面对 add_cflags 的说明
+    + ' -std=c++11 -O2 -fno-strict-aliasing -g -fpermissive'
     + ' -Wno-write-strings -Wno-sign-compare'
     + ' -ffreestanding -fpic'
     + ' -fno-use-cxa-atexit -fno-threadsafe-statics -D_LIBCPP_HAS_MUSL_LIBC -D_LIBCPP_HAS_NO_LIBRARY_ALIGNED_ALLOCATION -D_LIBCPP_BUILDING_LIBRARY -D_POSIX_C_SOURCE -D_GNU_SOURCE -D_LIBCPP_HAS_NO_MONOTONIC_CLOCK -D_LIBCPP_HAS_NO_THREADS -D_LIBCXXABI_HAS_NO_THREADS '
