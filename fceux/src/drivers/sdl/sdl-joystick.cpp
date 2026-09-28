@@ -45,6 +45,12 @@ DTestButtonJoy(ButtConfig *bc)
 
 	for(x = 0; x < bc->NumC; x++)
 	{
+		/* YiYiYa: 配置里允许"键盘 + 手柄"混合（NumC=2 时两种类型各一条），
+		   这里只处理手柄类型的那几条，避免把键盘码当按钮号去查手柄 ✗ */
+		if(bc->ButtType[x] != BUTTC_JOYSTICK)
+		{
+			continue;
+		}
 		if(bc->ButtonNum[x] & 0x2000)
 		{
 			/* Hat "button" */

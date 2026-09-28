@@ -1106,18 +1106,23 @@ DTestButton (ButtConfig * bc)
 
 #define MK(x)       {{BUTTC_KEYBOARD},{0},{MKK(x)},1}
 #define MK2(x1,x2)  {{BUTTC_KEYBOARD},{0},{MKK(x1),MKK(x2)},2}
+/* YiYiYa: 键盘 + 设备手柄（OR）。btn 是 SDL 的手柄按钮号，见
+   eggs/libsdl2/src/joystick/yiyiya/SDL_sysjoystick.c 的 YIYIYA_KeyToButton：
+   上/下/左/右 = 0/1/2/3，A/B = 4/5，Select/Start = 12/13。 */
+#define MKJ(x,dev,btn) {{BUTTC_KEYBOARD,BUTTC_JOYSTICK},{0,dev},{MKK(x),btn},2}
 #define MKZ()       {{0},{0},{0},0}
 #define GPZ()       {MKZ(), MKZ(), MKZ(), MKZ()}
 
 ButtConfig GamePadConfig[4][10] = {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-/* Gamepad 1 */
-	{MK (KP_3), MK (KP_2), MK (SLASH), MK (ENTER),
-	MK (W), MK (Z), MK (A), MK (S), MKZ (), MKZ ()},
+/* Gamepad 1：键盘默认值 + 设备手柄（两者 OR ✓）
+   YiYiYa：设备手柄在 SDL 里的按钮号——上/下/左/右=0/1/2/3、A/B=4/5、Select/Start=12/13 */
+	{MKJ (KP_3, 0, 4), MKJ (KP_2, 0, 5), MKJ (SLASH, 0, 12), MKJ (ENTER, 0, 13),
+	MKJ (W, 0, 0), MKJ (Z, 0, 1), MKJ (A, 0, 2), MKJ (S, 0, 3), MKZ (), MKZ ()},
 #else
 	/* Gamepad 1 */
-	{MK (KP3), MK (KP2), MK (SLASH), MK (ENTER),
-	MK (W), MK (Z), MK (A), MK (S), MKZ (), MKZ ()},
+	{MKJ (KP3, 0, 4), MKJ (KP2, 0, 5), MKJ (SLASH, 0, 12), MKJ (ENTER, 0, 13),
+	MKJ (W, 0, 0), MKJ (Z, 0, 1), MKJ (A, 0, 2), MKJ (S, 0, 3), MKZ (), MKZ ()},
 #endif
 
 	/* Gamepad 2 */
