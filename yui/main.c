@@ -107,37 +107,150 @@ cJSON* parse_yaml_json_file(const char* file_path) {
  *
  * main() 里 backend_init() 之后的初始化全是阻塞的（解析 JSON、建树、加载
  * 字体/贴图、解析执行 JS），期间一帧都不画 → 看起来"启动慢且毫无反应"✓。
- * 这里直接用 backend_render_fill_rect + backend_render_present 画
- * "进度条 + 来回滑动的小方块"（backend_init() 之后渲染目标就是窗口，
- * 可以这样直接画 ✓），并在每个阶段打一条耗时，便于继续定位真凶 ✓。
+ * 这里直接用 backend_render_fill_rect + backend_render_texture +
+ * backend_render_present 画"标题 + 进度条 + 百分比"（backend_init() 之后
+ * 渲染目标就是窗口，可以这样直接画 ✓），并在每个阶段打一条耗时，便于
+ * 继续定位启动慢的真凶 ✓。
  * ------------------------------------------------------------------ */
 static unsigned g_load_t0 = 0;
+static DFont* g_load_font = NULL;       /* 标题用（28px） */
+static DFont* g_load_font_small = NULL; /* 进度文字用（16px，小一点 ✓） */
 
-static void loading_frame(int permille, int phase) {
-    int w = 0, h = 0;
+/* 启动阶段拿字体（和 console 的 assets 约定一致；失败就只有进度条，不崩 ✓） */
+static void loading_font_ensure(void) {
+    /* 运行时字体在 /font（console 的 app.json 是 "assets":"/font" ✓，
+       源文件在 app/resource/font/ ✓）；后两个给本机/开发用 ✓ */
+    static const char* cands[] = {
+        "/font/Roboto-Regular.ttf",
+        "app/resource/font/Roboto-Regular.ttf",
+        "font/Roboto-Regular.ttf",
+        NULL
+    };
+    int i;
+    if (g_load_font == NULL) {
+        for (i = 0; cands[i] != NULL && g_load_font == NULL; i++) {
+            g_load_font = backend_load_font_with_weight((char*)cands[i], 28, "normal");
+        }
+    }
+    if (g_load_font_small == NULL) {
+        for (i = 0; cands[i] != NULL && g_load_font_small == NULL; i++) {
+            g_load_font_small = backend_load_font_with_weight((char*)cands[i], 16, "normal");
+        }
+    }
+}
+
+/* 居中画一行文字；cy = 文字底边所在的 y（都用【逻辑坐标】✓） */
+static void loading_text(DFont* font, const char* s, Color color, int cy) {
+    Texture* t;
+    int tw = 0, th = 0, w = 0, h = 0;
+    float d;
+    Rect dst;
+
+    if (s == NULL || font == NULL) return;
+    t = backend_render_texture(font, s, color);
+    if (t == NULL) return;
+    backend_query_texture(t, NULL, NULL, &tw, &th);
+    /* 字体是按 size*yui_density（物理像素）栅格的，画的时候要换算回逻辑像素 ✓，
+       否则会被当成逻辑尺寸使用 ⇒ 再放大 density 倍 + 线性滤波 ⇒ 发虚 ✗ */
+    d = backend_get_density();
+    if (d < 0.5f) d = 1.0f;
+    tw = (int)(tw / d + 0.5f);
+    th = (int)(th / d + 0.5f);
     backend_get_windowsize(&w, &h);
     if (w <= 0) w = 640;
     if (h <= 0) h = 480;
+    dst.x = (w - tw) / 2;
+    dst.y = cy - th;
+    dst.w = tw;
+    dst.h = th;
+    backend_render_text_copy(t, NULL, &dst);
+    backend_render_text_destroy(t);
+}
+
+static void loading_frame(int permille, int phase) {
+    char pct[16];
+    int w = 0, h = 0;
+    Rect bg, track, fill;
+
+    (void)phase;
+    loading_font_ensure();
+
+    {   /* 只打一次：确认密度/窗口尺寸，用来判断"高清"有没有生效 ✓ */
+        static int s_dbg = 0;
+        if (!s_dbg) {
+            int dw = 0, dh = 0;
+            s_dbg = 1;
+            backend_get_windowsize(&dw, &dh);
+            printf("YUI: loading density=%.2f win=%dx%d\n",
+                   backend_get_density(), dw, dh);
+        }
+    }
+
+    backend_get_windowsize(&w, &h);
+    if (w <= 0) w = 640;
+    if (h <= 0) h = 480;
+
+    bg.x = 0; bg.y = 0; bg.w = w; bg.h = h;
+    backend_render_fill_rect(&bg, (Color){18, 18, 22, 255});
+
+    /* 标题：进度条上方 */
+    loading_text(g_load_font, "YiYiYa Console OS", (Color){235, 235, 245, 255}, h / 2 - 28);
+
+    /* 进度条：细一点（8px）、**直角**（圆角在"帧外直绘"里会变形 ✗），
+       渐变换成"分段填色"（观感接近，但只用矩形、更稳 ✓） */
+    track.x = w / 8;
+    track.y = h / 2;
+    track.w = w * 3 / 4;
+    track.h = 8;
+    backend_render_fill_rect(&track, (Color){40, 42, 52, 255});
+
+    if (permille < 0) permille = 0;
+    if (permille > 1000) permille = 1000;
+    fill = track;
+    fill.w = track.w * permille / 1000;
+    if (fill.w < 2) fill.w = 2;
     {
-        Rect bg = {0, 0, w, h};
-        backend_render_fill_rect(&bg, (Color){18, 18, 22, 255});
+        /* 已加载部分：分段填色做横向渐变 + 呼吸（亮度随 phase 轻微起伏 ✓） */
+        int k = phase % 12;
+        int lum = (k < 6 ? k : 11 - k);
+        int steps = 8, i;
+        for (i = 0; i < steps; i++) {
+            Rect seg;
+            Color c;
+            int x0 = fill.w * i / steps;
+            int x1 = fill.w * (i + 1) / steps;
+            c.r = (unsigned char)(55 + 12 * i);
+            c.g = (unsigned char)(125 + lum * 6 + 10 * i);
+            c.b = 245;
+            c.a = 255;
+            seg.x = fill.x + x0;
+            seg.y = fill.y;
+            seg.w = x1 - x0;
+            seg.h = fill.h;
+            if (seg.w <= 0) continue;
+            backend_render_fill_rect(&seg, c);
+        }
     }
-    {
-        Rect track = {w / 8, h / 2, w * 3 / 4, 16};
-        backend_render_fill_rect(&track, (Color){58, 58, 68, 255});
-        if (permille < 0) permille = 0;
-        if (permille > 1000) permille = 1000;
-        Rect fill = {track.x, track.y, track.w * permille / 1000, track.h};
-        if (fill.w < 2) fill.w = 2;
-        backend_render_fill_rect(&fill, (Color){90, 170, 255, 255});
+    {   /* 扫光：一条半透明白带沿已加载部分来回滑 ✓ */
+        int sw = track.w / 7;
+        int span, p, pos;
+        Rect sh;
+        if (sw < 8) sw = 8;
+        span = fill.w - sw;
+        if (span < 1) span = 1;
+        p = phase % 24;
+        pos = (p < 12 ? p : 23 - p) * span / 12;
+        sh.x = fill.x + pos;
+        sh.y = fill.y;
+        sh.w = sw;
+        sh.h = fill.h;
+        backend_render_fill_rect(&sh, (Color){255, 255, 255, 70});
     }
-    {   /* 来回滑动的小方块，看起来"在动" */
-        int span = w / 4, box = 12;
-        int p = phase % 20;
-        int dx = (p < 10 ? p : 19 - p) * span / 10;
-        Rect dot = {w * 3 / 8 + dx, h / 2 + 36, box, box};
-        backend_render_fill_rect(&dot, (Color){255, 200, 90, 255});
-    }
+
+    /* 进度百分比：进度条下方（小字号 16px ✓） */
+    snprintf(pct, sizeof(pct), "%d%%", permille / 10);
+    loading_text(g_load_font_small, pct, (Color){170, 190, 220, 255}, h / 2 + 30);
+
     backend_render_present();
 }
 
