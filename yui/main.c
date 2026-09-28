@@ -110,8 +110,8 @@ int main(int argc, char* argv[]) {
     /* 内核采样；到期只停采。满 20s 由 ymain 再调 520 dump（勿在 IRQ 里 dump） */
     clock_gettime(CLOCK_MONOTONIC, &g_perf_t0);
     g_perf_dumped = 0;
-    backend_register_update_callback(yui_perf_dump_once);
 #ifdef YUI_PERF_ENABLE
+    backend_register_update_callback(yui_perf_dump_once);
     syscall(519, 1000, 60000);
 #endif
 
