@@ -5,7 +5,7 @@
     "variant": "console-shell",
     "assets":"/font",
     "font": "Roboto-Regular.ttf",
-    "fontFallback": "NotoColorEmoji.ttf",
+    "fontFallback": "NotoEmoji-Regular.ttf",
     "size": [640, 480],
     "text": "YUI Game OS",
     "js": [

@@ -173,7 +173,6 @@ static void loading_frame(int permille, int phase) {
     Rect bg, track, fill;
 
     (void)phase;
-    loading_font_ensure();
 
     {   /* 只打一次：确认密度/窗口尺寸，用来判断"高清"有没有生效 ✓ */
         static int s_dbg = 0;
@@ -258,6 +257,11 @@ static void loading_frame(int permille, int phase) {
 static void loading_pulse(int permille, int frames) {
     int i;
     for (i = 0; i < frames; i++) {
+        /* 第一帧先出画面（进度条立刻可见 ✓），第二帧再去花时间取字体 ✓
+           —— 首次打开 TTF（大文件）要好几秒 ✗，别让它挡住"有反应"的感觉 ✓ */
+        if (i == 1) {
+            loading_font_ensure();
+        }
         loading_frame(permille, i + frames);
         backend_delay(30);
     }
@@ -311,6 +315,8 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Failed to parse file: %s\n", json_path);
         return -1;
     }    
+    /* 这一段之前是 JS 引擎初始化 + 解析 app.json（拆开看 ✓） */
+    loading_mark("json", 150, 1);
     Layer* ui_root = layer_create_from_json(root_json,NULL);
     if(ui_root==NULL){
         fprintf(stderr, "Failed to create UI from JSON: %s\n", json_path);
@@ -319,6 +325,9 @@ int main(int argc, char* argv[]) {
 
     // 设置 UI 根图层（须在加载 JS 之前，以便事件绑定能找到图层）
     js_module_init_layer(ui_root);
+
+    /* 建树完成（这一步只做图层树 ✓） */
+    loading_mark("ui_tree", 250, 1);
 
     load_all_fonts(ui_root);
     loading_mark("fonts", 300, 3);
