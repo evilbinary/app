@@ -32,6 +32,15 @@ int main(int argc, char* argv[]) {
       line[s - 1] = 0;
     }
 
+    /* YiYiYa: "wait <prog> [args]" 前缀 = 【前台运行】——等它退出后再继续
+     * 读下一行。用于 /bin/logo 这种启动动画：必须完整播完，否则会被
+     * 500ms 后就拉起的 /bin/ymain 直接盖住。不带前缀的仍是后台 + 500ms。 */
+    int wait_proc = 0;
+    if (strncmp(line, "wait ", 5) == 0) {
+      wait_proc = 1;
+      memmove(line, line + 5, strlen(line + 5) + 1);
+    }
+
     printf("line: %s\n", line);
 
     // 在栈上分配参数存储
@@ -67,6 +76,15 @@ int main(int argc, char* argv[]) {
       printf("exec proc %s\n", proc_copy);
       execv(proc_copy, args);
       _exit(1);
+    }
+
+    if (wait_proc) {
+      // 前台：等它退出（例如启动动画播完）再读下一行；不计入后台子进程数
+      int status;
+      printf("config: foreground, wait %s to exit\n", proc_copy);
+      while (waitpid(p1, &status, 0) < 0 && errno == EINTR) {
+      }
+      continue;
     }
 
     child_count++;

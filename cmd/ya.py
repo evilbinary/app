@@ -55,3 +55,15 @@ add_files("touch.c")
 target("config")
 set_type("cli")
 add_files("config.c") 
+
+
+# YiYiYa OS 启动动画（首次进入 OS 时播一遍，见 logo.c 顶部说明）。
+# 用 libgui 的基础图元绘制，所以依赖 gui；set_type("cli") 会把产物装到
+# app/resource/bin/logo ⇒ 镜像里的 /bin/logo。
+target("logo")
+set_type("cli")
+# 直接显示设计稿 /res/logo.png ⇒ 需要 libgui 的位图/PNG 解码
+add_deps("gui", "image", "jpeg", "png", "zlib")
+# 逐阶段重画，-O2 让混合/缩放快一些（infones 也是这么加的）
+add_cflags("-O2")
+add_files("logo.c") 
