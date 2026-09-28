@@ -52,7 +52,8 @@ add_deps("socket","yui","quickjs","jsmodule-quickjs","yaml2json"),
 add_files(
     'main.c',
 ) 
-add_cflags(' -DSDL_DISABLE_ARM_NEON_H ')
+# YiYiYa: 原来没有 -O（默认 -O0）。见 eggs/libyui/src/ya.py 的说明。
+add_cflags(' -DSDL_DISABLE_ARM_NEON_H -O2 -fno-strict-aliasing ')
 
 # add_cflags('-UCONFIG_PRINTF_RNDN -D_GNU_SOURCE -DUSE_FILE32API  -Ieggs/libquickjs -DCONFIG_BIGNUM')
 
