@@ -102,10 +102,72 @@ cJSON* parse_yaml_json_file(const char* file_path) {
 }
 
 // ====================== 主入口 ======================
+/* ------------------------------------------------------------------
+ * YiYiYa: 启动过程可视化
+ *
+ * main() 里 backend_init() 之后的初始化全是阻塞的（解析 JSON、建树、加载
+ * 字体/贴图、解析执行 JS），期间一帧都不画 → 看起来"启动慢且毫无反应"✓。
+ * 这里直接用 backend_render_fill_rect + backend_render_present 画
+ * "进度条 + 来回滑动的小方块"（backend_init() 之后渲染目标就是窗口，
+ * 可以这样直接画 ✓），并在每个阶段打一条耗时，便于继续定位真凶 ✓。
+ * ------------------------------------------------------------------ */
+static unsigned g_load_t0 = 0;
+
+static void loading_frame(int permille, int phase) {
+    int w = 0, h = 0;
+    backend_get_windowsize(&w, &h);
+    if (w <= 0) w = 640;
+    if (h <= 0) h = 480;
+    {
+        Rect bg = {0, 0, w, h};
+        backend_render_fill_rect(&bg, (Color){18, 18, 22, 255});
+    }
+    {
+        Rect track = {w / 8, h / 2, w * 3 / 4, 16};
+        backend_render_fill_rect(&track, (Color){58, 58, 68, 255});
+        if (permille < 0) permille = 0;
+        if (permille > 1000) permille = 1000;
+        Rect fill = {track.x, track.y, track.w * permille / 1000, track.h};
+        if (fill.w < 2) fill.w = 2;
+        backend_render_fill_rect(&fill, (Color){90, 170, 255, 255});
+    }
+    {   /* 来回滑动的小方块，看起来"在动" */
+        int span = w / 4, box = 12;
+        int p = phase % 20;
+        int dx = (p < 10 ? p : 19 - p) * span / 10;
+        Rect dot = {w * 3 / 8 + dx, h / 2 + 36, box, box};
+        backend_render_fill_rect(&dot, (Color){255, 200, 90, 255});
+    }
+    backend_render_present();
+}
+
+/* 连画几帧产生"动画"（每帧 30ms） */
+static void loading_pulse(int permille, int frames) {
+    int i;
+    for (i = 0; i < frames; i++) {
+        loading_frame(permille, i + frames);
+        backend_delay(30);
+    }
+}
+
+/* 打一条阶段耗时并刷新一帧；permille = 进度千分比，frames = 多画几帧做动画 */
+static void loading_mark(const char* what, int permille, int frames) {
+    unsigned now = backend_get_ticks();
+    if (g_load_t0 != 0) {
+        printf("YUI: startup %-16s %5ums\n", what, (unsigned)(now - g_load_t0));
+    }
+    g_load_t0 = now;
+    loading_pulse(permille, frames);
+}
+
 int main(int argc, char* argv[]) {
 
     backend_init();
+    g_load_t0 = backend_get_ticks();
     popup_manager_init();
+
+    /* 先给一帧，避免"启动后黑屏、毫无反应" */
+    loading_mark("init", 40, 3);
 
     /* 内核采样；到期只停采。满 20s 由 ymain 再调 520 dump（勿在 IRQ 里 dump） */
     clock_gettime(CLOCK_MONOTONIC, &g_perf_t0);
@@ -146,6 +208,7 @@ int main(int argc, char* argv[]) {
     js_module_init_layer(ui_root);
 
     load_all_fonts(ui_root);
+    loading_mark("fonts", 300, 3);
 
     // 先加载 source 中的 JS，再加载主 JSON，确保 onLoad 触发时脚本已就绪
     printf("加载并执行 JS 文件...\n");
@@ -168,6 +231,7 @@ int main(int argc, char* argv[]) {
     } else {
         js_module_load_from_json(root_json, json_path, 1);
     }
+    loading_mark("js", 600, 3);
     print_registered_events();
 
     // 如果根图层没有设置宽度和高度，则根据窗口大小设置
@@ -229,8 +293,10 @@ int main(int argc, char* argv[]) {
     // load_all_fonts 已经在 layer_create_from_json 之后调用过了
 
     load_textures(ui_root);
+    loading_mark("textures", 850, 3);
     layout_layer(ui_root);
 
+    loading_mark("ready", 1000, 2);
     backend_run(ui_root);
 
     // 清理资源
