@@ -31,7 +31,8 @@
 #include "time.h"
 
 /* ---- 可调参数 ---------------------------------------------------- */
-#define STAGE_MS 100      /* 每步之间停一下(ms) */
+#define STAGE_MS 180      /* 每步之间停一下(ms)：8 步 ≈ 1.5s，能在 ymain 建窗口前播完 */
+#define LOGO_DIAG 0       /* 打印每步实际等待时长（定位"闪一下"用，稳定后关掉）*/
 #define LOGO_PATH "/res/logo.png"
 #define LOGO_MAX_MS 30000 /* 仅安全兜底，正常不会触发 */
 
@@ -45,11 +46,31 @@ static bitmap_t* g_logo = NULL;
 static unsigned char* g_src = NULL; /* RGBA 字节流 */
 static int g_bw = 0, g_bh = 0;
 
+/* 延时 ms。
+ * 【为什么不用 nanosleep】miyoo 真机上内核的 nanosleep 基本不生效 —— 实测整个
+ * 启动动画（8 步）只花了 137ms，等于一闪而过。所以这里以 xwin_get_ticks()
+ * （毫秒 @1kHz，见 duck/kernel/schedule.c）为准自己做墙钟等待；nanosleep 只用来
+ * 让出 CPU（在 QEMU/versatilepb 上它才真正生效）。带迭代上限，绝不挂死。 */
 static void logo_sleep_ms(int ms) {
-  struct timespec ts;
-  ts.tv_sec = ms / 1000;
-  ts.tv_nsec = (long)(ms % 1000) * 1000000L;
-  nanosleep(&ts, NULL);
+  u32 t0, t1;
+  int guard;
+  if (ms <= 0) return;
+  t0 = xwin_get_ticks();
+  for (guard = 0; guard < 20000; guard++) {
+    struct timespec ts;
+    if ((u32)(xwin_get_ticks() - t0) >= (u32)ms) break;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000000L; /* 1ms */
+    nanosleep(&ts, NULL);
+  }
+  t1 = xwin_get_ticks();
+  /* 诊断：每步实际等了多久。若这里恒为 0 而日志里 "logo: done" 也很小，
+     说明 xwin_get_ticks() 在这个线程上不前进（SMP 迁移/tick 问题），
+     那就得改内核侧（让 get_ticks 返回固定 CPU 的计数）。 */
+  if (LOGO_DIAG) {
+    printf("logo: sleep %dms -> %ums (t=%u)\n", ms, (unsigned)(t1 - t0),
+           (unsigned)t1);
+  }
 }
 
 /* 把 (r,g,b,a) 按 alpha 混到 (X,Y) 上 */
@@ -243,6 +264,14 @@ int main(int argc, char* argv[]) {
   screen_flush();
 
 done:
+  /* 退出前销毁自己的 xwin 窗口。libgui 自己换模式时就是这么做的
+     （screen.c 里 screen_set_mode/screen_set_size 都调 xwin_destroy）。
+     不销毁的话 kernel 里会残留一个全屏 DIRECT 窗口，紧接着启动的
+     /bin/ymain 创建窗口时可能撞上，表现为 ymain 一起来就崩。 */
+  if (g_sc != NULL && g_sc->xwin_handle != 0) {
+    xwin_destroy(g_sc->xwin_handle);
+    g_sc->xwin_handle = 0;
+  }
   printf("logo: done %ums\n", (unsigned)(xwin_get_ticks() - t0));
   return 0;
 }

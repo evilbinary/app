@@ -2,12 +2,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
 #define MAX_LINE 256
 #define MAX_ARGS 30
 #define MAX_ARG_LEN 128
+
+/* 墙钟延时。miyoo 真机上内核的 usleep/nanosleep 基本不生效（实测启动动画
+ * 8 步只花了 137ms），所以这里以 xwin 的 get_ticks（syscall 0x5019，毫秒
+ * @1kHz）为准；nanosleep 只用来让出 CPU。带迭代上限，绝不挂死。 */
+static unsigned int tick_now(void) {
+  return (unsigned int)syscall(0x5019);
+}
+
+static void delay_ms(unsigned int ms) {
+  unsigned int t0 = tick_now();
+  unsigned int n = 0;
+  if (ms == 0) return;
+  while ((unsigned int)(tick_now() - t0) < ms) {
+    struct timespec ts;
+    if (++n > 3000) break; /* 兜底：tick 不可用时最多再看 3 秒 */
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000000L; /* 1ms */
+    nanosleep(&ts, NULL);
+  }
+}
 
 int main(int argc, char* argv[]) {
   FILE* file;
@@ -79,11 +100,15 @@ int main(int argc, char* argv[]) {
     }
 
     if (wait_proc) {
-      // 前台：等它退出（例如启动动画播完）再读下一行；不计入后台子进程数
-      int status;
-      printf("config: foreground, wait %s to exit\n", proc_copy);
-      while (waitpid(p1, &status, 0) < 0 && errno == EINTR) {
-      }
+      /* "wait <prog>"：给这个程序一段"独占启动"的时间（默认 2.5s）。
+       * 【故意不 waitpid】本内核是在 waitpid 回收时才真正释放僵尸线程的
+       * vm/页（见 duck/kernel/thread.c 的注释）。提前回收 ⇒ 紧接着 fork 的
+       * 全屏 app 会复用刚释放的那批页；miyoo 真机上表现为后者一启动就
+       * PREF ABORT（QEMU 不模拟 cache/TLB，看不出）。所以这里只延时、
+       * 不回收；真正的回收交给文件读完后的 waitpid 循环。 */
+      printf("config: head-start %dms for %s (no reap)\n", 2500, proc_copy);
+      delay_ms(2500);
+      child_count++;
       continue;
     }
 
