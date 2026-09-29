@@ -19,8 +19,15 @@ int ffplayer(int argc, char *argv[]) {
   int i, videoindex;
   AVCodecContext *pCodecCtx;
   AVCodec *pCodec;
-  // char filepath[] = "/test.wmv";
-  char filepath[] = "/test.mp4";
+  /* YiYiYa: 输入文件/URL 从命令行参数取，不要写死：
+   *   player <file|url>    例如：player /roms/video.mp4
+   *                          player rtsp://user:pass@host:port/...
+   * 不给参数时才回退到默认路径（方便调试）。 */
+  const char *filepath = "/test.mp4";
+  if (argc > 1 && argv[1] != NULL && argv[1][0] != '\0') {
+    filepath = argv[1];
+  }
+  printf("player: open %s\n", filepath);
 
   //av_log_set_level(AV_LOG_TRACE);  // AV_LOG_TRACE AV_LOG_VERBOSE
   //   char rtspUrl[] = "rtsp://admin:12345@192.168.10.76:522";

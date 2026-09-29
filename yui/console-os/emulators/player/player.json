@@ -1,0 +1,37 @@
+{
+  "id": "player",
+  "title": "播放器",
+  "short": "PLAY",
+  "icon": "🎬",
+  "subtitle": "Video Player · FFmpeg",
+  "core": "ffmpeg",
+  "exec": "player",
+  "systems": [
+    "MP4",
+    "MKV",
+    "AVI",
+    "TS",
+    "RTSP"
+  ],
+  "exts": [
+    "mp4",
+    "mkv",
+    "avi",
+    "mov",
+    "flv",
+    "ts",
+    "webm",
+    "m4v",
+    "mp3",
+    "flac",
+    "wav",
+    "aac",
+    "m4a",
+    "ogg"
+  ],
+  "romDir": "roms/video",
+  "accent": "#A78BFA",
+  "order": 90,
+  "bio": "基于 FFmpeg 的播放器：本地视频/音频文件与 RTSP/HTTP 网络流（player <file|url>）。",
+  "roms": []
+}
