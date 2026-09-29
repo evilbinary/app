@@ -26,13 +26,13 @@ add_deps("sdl2")
 add_files('main.c')
 
 
-# target("player")
-#     set_type("cli")
+target("player")
+set_type("cli")
 
-#     add_deps("sdl2")
-#     add_packages("ffmpeg")
+add_deps("sdl2")
+add_packages("ffmpeg")
 
-#     add_files('player.c')
+add_files('player.c')
 
 
 target("loopwave")
