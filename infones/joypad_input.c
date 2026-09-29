@@ -9,7 +9,14 @@ extern int bThread;
 static unsigned char keyPad = 0;
 
 int InitJoypadInput(void) {
-  input_fd = open("/dev/stdin", 0);
+  /* 【必须自己开 /dev/joystick】libgui 的 event_init() 在 xwin 模式下故意不打开
+   * 手柄（注释原文："xwin 的应用现在都走 SDL……需要手柄的非 SDL 程序请自行打开"）
+   * ⇒ 它的 event_read_joystick() 在 xwin 下永远返回 -1 ✗。
+   * 原来这里开的是 /dev/stdin ⇒ 根本收不到手柄事件 ⇒ infones 摇杆无输入 ✗。
+   * 内核设备 open 是独占的：若 SDL（ymain）已持有，这里会失败并打印 fd=-1，
+   * 那就需要 ymain 在 spawn 游戏时先放开手柄（见下面的打印）。 */
+  input_fd = open("/dev/joystick", 0);
+  printf("infones: open /dev/joystick fd=%d\n", input_fd);
   keyPad = 0;
   return 1;
 }
@@ -22,7 +29,16 @@ int InitJoypadInput(void) {
 
 int GetJoypadInput(void) {
   u32 key = 0;
-  u32 press = event_read_joystick(&key);
+  u32 press = 0;
+  /* 【自己读】不用 event_read_joystick()（xwin 下它是死的 ✗）。解码约定与
+   * libgui 一致：低 7 位为键码，0x80 置位 = 松开(1)，否则 = 按下(2)。 */
+  if (input_fd >= 0) {
+    unsigned char code = 0;
+    if (read(input_fd, &code, 1) > 0) {
+      key = code & 0x7f;
+      press = (code & 0x80) ? 1 : 2;
+    }
+  }
   if (press > 0) {
     /* 【诊断·可删】按键打印（只在变化时打，避免按住时每帧刷屏）：
      * press=2 为按下、1 为松开；key 为键码。用于判定"内核已收到按键（看到 keypad
