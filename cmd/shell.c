@@ -97,13 +97,17 @@ void print_string(char* str) {
   fflush(stdout);
 }
 
+static int shell_split_args(char* cmd, char** out, int max); /* 前向声明 */
+
 void cd_command(char* cmd) {
-  char buf[64];
-  char* argv[64];
-  int i = 0;
-  const char* split = " ";
-  char* ptr = strtok(cmd, split);
-  ptr = strtok(NULL, split);
+  char* argv[8];
+  char* ptr;
+  /* 引号感知切分 ✓（cd "my dir" 也能用）*/
+  shell_split_args(cmd, argv, 8);
+  ptr = argv[1];
+  if (ptr == NULL) {
+    return;
+  }
   print_string(ptr);
   chdir(ptr);
 }
@@ -152,34 +156,41 @@ int run_exec(char* cmd, char** argv) {
   return pid;
 }
 
+/* YiYiYa·修复：按【引号感知】切分命令行 —— 原实现 strtok(" ") 只按空格切 ✗，
+ * console-os 传来的带引号路径（consoleShellQuote： "roms/nes/The Legend.nes"）
+ * 会被切成多个 token：argv[1] =  "roms/nes/The  ⇒ 路径被空格截断、引号也去不掉
+ * ⇒ infones 打不开 ROM（open nes faild）✗。
+ * 现在：遇 ' 或 " 就吞到匹配的引号为止（引号内的空格不切 ✓，引号被剥掉 ✓）。 */
+static int shell_split_args(char* cmd, char** out, int max) {
+  int n = 0;
+  char* p = cmd;
+  while (*p && n < max - 1) {
+    while (*p == ' ' || *p == '\t') p++;
+    if (!*p) break;
+    if (*p == '"' || *p == '\'') {
+      char q = *p++;
+      out[n++] = p;
+      while (*p && *p != q) p++;
+      if (*p == q) *p++ = '\0';
+    } else {
+      out[n++] = p;
+      while (*p && *p != ' ' && *p != '\t') p++;
+      if (*p) *p++ = '\0';
+    }
+  }
+  out[n] = NULL;
+  return n;
+}
+
 int do_exec(char* cmd) {
-  char cmd_buf[64];
+  char cmd_buf[128];
   char* cmd_argv[64];
   int i = 0;
   int k;
-  const char* split = " ";
-  char* ptr = strtok(cmd, split);
   memset(cmd_buf, 0, sizeof(cmd_buf));
   memset(cmd_argv, 0, sizeof(cmd_argv));
-  while (ptr != NULL && i < 63) {
-    cmd_argv[i++] = ptr;
-    ptr = strtok(NULL, split);
-  }
-  cmd_argv[i] = NULL;
-  /* 剥离成对外层引号：system()/popen() 传进来的 cmd，其参数是调用方
-     （console-os 的 consoleShellQuote()）加的双引号，标准 sh 会解析掉。
-     我们不实现 shell 语法，但必须至少去掉外层引号，否则 gnuboy 会收到
-     "/rom/pokemon.gbc"（含字面引号）而打不开文件。
-     局限：strtok 按空格分词，参数内部含空格仍然不支持。 */
-  for (k = 0; k < i; k++) {
-    char* a = cmd_argv[k];
-    int len = strlen(a);
-    if (len >= 2 && ((a[0] == '"' && a[len - 1] == '"') ||
-                     (a[0] == '\'' && a[len - 1] == '\''))) {
-      memmove(a, a + 1, len - 2);
-      a[len - 2] = '\0';
-    }
-  }
+  /* 引号感知切分：带空格的路径（"roms/nes/The Legend.nes"）也正确 ✓ */
+  i = shell_split_args(cmd, cmd_argv, 64);
   if (i <= 0 || cmd_argv[0] == NULL) {
     return 0;
   }

@@ -80,6 +80,7 @@ int GetJoypadInput(void) {
         case KEY_HOME:
           printf("quit\n");
           bThread = 0;
+          { extern void exit(int); exit(0); } /* YiYiYa: HOME 双保险——立即退出，保证回 console-os ✓ */
         default:
           break;
       }
