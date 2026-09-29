@@ -170,7 +170,8 @@ function cycleConsoleRunMode() {
     return Console.emulatorRunMode;
 }
 
-/* 按设置启动模拟器：外部进程成功返回 "external"；不可用/失败回退 "fullscreen" */
+/* 按设置启动模拟器：只要外部进程【跑过】就返回 "external"（不再因返回码
+ * 回退 fullscreen/运行页）；仅配置为内置或环境不可用（无命令/无 ROM）才回退。 */
 function consoleRunEmulator(emuId, romPath) {
     var mode = Console.emulatorRunMode || "external";
     if (mode !== "external") {
@@ -196,11 +197,14 @@ function consoleRunEmulator(emuId, romPath) {
     }
     YUI.log("[console] spawn external: " + cmd);
     var rc = YUI.spawn(cmd);
-    if (rc === 0) {
-        return "external";
+    /* YiYiYa: 外部进程【运行过之后不进运行页面】—— spawn 是阻塞的，返回时
+     * 外部模拟器已经退出；player 页是给"内置 fullscreen 回退"用的，外部跑过
+     * 再叠一层反而干扰。rc!=0 只记录日志（含本内核 system() 返回码怪癖
+     * rc=-1、游戏自身非 0 退出），不再回退 fullscreen。 */
+    if (rc !== 0) {
+        YUI.log("[console] spawn rc=" + rc + " (external ran, no player page)");
     }
-    YUI.log("[console] spawn failed rc=" + rc + ", fallback fullscreen");
-    return "fullscreen";
+    return "external";
 }
 
 /* 启动游戏：记录运行状态，按模式决定外部进程或进入播放页 */
@@ -209,7 +213,8 @@ function consoleLaunchAndRun(emuId, romTitle, romPath) {
 
     var mode = consoleRunEmulator(emuId, romPath);
     if (mode === "external") {
-        setConsoleHint("已启动外部模拟器进程 · " + romTitle);
+        /* spawn 阻塞到外部进程退出，返回时提示"运行结束"更准确 */
+        setConsoleHint("外部模拟器运行结束 · " + romTitle);
         return;
     }
 
