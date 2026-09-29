@@ -49,3 +49,13 @@ set_type("cli")
 add_deps("sdl2")
 
 add_files('sdl2thread.c')
+
+
+target("testjoystick2")
+set_type("cli")
+
+add_cflags(' -DSDL_DISABLE_ARM_NEON_H ')
+
+add_deps("sdl2")
+
+add_files('testjoystick2.c')

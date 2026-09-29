@@ -178,6 +178,16 @@ void ev_poll()
     SDL_Event event;
     static SDL_GameController *pad = NULL;
 
+    /* YiYiYa: 主动打开 0 号手柄 —— 与 libyui/backend_sdl.c 的做法一致。
+       只靠下面的 SDL_CONTROLLERDEVICEADDED 事件打开，事件没来就整个手柄
+       收不到（方向键不能玩、HOME 不能退）✗；这里每次先确保打开一次。 */
+    if (!pad && joy_enable && SDL_NumJoysticks() > 0) {
+        pad = SDL_GameControllerOpen(0);
+        if (pad) {
+            printf("gnuboy: gamepad opened\n");
+        }
+    }
+
     while(SDL_PollEvent(&event))
     {
         if (event.type == SDL_QUIT)
@@ -221,6 +231,14 @@ void ev_poll()
                 }
             }
 
+            /* YiYiYa: 键盘 HOME 也退出（有 PS/2 键盘的平台；miyoo 的 HOME
+               走手柄事件，见上面的 SDL_JOYBUTTONDOWN 分支）。 */
+            if (scancode == SDL_SCANCODE_HOME && event.type == SDL_KEYDOWN)
+            {
+                printf("gnuboy: HOME(key) -> exit\n");
+                exit(0);
+            }
+
             //If the keycode is > MAX_KEYS, its not a standard ascii button and its not in the kb_sdlkeycode_to_gnuboy map.
             if (keycode < MAX_KEYS)
             {
@@ -237,7 +255,7 @@ void ev_poll()
         else if (event.type == SDL_CONTROLLERDEVICEADDED && joy_enable)
         {
             if(joy_trace) printf("JOY:    Controller connected with index: %d\n", event.cdevice.which);
-            SDL_GameControllerOpen(event.cdevice.which);
+            if (!pad) pad = SDL_GameControllerOpen(event.cdevice.which); /* 已主动打开则不重复 ✓ */
             if(joy_trace) printf("JOY:    Opened controller: %s\n",
                                  SDL_GameControllerNameForIndex(event.cdevice.which));
         }
@@ -275,6 +293,7 @@ void ev_poll()
         {
             if (event.jbutton.button == 14 /* HOME 0x70 */)
             {
+                printf("gnuboy: HOME -> exit\n");
                 exit(0);
             }
         }
