@@ -172,6 +172,24 @@ void joy_close()
     SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
 }
 
+/* YiYiYa: 退出统一入口 —— 存档后直接 _Exit()（= SYS_exit_group）。
+ * 不能走 exit()：musl 先跑 atexit 链 cleanup()（存 SRAM）→ shutdown()
+ * → vid_close() → SDL_Quit() → SDL_TimerQuit() → SDL_SemPost +
+ * SDL_WaitThread(join SDL timer 线程)，本内核上 join 会卡住 ⇒ exit 永远
+ * 到不了 _Exit，进程挂在 ps 里（实测 "HOME -> exit" 打印了但进程还在 ✗）。
+ * _Exit 不跑 atexit，所以这里手动存一次 SRAM/RTC ✓；内核的 exit_group
+ * 会把整个进程（含 SDL timer 线程）结束掉 ✓。 */
+static void yi_quit(void)
+{
+    extern int sram_save(void);
+    extern void rtc_save(void);
+    printf("gnuboy: quit, saving...\n");
+    fflush(NULL);
+    sram_save();
+    rtc_save();
+    _Exit(0);
+}
+
 void ev_poll()
 {
     event_t ev;
@@ -235,8 +253,7 @@ void ev_poll()
                走手柄事件，见上面的 SDL_JOYBUTTONDOWN 分支）。 */
             if (scancode == SDL_SCANCODE_HOME && event.type == SDL_KEYDOWN)
             {
-                printf("gnuboy: HOME(key) -> exit\n");
-                exit(0);
+                yi_quit();
             }
 
             //If the keycode is > MAX_KEYS, its not a standard ascii button and its not in the kb_sdlkeycode_to_gnuboy map.
@@ -293,8 +310,7 @@ void ev_poll()
         {
             if (event.jbutton.button == 14 /* HOME 0x70 */)
             {
-                printf("gnuboy: HOME -> exit\n");
-                exit(0);
+                yi_quit();
             }
         }
         /* Handle gamecontroller axis events. Convert axis to dpad events */
