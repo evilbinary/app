@@ -466,11 +466,10 @@ function goConsoleBack() {
         updateConsoleChrome();
         return;
     }
-    if (typeof Router !== "undefined" && Router.canBack()) {
-        YUI.back();
-    } else {
-        YUI.navigate("/");
-    }
+    /* YiYiYa·修复：直接回桌面 —— 原来用 Router.canBack()/YUI.back() 会把历史
+     * 回退到 /player（刚退出的游戏页）⇒ 表现为"按返回桌面回不去"✗。
+     * 按钮/Ⓑ 的语义就是"返回桌面"，直接 navigate("/") ✓。 */
+    YUI.navigate("/");
     updateConsoleChrome();
     applyConsoleTheme();
 }
