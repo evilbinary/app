@@ -266,6 +266,18 @@ void ev_poll()
             if (ev.code != -1)
                 ev_postevent(&ev);
         }
+        /* YiYiYa: HOME 键退出 —— HOME 是 YiYiYa GPIO 手柄的扩展按钮
+         * （libsdl2 SDL_sysjoystick.c 的 YIYIYA_KeyToButton：14=HOME，0x70），
+         * 它没有映射到 SDL gamepad 的标准元素，拿不到 SDL_CONTROLLERBUTTONDOWN，
+         * 只能从原始 joystick 事件里取。退出码 0 ⇒ console-os 的 YUI.spawn()
+         * 以 rc==0 判定正常退出（与 infones 的 HOME 退出行为一致）。 */
+        else if (event.type == SDL_JOYBUTTONDOWN)
+        {
+            if (event.jbutton.button == 14 /* HOME 0x70 */)
+            {
+                exit(0);
+            }
+        }
         /* Handle gamecontroller axis events. Convert axis to dpad events */
         else if (event.type == SDL_CONTROLLERAXISMOTION && joy_enable)
         {
