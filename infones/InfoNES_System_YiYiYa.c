@@ -88,12 +88,23 @@ static int lcd_fb_init() {
   /* XWIN 下 screen->fd 常为 -1；用 buffer 是否就绪作可用标志 */
   fb_mem = (unsigned char *)screen->buffer;
   fb_fd = 1;
-  /* 未强制指定时：16bpp 屏默认 rgb555，否则 argb */
+  /* 【必须按"画布真实深度"选格式，不能按内核申报的 bpp ✗】
+   * miyoo 的 NV12 链路里内核申报 screen->fb.bpp == 16 ✗，但 libgui 给应用的
+   * 画布其实是 32bpp（buffer_length = w*h*4，见 screen.c 的 NV12 分支）。
+   * 原来照抄 bpp 选 rgb555 ⇒ 按 16 位写 32 位画布 ⇒ 像素宽度与行距都只有
+   * 一半 ⇒ 画面变成【并排两半、内容相同】(实测 miyoo ✓)。
+   * 判定方式与 screen_flush() 里的 canvas32_to_nv12 同源：用 canvas 字节/像素。 */
   if (g_pix_fmt < 0) {
-    g_pix_fmt =
-        (screen->bpp == 16 || screen->fb.bpp == 16) ? PIX_RGB555 : PIX_ARGB8888;
+    u32 cpp = 4;
+    if (screen->width > 0 && screen->height > 0 && screen->buffer_length > 0) {
+      cpp = (u32)screen->buffer_length /
+            ((u32)screen->width * (u32)screen->height);
+    }
+    g_pix_fmt = (cpp < 4) ? PIX_RGB555 : PIX_ARGB8888;
   }
-  if (g_pix_fmt == PIX_RGB555 || screen->fb.bpp == 16) {
+  /* 缩放与"格式"无关：屏幕够大就 2 倍（640x480 上画 512x480 ✓），否则 1 倍 ✓ */
+  if (screen->width >= NES_DISP_WIDTH * 2 &&
+      screen->height >= NES_DISP_HEIGHT * 2) {
     lcd_height = NES_DISP_HEIGHT * 2;
     lcd_width = NES_DISP_WIDTH * 2;
   } else {
