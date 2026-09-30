@@ -4,6 +4,10 @@
 #include <libavfilter/avfilter.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
+#include <libavutil/channel_layout.h>
+#include <libavutil/samplefmt.h>
+#include <libavutil/time.h>
+#include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
 #include <math.h>
 #include <stdio.h>
@@ -12,13 +16,26 @@
 
 #include "stdio.h"
 
+/* 音频输出固定转成设备支持的 S16LE 立体声（内核 sound 模块只支持 S16LE，
+ * 采样率 8000~48000 都行；这里统一用 44100）。 */
+#define AUDIO_OUT_RATE 44100
+#define AUDIO_BUF_SAMPLES 32768 /* 重采样输出缓冲（样本数，S16 立体声 = 128KB） */
+
 int ffplayer(int argc, char *argv[]) {
   uint8_t errstr[1024];
 
   AVFormatContext *pFormatCtx;
-  int i, videoindex;
+  int i, videoindex, audioindex;
   AVCodecContext *pCodecCtx;
   AVCodec *pCodec;
+  AVCodecContext *pAudioCodecCtx = NULL;
+  AVCodec *pAudioCodec = NULL;
+  AVFrame *pAudioFrame = NULL;
+  struct SwrContext *audio_swr = NULL;
+  uint8_t *audio_buf = NULL;
+  SDL_AudioDeviceID audio_dev = 0;
+  int audio_rate = AUDIO_OUT_RATE;
+  Uint32 audio_queue_limit = 0;
   /* YiYiYa: 输入文件/URL 从命令行参数取，不要写死：
    *   player <file|url>    例如：player /roms/video.mp4
    *                          player rtsp://user:pass@host:port/...
@@ -78,10 +95,35 @@ int ffplayer(int argc, char *argv[]) {
     pCodecCtx->height = 240;
   }
 
+  /* 音频流：有就解码播放，没有/打开失败就按无声播放（不影响视频） */
+  audioindex = -1;
+  for (i = 0; i < pFormatCtx->nb_streams; i++)
+    if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+      audioindex = i;
+      break;
+    }
+  if (audioindex >= 0) {
+    pAudioCodecCtx = pFormatCtx->streams[audioindex]->codec;
+    pAudioCodec = avcodec_find_decoder(pAudioCodecCtx->codec_id);
+    if (pAudioCodec == NULL ||
+        avcodec_open2(pAudioCodecCtx, pAudioCodec, NULL) < 0) {
+      printf("player: 音频解码器不可用，无声播放\n");
+      pAudioCodecCtx = NULL;
+      audioindex = -1;
+    } else {
+      printf("player: audio %d Hz %d ch fmt=%d\n", pAudioCodecCtx->sample_rate,
+             pAudioCodecCtx->channels, pAudioCodecCtx->sample_fmt);
+    }
+  }
+
   //------------SDL初始化--------
-  if (SDL_Init(SDL_INIT_VIDEO)) {  //| SDL_INIT_AUDIO | SDL_INIT_TIMER
-    printf("Could not initialize SDL - %s\n", SDL_GetError());
-    return -1;
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+    /* 音频子系统失败不致命：退回纯视频再试一次 */
+    printf("SDL init (video|audio) failed: %s\n", SDL_GetError());
+    if (SDL_Init(SDL_INIT_VIDEO)) {
+      printf("Could not initialize SDL - %s\n", SDL_GetError());
+      return -1;
+    }
   }
 
   /* YiYiYa: 视频分辨率超过屏幕分辨率时，等比缩小到屏幕内再显示，
@@ -147,8 +189,59 @@ int ffplayer(int argc, char *argv[]) {
   if (rect.y < 0) rect.y = 0;
   rect.w = dst_w;
   rect.h = dst_h;
+
+  /* 音频设备 + 重采样（解码帧 → S16 立体声 @ have.freq，用 SDL_QueueAudio 送） */
+  if (audioindex >= 0 && SDL_WasInit(SDL_INIT_AUDIO)) {
+    SDL_AudioSpec want, have;
+    SDL_zero(want);
+    want.freq = AUDIO_OUT_RATE;
+    want.format = AUDIO_S16SYS;
+    want.channels = 2;
+    want.samples = 1024;
+    want.callback = NULL; /* 回调留空 = 用 SDL_QueueAudio */
+    audio_dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+    if (audio_dev == 0) {
+      printf("player: 打开音频设备失败: %s（无声播放）\n", SDL_GetError());
+    } else {
+      int64_t in_layout = pAudioCodecCtx->channel_layout;
+      if (in_layout == 0) {
+        in_layout = av_get_default_channel_layout(pAudioCodecCtx->channels);
+      }
+      audio_swr = swr_alloc_set_opts(
+          NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, have.freq, in_layout,
+          pAudioCodecCtx->sample_fmt, pAudioCodecCtx->sample_rate, 0, NULL);
+      pAudioFrame = av_frame_alloc();
+      audio_buf = malloc(AUDIO_BUF_SAMPLES * 2 * sizeof(int16_t));
+      if (audio_swr == NULL || swr_init(audio_swr) < 0 ||
+          pAudioFrame == NULL || audio_buf == NULL) {
+        printf("player: 音频重采样初始化失败（无声播放）\n");
+        if (audio_swr != NULL) {
+          swr_free(&audio_swr);
+        }
+        if (pAudioFrame != NULL) {
+          av_frame_free(&pAudioFrame);
+        }
+        if (audio_buf != NULL) {
+          free(audio_buf);
+          audio_buf = NULL;
+        }
+        SDL_CloseAudioDevice(audio_dev);
+        audio_dev = 0;
+      } else {
+        audio_rate = have.freq;
+        /* 队列上限 ≈ 2 秒，防解码快于播放时内存无限增长 */
+        audio_queue_limit = (Uint32)audio_rate * 2 * 2 * 2;
+        SDL_PauseAudioDevice(audio_dev, 0);
+        printf("player: audio out %d Hz %d ch (%s)\n", have.freq,
+               have.channels, SDL_GetCurrentAudioDriver());
+      }
+    }
+  }
   //-----------------------------
   int ret, got_picture;
+  /* 音视频节奏基准：按包 PTS 控制显示节奏（原来固定 20ms，25fps 视频会播成 2 倍速） */
+  double pts_start = 0;
+  AVRational video_tb = pFormatCtx->streams[videoindex]->time_base;
   static struct SwsContext *img_convert_ctx;
   int y_size = pCodecCtx->width * pCodecCtx->height;
 
@@ -193,9 +286,51 @@ int ffplayer(int argc, char *argv[]) {
         SDL_RenderClear(sdlRenderer);
         SDL_RenderCopy(sdlRenderer, sdlTexture, &src_rect, &rect);
         SDL_RenderPresent(sdlRenderer);
-        // 延时20ms
-        SDL_Delay(20);
+        /* 按 PTS 控制节奏（拿不到 PTS 时退回固定 20ms） */
+        int64_t pts = packet->pts;
+        if (pts == AV_NOPTS_VALUE) {
+          pts = packet->dts;
+        }
+        if (pts != AV_NOPTS_VALUE) {
+          double t = pts * av_q2d(video_tb);
+          double now = av_gettime_relative() / 1000000.0;
+          if (pts_start == 0) {
+            pts_start = now - t;
+          }
+          double wait = pts_start + t - now;
+          if (wait > 0.001) {
+            if (wait > 0.2) {
+              wait = 0.2; /* 单次最多 200ms，防异常 PTS 卡住 */
+            }
+            SDL_Delay((Uint32)(wait * 1000));
+          }
+        } else {
+          SDL_Delay(20);
+        }
         //------------SDL-----------
+      }
+    } else if (audio_dev != 0 && packet->stream_index == audioindex) {
+      /* 音频：解码 → 重采样成设备格式 → 排队（SDL 音频线程负责写到 /dev/dsp） */
+      int got_audio = 0;
+      ret =
+          avcodec_decode_audio4(pAudioCodecCtx, pAudioFrame, &got_audio, packet);
+      if (ret >= 0 && got_audio && pAudioFrame->nb_samples > 0) {
+        uint8_t *outp = audio_buf;
+        int out_cap = pAudioFrame->nb_samples * 8 + 256; /* 覆盖 8k→48k 的 6 倍重采样 */
+        if (out_cap > AUDIO_BUF_SAMPLES) {
+          out_cap = AUDIO_BUF_SAMPLES;
+        }
+        int n = swr_convert(audio_swr, &outp, out_cap,
+                            (const uint8_t **)pAudioFrame->data,
+                            pAudioFrame->nb_samples);
+        if (n > 0) {
+          SDL_QueueAudio(audio_dev, audio_buf, (Uint32)n * 2 * sizeof(int16_t));
+          /* 队列超过约 2 秒就等一等，避免解码快于播放时内存无限增长 */
+          while (audio_queue_limit > 0 &&
+                 SDL_GetQueuedAudioSize(audio_dev) > audio_queue_limit) {
+            SDL_Delay(20);
+          }
+        }
       }
     }
     av_free_packet(packet);
@@ -210,6 +345,22 @@ int ffplayer(int argc, char *argv[]) {
     }
   }
 
+  if (audio_dev != 0) {
+    SDL_CloseAudioDevice(audio_dev);
+    audio_dev = 0;
+  }
+  if (audio_swr != NULL) {
+    swr_free(&audio_swr);
+  }
+  if (pAudioFrame != NULL) {
+    av_frame_free(&pAudioFrame);
+  }
+  if (audio_buf != NULL) {
+    free(audio_buf);
+  }
+  if (pAudioCodecCtx != NULL) {
+    avcodec_close(pAudioCodecCtx);
+  }
   SDL_DestroyTexture(sdlTexture);
   free(out_buffer);
   av_free(pFrameYUV);
