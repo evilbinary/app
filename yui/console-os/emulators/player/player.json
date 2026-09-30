@@ -30,6 +30,10 @@
     "ogg"
   ],
   "romDir": "roms/video",
+  "romDirs": [
+    "roms/video",
+    "/"
+  ],
   "accent": "#A78BFA",
   "order": 90,
   "bio": "基于 FFmpeg 的播放器：本地视频/音频文件与 RTSP/HTTP 网络流（player <file|url>）。",

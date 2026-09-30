@@ -130,6 +130,9 @@ var EmulatorRegistry = {
             systems: meta.systems || [],
             exts: meta.exts || [],
             romDir: meta.romDir || (this.romRoot + "/" + id),
+            /* 多个扫描目录（可选）：如播放器 ["roms/video","roms"]；
+             * 缺省只用 romDir。 */
+            romDirs: meta.romDirs || [],
             accent: meta.accent || "#38BDF8",
             order: (meta.order !== undefined && meta.order !== null) ? meta.order : 100,
             bio: meta.bio || "",
@@ -198,10 +201,11 @@ var EmulatorRegistry = {
 
     /* ==================== ROM 列表 ==================== */
 
-    _scanRomDir: function(emu) {
+    /* 扫描单个目录（多目录由 listRoms 遍历 romDirs） */
+    _scanRomDir: function(dir) {
         var out = [];
-        if (!emu || typeof YUI.listDir !== "function") return out;
-        var entries = YUI.listDir(emu.romDir);
+        if (!dir || typeof YUI.listDir !== "function") return out;
+        var entries = YUI.listDir(dir);
         if (!entries) return out;
         for (var i = 0; i < entries.length; i++) {
             var e = entries[i];
@@ -238,33 +242,35 @@ var EmulatorRegistry = {
         var items = [];
         var seen = {};
 
-        var files = this._scanRomDir(emu);
-
-        /* YiYiYa: 同名 .png 作为该 ROM 的列表图片（缩略图）——
-         * 例如 roms/nes/Mario.nes + roms/nes/Mario.png。
-         * 填进 item.icon 后，Button 组件发现路径含 '.'/'/' 会走
-         * backend_load_texture 当图片渲染（见 button_component.c）；
-         * .png 自身不再作为"游戏"列出。 */
-        var covers = {};
-        for (var c = 0; c < files.length; c++) {
-            if (this._extOf(files[c]) === "png") {
-                covers[this._baseOf(files[c]).toLowerCase()] = files[c];
+        /* YiYiYa: 支持多个扫描目录（romDirs 数组；缺省 = [romDir]）——
+         * 例如播放器 romDirs: ["roms/video", "roms"]，默认根目录也能扫到。
+         * 每个目录内部再按"同名 .png"配对缩略图（见 button_component.c：
+         * icon 含 '.'/'/' 会走 backend_load_texture 当图片渲染）。 */
+        var dirs = (emu.romDirs && emu.romDirs.length) ? emu.romDirs : [emu.romDir];
+        for (var d = 0; d < dirs.length; d++) {
+            var dir = dirs[d];
+            var files = this._scanRomDir(dir);
+            var covers = {};
+            for (var c = 0; c < files.length; c++) {
+                if (this._extOf(files[c]) === "png") {
+                    covers[this._baseOf(files[c]).toLowerCase()] = files[c];
+                }
             }
-        }
-
-        for (var i = 0; i < files.length; i++) {
-            var base = this._baseOf(files[i]);
-            var ext = this._extOf(files[i]);
-            if (ext === "png") continue;   /* png 只当图片，不当游戏 */
-            var cover = covers[base.toLowerCase()];
-            items.push({
-                title: base,
-                icon: cover ? (emu.romDir + "/" + cover) : emu.icon,
-                file: true,
-                path: emu.romDir + "/" + files[i],
-                line: base + "  ·  " + (ext ? ext.toUpperCase() : "ROM") + "  ·  本地文件"
-            });
-            seen[base] = true;
+            for (var i = 0; i < files.length; i++) {
+                var base = this._baseOf(files[i]);
+                var ext = this._extOf(files[i]);
+                if (ext === "png") continue;   /* png 只当图片，不当游戏 */
+                if (seen[base]) continue;      /* 多目录去重：先到先得 */
+                var cover = covers[base.toLowerCase()];
+                items.push({
+                    title: base,
+                    icon: cover ? (dir + "/" + cover) : emu.icon,
+                    file: true,
+                    path: dir + "/" + files[i],
+                    line: base + "  ·  " + (ext ? ext.toUpperCase() : "ROM") + "  ·  本地文件"
+                });
+                seen[base] = true;
+            }
         }
 
         var demo = emu.roms || [];

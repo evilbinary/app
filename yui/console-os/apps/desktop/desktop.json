@@ -132,7 +132,8 @@
                 { "id": "desktop_emu_title", "type": "Label", "variant": "overline", "text": "模拟器", "size": [60, 20], "textAlign": "left" },
                 { "id": "desktop_emu_count", "type": "Label", "variant": "caption", "text": "正在加载…", "flex": 1, "size": [0, 20], "textAlign": "left" },
                 { "id": "btn_desktop_scan", "type": "Button", "variant": "ghost", "text": "重新扫描", "size": [84, 22], "events": { "onClick": "@onDesktopRescan" } },
-                { "id": "btn_desktop_library", "type": "Button", "variant": "pill", "text": "游戏库", "size": [72, 22], "events": { "onClick": "@openLibraryPage" } }
+                { "id": "btn_desktop_library", "type": "Button", "variant": "pill", "text": "游戏库", "size": [72, 22], "events": { "onClick": "@openLibraryPage" } },
+                { "id": "btn_desktop_apps", "type": "Button", "variant": "secondary", "text": "应用", "size": [56, 22], "events": { "onClick": "@openAppsPage" } }
             ]
         },
         {

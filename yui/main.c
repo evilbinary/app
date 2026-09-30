@@ -115,6 +115,12 @@ cJSON* parse_yaml_json_file(const char* file_path) {
 static unsigned g_load_t0 = 0;
 static DFont* g_load_font = NULL;       /* 标题用（28px） */
 static DFont* g_load_font_small = NULL; /* 进度文字用（16px，小一点 ✓） */
+/* YiYiYa: 启动画面标题 = 应用名（从入口 json 的 title 读；缺省显示"正在启动…"）。
+ * 原来固定写死 "YiYiYa Console OS"，进任何应用都显示它，没有信息量 ✗。 */
+static char g_app_title[128] = "";
+/* 带参数启动（ymain <app.json>）= 应用模式：圆形 loading；
+ * 不带参数（默认 console-os）= 原进度条样式。 */
+static int g_use_spinner = 0;
 
 /* 启动阶段拿字体（和 console 的 assets 约定一致；失败就只有进度条，不崩 ✓） */
 static void loading_font_ensure(void) {
@@ -192,6 +198,34 @@ static void loading_frame(int permille, int phase) {
     bg.x = 0; bg.y = 0; bg.w = w; bg.h = h;
     backend_render_fill_rect(&bg, (Color){18, 18, 22, 255});
 
+    if (g_use_spinner) {
+    /* YiYiYa: 标题 = "正在启动 <应用名>"（不写死 "YiYiYa Console OS"） */
+    {
+        char title[192];
+        if (g_app_title[0]) {
+            snprintf(title, sizeof(title), "正在启动 %s", g_app_title);
+        } else {
+            snprintf(title, sizeof(title), "正在启动…");
+        }
+        loading_text(g_load_font, title, (Color){235, 235, 245, 255}, h / 2 - 60);
+    }
+
+    /* YiYiYa: 圆形 loading —— 底环 + 旋转弧（backend_render_arc：
+     * 角度单位为度、0° 在顶部、顺时针；用 phase 驱动旋转做 spinner ✓）。
+     * 原来是横向进度条 + 扫光，用户要"圆形 loading"，这里整体替换。 */
+    {
+        int cx = w / 2;
+        int cy = h / 2;
+        int radius = 22;
+        float a0 = (float)((phase * 12) % 360);      /* 每帧转 12°（≈30ms/帧） */
+        float a1 = a0 + 100.0f;                      /* 弧长 100° */
+        backend_render_arc(cx, cy, radius, 0.0f, 360.0f,
+                           (Color){40, 42, 52, 255}, 5);   /* 底环 */
+        backend_render_arc(cx, cy, radius, a0, a1,
+                           (Color){56, 150, 245, 255}, 5); /* 旋转弧 */
+    }
+
+    } else {
     /* 标题：进度条上方 */
     loading_text(g_load_font, "YiYiYa Console OS", (Color){235, 235, 245, 255}, h / 2 - 28);
 
@@ -246,9 +280,12 @@ static void loading_frame(int permille, int phase) {
         backend_render_fill_rect(&sh, (Color){255, 255, 255, 70});
     }
 
+    }
+
     /* 进度百分比：进度条下方（小字号 16px ✓） */
     snprintf(pct, sizeof(pct), "%d%%", permille / 10);
-    loading_text(g_load_font_small, pct, (Color){170, 190, 220, 255}, h / 2 + 30);
+    loading_text(g_load_font_small, pct, (Color){170, 190, 220, 255},
+                 g_use_spinner ? (h / 2 + 44) : (h / 2 + 30));
 
     backend_render_present();
 }
@@ -284,6 +321,9 @@ int main(int argc, char* argv[]) {
     popup_manager_init();
 
     /* 先给一帧，避免"启动后黑屏、毫无反应" */
+    if (argc > 1) {
+        g_use_spinner = 1;   /* 带参数 = 启动指定应用（圆形 loading） */
+    }
     loading_mark("init", 40, 3);
 
     /* 内核采样；到期只停采。满 20s 由 ymain 再调 520 dump（勿在 IRQ 里 dump） */
@@ -314,6 +354,46 @@ int main(int argc, char* argv[]) {
     if (!root_json) {
         fprintf(stderr, "Failed to parse file: %s\n", json_path);
         return -1;
+    }
+
+    /* YiYiYa: 启动画面显示应用名 —— 优先 json 的 title，其次目录名 */
+    {
+        cJSON* title_item = cJSON_GetObjectItem(root_json, "title");
+        if (title_item && title_item->valuestring && title_item->valuestring[0]) {
+            strncpy(g_app_title, title_item->valuestring, sizeof(g_app_title) - 1);
+            g_app_title[sizeof(g_app_title) - 1] = '\0';
+        } else {
+            const char* a = json_path;
+            const char* b = NULL;
+            const char* c;
+            for (c = json_path; *c; c++) {
+                if (*c == '/') { b = a; a = c + 1; }
+            }
+            (void)b;
+            if (a && a[0] && strcmp(a, "app.json") != 0) {
+                strncpy(g_app_title, a, sizeof(g_app_title) - 1);
+                g_app_title[sizeof(g_app_title) - 1] = '\0';
+            } else {
+                /* app/xxx/app.json → 取上一级目录名 */
+                const char* dir_end = NULL;
+                const char* dir_start = json_path;
+                const char* q;
+                for (q = json_path; *q; q++) {
+                    if (*q == '/') { dir_end = q; }
+                }
+                if (dir_end) {
+                    const char* p2 = dir_end;
+                    while (p2 > json_path && *(p2 - 1) != '/') p2--;
+                    {
+                        int len = (int)(dir_end - p2);
+                        if (len > 0 && len < (int)sizeof(g_app_title)) {
+                            memcpy(g_app_title, p2, (size_t)len);
+                            g_app_title[len] = '\0';
+                        }
+                    }
+                }
+            }
+        }
     }    
     /* 这一段之前是 JS 引擎初始化 + 解析 app.json（拆开看 ✓） */
     loading_mark("json", 150, 1);

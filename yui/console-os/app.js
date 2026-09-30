@@ -457,6 +457,7 @@ function openEmulatorPage() { openConsolePage("/emulator"); }
 function openPlayerPage() { openConsolePage("/player"); }
 function openBatteryPage() { openConsolePage("/battery"); }
 function openSettingsPage() { openConsolePage("/settings"); }
+function openAppsPage() { openConsolePage("/apps"); }
 
 function consoleIsShellPath(path) {
     return path === "/";
@@ -636,7 +637,8 @@ function consoleRoutes() {
         "/emulator": { json: "app/console-os/apps/emulator/emulator.json", keepAlive: true },
         "/player": { json: "app/console-os/apps/player/player.json", keepAlive: true },
         "/battery": { json: "app/console-os/apps/battery/battery.json", keepAlive: true },
-        "/settings": { json: "app/console-os/apps/settings/settings.json", keepAlive: true }
+        "/settings": { json: "app/console-os/apps/settings/settings.json", keepAlive: true },
+        "/apps": { json: "app/console-os/apps/apps/apps.json", keepAlive: true }
     };
 }
 

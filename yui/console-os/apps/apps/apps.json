@@ -1,0 +1,53 @@
+{
+    "id": "page_apps",
+    "title": "应用",
+    "js": ["apps.js"],
+    "type": "View",
+    "variant": "surface",
+    "flex": 1,
+    "layout": { "type": "vertical", "spacing": 8, "padding": [8, 16, 8, 16] },
+    "events": { "onLoad": "@onAppsLoad", "onShow": "@onAppsShow" },
+    "children": [
+        {
+            "id": "apps_header",
+            "type": "View",
+            "size": [592, 40],
+            "layout": { "type": "horizontal", "spacing": 8, "align": "center" },
+            "children": [
+                {
+                    "id": "apps_title_box",
+                    "type": "View",
+                    "flex": 1,
+                    "size": [0, 38],
+                    "layout": { "type": "vertical", "spacing": 0, "justifyContent": "center" },
+                    "children": [
+                        { "id": "apps_title", "type": "Label", "variant": "title", "text": "应用", "size": [300, 22], "textAlign": "left" },
+                        { "id": "apps_sub", "type": "Label", "variant": "caption", "text": "扫描 app/ 下的 JSON 应用", "size": [420, 14], "textAlign": "left" }
+                    ]
+                },
+                { "id": "btn_apps_scan", "type": "Button", "variant": "secondary", "text": "重新扫描", "size": [80, 30], "events": { "onClick": "@onAppsRescan" } },
+                { "id": "btn_apps_back", "type": "Button", "variant": "primary", "text": "返回桌面", "size": [80, 30], "events": { "onClick": "@goConsoleBack" } }
+            ]
+        },
+        {
+            "id": "apps_list",
+            "type": "List",
+            "flex": 1,
+            "scrollable": 1,
+            "data": [],
+            "events": { "onSelect": "@onAppsItemSelect" },
+            "itemTemplate": {
+                "type": "Button",
+                "variant": "list-item",
+                "icon": "${icon}",
+                "text": "${line}",
+                "iconSize": 24,
+                "fontSize": 14,
+                "textAlign": "left",
+                "style": { "bgColor": "#141C30", "color": "#E6EAF5", "borderRadius": 10 },
+                "size": [592, 34]
+            },
+            "layout": { "type": "vertical", "spacing": 4 }
+        }
+    ]
+}
