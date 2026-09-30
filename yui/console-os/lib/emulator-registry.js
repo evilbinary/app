@@ -239,12 +239,27 @@ var EmulatorRegistry = {
         var seen = {};
 
         var files = this._scanRomDir(emu);
+
+        /* YiYiYa: 同名 .png 作为该 ROM 的列表图片（缩略图）——
+         * 例如 roms/nes/Mario.nes + roms/nes/Mario.png。
+         * 填进 item.icon 后，Button 组件发现路径含 '.'/'/' 会走
+         * backend_load_texture 当图片渲染（见 button_component.c）；
+         * .png 自身不再作为"游戏"列出。 */
+        var covers = {};
+        for (var c = 0; c < files.length; c++) {
+            if (this._extOf(files[c]) === "png") {
+                covers[this._baseOf(files[c]).toLowerCase()] = files[c];
+            }
+        }
+
         for (var i = 0; i < files.length; i++) {
             var base = this._baseOf(files[i]);
             var ext = this._extOf(files[i]);
+            if (ext === "png") continue;   /* png 只当图片，不当游戏 */
+            var cover = covers[base.toLowerCase()];
             items.push({
                 title: base,
-                icon: emu.icon,
+                icon: cover ? (emu.romDir + "/" + cover) : emu.icon,
                 file: true,
                 path: emu.romDir + "/" + files[i],
                 line: base + "  ·  " + (ext ? ext.toUpperCase() : "ROM") + "  ·  本地文件"

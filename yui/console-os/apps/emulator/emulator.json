@@ -147,7 +147,7 @@
                 "variant": "list-item",
                 "icon": "${icon}",
                 "text": "${line}",
-                "iconSize": 16,
+                "iconSize": 24,
                 "fontSize": 14,
                 "textAlign": "left",
                 "style": { "bgColor": "#141C30", "color": "#E6EAF5", "borderRadius": 10 },
