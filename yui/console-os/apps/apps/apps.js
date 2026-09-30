@@ -105,7 +105,8 @@ function refreshAppsList() {
         data.push({
             icon: list[k].icon,
             line: list[k].title + "  ·  " + list[k].path,
-            path: list[k].path
+            path: list[k].path,
+            native: list[k].native || 0
         });
     }
     YUI.update({ target: "apps_list", change: { data: data } });
@@ -135,13 +136,28 @@ function onAppsItemSelect(layerId) {
         setConsoleHint("当前后端不支持启动外部应用");
         return;
     }
-    /* json 应用 → ymain <json>；native 应用 → 直接运行同名可执行文件 */
+    /* json 应用 → ymain <json>；native 应用 → 直接运行同名可执行文件。
+     * native 判定：优先 item.native；再用路径后缀兜底（.json 之外的都按
+     * native 处理，防止 data 字段在 getText 往返中丢失 ✗ —— 实测踩过）。 */
     var isNative = item && item.native;
-    var cmd = isNative
-        ? consoleShellQuote(path)
-        : ("ymain " + consoleShellQuote(path));
-    YUI.log("[apps] spawn " + cmd);
-    var rc = YUI.spawn(cmd);
+    if (!isNative && path) {
+        if (path.toLowerCase().indexOf(".json") < 0) isNative = 1;
+    }
+
+    var cmd;
+    var cwd = null;
+    if (isNative) {
+        /* native：在应用自身目录里运行（同目录资源如 doom 的 wad 才找得到），
+         * 命令用 ./<名字>（相对新 cwd）✓ */
+        var slash = path.lastIndexOf("/");
+        cwd = (slash > 0) ? path.substring(0, slash) : null;
+        cmd = (slash >= 0) ? ("./" + path.substring(slash + 1)) : path;
+    } else {
+        cmd = "ymain " + consoleShellQuote(path);
+    }
+
+    YUI.log("[apps] spawn " + cmd + (cwd ? (" (cwd=" + cwd + ")") : ""));
+    var rc = YUI.spawn(cmd, cwd);
     YUI.log("[apps] spawn rc=" + rc + " (" + path + ")");
     setConsoleHint("应用已退出 · " + path);
     refreshAppsList();

@@ -147,11 +147,11 @@
                 "variant": "list-item",
                 "icon": "${icon}",
                 "text": "${line}",
-                "iconSize": 24,
+                "iconSize": 44,
                 "fontSize": 14,
                 "textAlign": "left",
                 "style": { "bgColor": "#141C30", "color": "#E6EAF5", "borderRadius": 10 },
-                "size": [592, 34]
+                "size": [592, 44]
             },
             "layout": { "type": "vertical", "spacing": 4 }
         }
