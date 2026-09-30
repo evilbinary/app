@@ -1,0 +1,37 @@
+#version 450
+/* RMSNorm: y = x * rsqrt(mean(x^2)+eps) * w ; 单 workgroup, 每线程跨步扫 n */
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0) readonly buffer InBuf { float x[]; };
+layout(set = 0, binding = 1) writeonly buffer OutBuf { float y[]; };
+layout(set = 0, binding = 2) readonly buffer WBuf { float w[]; };
+
+layout(push_constant) uniform Push {
+    uint n;
+    float eps;
+    uint w_off; /* 权在 WBuf 中的 float 元素偏移 */
+    uint _pad;
+} pc;
+
+shared float sdata[256];
+
+void main() {
+    uint lid = gl_LocalInvocationID.x;
+    float sum = 0.0;
+    for (uint i = lid; i < pc.n; i += 256u)
+        sum += x[i] * x[i];
+    sdata[lid] = sum;
+    memoryBarrierShared();
+    barrier();
+
+    for (uint s = 128u; s > 0u; s >>= 1u) {
+        if (lid < s)
+            sdata[lid] += sdata[lid + s];
+        memoryBarrierShared();
+        barrier();
+    }
+
+    float inv = inversesqrt(sdata[0] / float(pc.n) + pc.eps);
+    for (uint i = lid; i < pc.n; i += 256u)
+        y[i] = x[i] * inv * w[pc.w_off + i];
+}

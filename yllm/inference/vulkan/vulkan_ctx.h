@@ -1,0 +1,235 @@
+/* vulkan_ctx.h — Vulkan 后端私有状态 */
+#ifndef YLLM_VULKAN_CTX_H
+#define YLLM_VULKAN_CTX_H
+
+#include <stdint.h>
+#include <stddef.h>
+
+typedef struct {
+    int device_id;
+    int host_shim;
+    int integrated_gpu;   /* UMA iGPU; 权重大于单 SSBO 时走多 bank 常驻 */
+    uint64_t max_ssbo_range;
+    void* instance;
+    void* phys;
+    void* device;
+    void* queue;
+    uint32_t queue_family;
+
+    void* cmd_pool;
+    void* cmd;
+    void* fence;
+    int cmd_open;     /* token-batch: 多层层命令缓冲录制中 */
+    int token_batch;  /* decode: 全层(+lm) 合并 submit */
+    int norm_ready;   /* 各层 norm 已分片常驻 mem_wn */
+
+    void* buf_x;
+    void* buf_y;
+    void* mem_x;
+    void* mem_y;
+    void* buf_o0;
+    void* buf_o1;
+    void* buf_o2;
+    void* mem_o0;
+    void* mem_o1;
+    void* mem_o2;
+    /* HOST_VISIBLE 常驻映射, 避免反复 Map/Unmap */
+    void* map_x;
+    void* map_y;
+    void* map_o0;
+    void* map_o1;
+    void* map_o2;
+    void* map_wn;
+    void* map_wq;
+    void* map_kv;
+    void* map_bias;
+    size_t x_bytes;
+    size_t y_bytes;
+    /* dGPU 激活/KV 走纯 DEVICE_LOCAL 时的 host staging */
+    void* buf_stage;
+    void* mem_stage;
+    void* map_stage;
+    size_t stage_bytes;
+
+    /* YLLM_VK_PROF=1 时累计 */
+    int prof_on;
+    uint64_t prof_submit_ns;
+    uint64_t prof_map_ns;
+    uint64_t prof_stream_ns;
+    uint32_t prof_submit_n;
+    uint32_t prof_map_n;
+    uint32_t prof_stream_n;
+
+    void* rms_desc_pool;
+    void* rms_desc_layout;
+    void* rms_desc_set;
+    void* rms_ds_inplace; /* x/y 均 buf_x */
+    void* rms_pipe_layout;
+    void* rms_pipeline;
+    void* rms_shader;
+    void* buf_wn;
+    void* mem_wn;
+    size_t wn_bytes;
+    float* host_w;
+    float* host_w2; /* 第二段 norm 权暂存 */
+
+    void* gemv_desc_pool;
+    void* gemv_desc_layout;
+    void* gemv_desc_set;
+    void* gemv_ds0;
+    void* gemv_ds1;
+    void* gemv_ds2;
+    void* gemv_ds_xo; /* x=buf_o2 → y=buf_y (attn 后 O) */
+    void* gemv_ds_lm; /* x=buf_x → y=buf_logits (lm_head 单次 dispatch) */
+    void* gemv_pipe_layout;
+    void* gemv_pipeline;
+    void* gemv_shader;
+    void* gemv_q6k_pipeline;
+    void* gemv_q6k_shader;
+    int gemv_q6k_ready;
+    void* buf_wq;
+    void* mem_wq;
+    size_t wq_bytes;
+#define YLLM_VK_MAX_WQ_BANKS 16
+    void* buf_wq_bank[YLLM_VK_MAX_WQ_BANKS];
+    void* mem_wq_bank[YLLM_VK_MAX_WQ_BANKS];
+    void* map_wq_bank[YLLM_VK_MAX_WQ_BANKS];
+    size_t wq_bank_bytes[YLLM_VK_MAX_WQ_BANKS];
+    size_t wq_bank_size;
+    int wq_nbank;
+    int wq_bind_bank;
+    uint64_t* wq_off;
+    uint32_t wq_nslot;
+    int wq_resident;
+    int gemv_ready;
+    int fuse_ready;
+
+    void* swi_desc_pool;
+    void* swi_desc_layout;
+    void* swi_desc_set;
+    void* swi_pipe_layout;
+    void* swi_pipeline;
+    void* swi_shader;
+    int swi_ready;
+
+    /* RoPE / Attn — rope 暂 CPU; attn 用 GPU f32 KV; 可选 fused O */
+    void* attn_desc_pool;
+    void* attn_desc_layout;
+    void* attn_desc_set;
+    void* attn_pipe_layout;
+    void* attn_pipeline;
+    void* attn_shader;
+    void* buf_kv;
+    void* mem_kv;
+    size_t kv_bytes;
+    uint32_t kv_slots;
+    uint32_t max_seq;
+    uint32_t kv_dim;
+    uint32_t n_heads;
+    uint32_t n_kv_heads;
+    uint32_t head_dim;
+    uint32_t n_blocks;
+    int attn_ready;
+    int attn_o_ready; /* gemv_ds_xo 可用 */
+
+    void* rope_desc_pool;
+    void* rope_desc_layout;
+    void* rope_ds_q; /* o0 */
+    void* rope_ds_k; /* o1 */
+    void* rope_pipe_layout;
+    void* rope_pipeline;
+    void* rope_shader;
+    int rope_ready;
+
+    /* residual / bias / store_kv */
+    void* add_desc_pool;
+    void* add_desc_layout;
+    void* add_ds_xy; /* buf_x += buf_y */
+    void* add_ds_xo; /* buf_x += buf_o0 */
+    void* add_pipe_layout;
+    void* add_pipeline;
+    void* add_shader;
+    void* bias_desc_pool;
+    void* bias_desc_layout;
+    void* bias_ds_q;
+    void* bias_ds_k;
+    void* bias_ds_v;
+    void* bias_pipe_layout;
+    void* bias_pipeline;
+    void* bias_shader;
+    void* buf_bias;
+    void* mem_bias;
+    size_t bias_bytes;
+    void* skv_desc_pool;
+    void* skv_desc_layout;
+    void* skv_ds_k;
+    void* skv_ds_v;
+    void* skv_pipe_layout;
+    void* skv_pipeline;
+    void* skv_shader;
+    int add_ready;
+    int bias_ready;
+    int skv_ready;
+    int embed_ready;
+    int use_gpu_rope; /* dGPU: GPU RoPE + 单层 1 submit */
+    void* embed_shader;
+    void* embed_desc_pool;
+    void* embed_desc_layout;
+    void* embed_desc_set;
+    void* embed_pipe_layout;
+    void* embed_pipeline;
+    void* buf_emb;
+    void* mem_emb;
+    void* map_emb;
+    size_t emb_bytes;
+
+    int block_ready; /* 整层 fused 可用 */
+
+    int x_on_dev; /* buf_x 为权威激活 */
+
+    /* lm_head: Q4_K / Q6_K 常驻偏移 */
+    uint64_t lm_off;
+    uint32_t lm_out;
+    uint32_t lm_in;
+    uint32_t lm_dtype;
+    int lm_ready;
+    int lm_one_submit; /* resident lm: 全 vocab 一次 gemv */
+    int lm_fused;      /* norm(+q8k)+lm 单次 submit */
+    float norm_eps;
+
+    void* q8k_shader;
+    void* q8k_desc_pool;
+    void* q8k_desc_layout;
+    void* q8k_desc_set;
+    void* q8k_pipe_layout;
+    void* q8k_pipeline;
+    int q8k_ready;
+
+    void* buf_logits;
+    void* mem_logits;
+    void* map_logits;
+    size_t logits_bytes;
+
+    /* 流式权: 大模型按层上传; 亦规避 maxStorageBufferRange */
+    uint8_t* host_wq;
+    size_t host_wq_bytes;
+    size_t layer_wq_max;
+    int wq_stream;
+    uint32_t stream_layer; /* 当前已上传层, ~0=无 */
+    uint64_t stream_base;  /* host_wq 中本层起点, GPU 上相对 off=abs-base */
+
+    int compute_ready;
+    uint32_t n_layers;
+    uint32_t hidden;
+    uint32_t max_in;
+    uint32_t max_out;
+
+    /* 每层独立 CB + 队列 semaphore: 正确性同 GRP=1, CPU 不等每层 fence */
+    void** cmd_ring;
+    void** sem_ring;
+    uint32_t cmd_n;
+    uint32_t tokb_i;
+    int tokb_chain;
+} VulkanCtx;
+
+#endif

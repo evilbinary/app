@@ -1,0 +1,827 @@
+/* server.c — yllm server: 业务逻辑组
+ *
+ * 从公用 rank 池租用一组 rank(leader = rank0), 接收 router 转发的请求,
+ * 派发给 leader, 流式透传回 router。
+ * 心跳只发 supervisor(数据面, 生命周期归 supervisor);
+ * 注册表增删由 supervisor 通知 router(server 不直接 REGISTER)。
+ *
+ * 用法:
+ *   yllm server --id server-a --model <name> --leader <ip:port>
+ *               --supervisor <ip:port> [--port N]
+ *               [--log <file>] [--log-level lvl] [--no-console]
+ *
+ * P2: 单 rank 组(leader 直连); 多组租用/SCALE 在 P3 完善。
+ */
+#include "protocol.h"
+#include "frame.h"
+#include "node.h"
+#include "sock.h"
+#include "server.h"
+#include "../inference/include/yllm.h"
+#include "../inference/include/log.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <pthread.h>
+#include <stdint.h>
+
+/* 后端(leader rank)响应超时: 默认 60s, 可经 YLLM_SRV_TIMEOUT(秒)覆盖。
+ * 慢模型(如 27B Q4, 单 token 解码数十秒)需调大。 */
+static long srv_timeout_ms(void)
+{
+    const char* e = getenv("YLLM_SRV_TIMEOUT");
+    return e ? atol(e) * 1000 : 120000;
+}
+
+#define SRV_MAX_LINE 8192
+
+/* 连接 leader rank。
+ * rank 心跳上报的是本机 LAN IP, 若 bind-host=127.0.0.1(单机模式)则按上报地址回连会被拒;
+ * 同机部署时回退 127.0.0.1 再试一次(跨机场景回退必然失败, 仅多一次快速 ECONNREFUSED)。 */
+static int server_connect_leader(const Server* s)
+{
+    int fd = sock_connect(s->leader_host, s->leader_port, 5);
+    if (fd < 0 && strcmp(s->leader_host, "127.0.0.1") != 0) {
+        fd = sock_connect("127.0.0.1", s->leader_port, 5);
+        if (fd >= 0)
+            ylog_info("server: connect leader %s:%u refused, fallback 127.0.0.1 OK",
+                      s->leader_host, s->leader_port);
+    }
+    return fd;
+}
+
+/* INFER 转发: 连 leader rank → 发 INFER → 逐帧透传回客户端 */
+static void forward_infer(int client_fd, Server* s, const char* args)
+{
+    int fd = server_connect_leader(s);
+    if (fd < 0) {
+        sock_send_line(client_fd, PROTO_ERROR " server: cannot connect leader %s:%u",
+                       s->leader_host, s->leader_port);
+        return;
+    }
+    /* leader 无响应(如 rank 被 STOP/僵死) 60s 后报错, 不无限挂起 */
+    sock_set_timeout(fd, (int)(srv_timeout_ms() / 1000));
+    Frame f;
+    snprintf(f.cmd, sizeof(f.cmd), "%s", PROTO_INFER);
+    /* 组内 rank 信息随请求捎给 rank0(它按数据组织协作) */
+    snprintf(f.args, sizeof(f.args), "%s seg=0 segs=%d peers=%s",
+             args, s->lease_ranks > 0 ? s->lease_ranks : 1,
+             s->lease_peers[0] ? s->lease_peers : "127.0.0.1");
+    frame_send(fd, f.cmd, f.args);
+
+    /* 读 prompt 长度, 透传 prompt bytes */
+    long nbytes = frame_payload_len(&f);
+    if (nbytes > 0) {
+        char* pb = (char*)malloc((size_t)nbytes);
+        if (!pb) { sock_close(fd); sock_send_line(client_fd, PROTO_ERROR " server: oom"); return; }
+        if (sock_recv_n(client_fd, pb, (size_t)nbytes) != 0) {
+            free(pb); sock_close(fd); return;
+        }
+        sock_send_n(fd, pb, (size_t)nbytes);
+        free(pb);
+    }
+
+    /* 透传响应(T 帧 + DONE/ERR): select 等待可读再 recv
+     * (Windows 上 SO_RCVTIMEO 阻塞 recv 在数据未到时可能立即返回 EOF) */
+    char out[SRV_MAX_LINE];
+    int done = 0;
+    while (!done) {
+        int sel = sock_wait_readable(fd, (int)srv_timeout_ms());
+        if (sel <= 0) {
+            ylog_warn("server: leader %s:%u no response (rc=%d)", s->leader_host, s->leader_port, sel);
+            sock_send_line(client_fd, PROTO_ERROR " server: leader timeout"); break;
+        }
+        int n = sock_recv_line(fd, out, sizeof(out));
+        if (n < 0) {
+            ylog_warn("server: recv from leader %s:%u disconnected", s->leader_host, s->leader_port);
+            sock_send_line(client_fd, PROTO_ERROR " server: leader disconnected"); break;
+        }
+        sock_send_line(client_fd, "%s", out);
+        if (strncmp(out, PROTO_DONE, 4) == 0 || proto_is_error(out)) done = 1;
+        else if (strncmp(out, "T ", 2) == 0) {
+            size_t tlen = 0;
+            char* payload = frame_t_payload(fd, out, sizeof(out), &tlen);
+            if (!payload) break;
+            sock_send_n(client_fd, payload, tlen);
+            if (payload != out) free(payload);
+        }
+    }
+    sock_close(fd);
+}
+
+
+/* 缓存文件名安全化: 替换文件系统非法字符(NTFS 等不支持 ':') */
+static void sess_file_name(char* out, size_t outsz, const char* key, const char* ext)
+{
+    size_t o = 0;
+    const char* p;
+    for (p = key; *p && o + 16 < outsz; p++) {
+        char c = *p;
+        if (c == ':' || c == '/' || c == '\\' || c == '?' || c == '*' ||
+            c == '<' || c == '>' || c == '|' || c == '"')
+            c = '_';
+        out[o++] = c;
+    }
+    if (o + strlen(ext) + 1 < outsz) {
+        memcpy(out + o, ext, strlen(ext) + 1);
+    }
+}
+
+/* rank 拒绝续接(kv 缺失/pos 不对): 应全量或按新会话重建 */
+static int sess_err_needs_rebuild(const char* out)
+{
+    const char* m = proto_error_msg(out);
+    if (!m || !m[0]) return 0;
+    return strstr(m, "resume") != NULL
+        || strstr(m, "kv not cached") != NULL
+        || strstr(m, "session not cached") != NULL
+        || strstr(m, "session kv") != NULL;
+}
+
+static void server_unlink_rank0_kv(Server* s, const char* key)
+{
+    if (!s->cache_dir[0] || !key || !key[0]) return;
+    char path[512];
+    cache_path(path, sizeof(path), s->cache_dir, key, ".r0.kv");
+    if (remove(path) == 0)
+        ylog_info("server: stale kv removed %s", path);
+}
+
+#define SESS_MSG_MAX 32
+
+static void strip_tool_order_line(char* s)
+{
+    char* p = s;
+    while (p && *p) {
+        char* hit = strstr(p, "可用的工具:");
+        if (!hit) hit = strstr(p, "可用的工具：");
+        if (!hit) break;
+        char* e = strchr(hit, '\n');
+        if (!e) { *hit = '\0'; break; }
+        memmove(hit, e + 1, strlen(e + 1) + 1);
+        p = hit;
+    }
+}
+
+static void copy_named_arg(const char* args, const char* name, char* out, size_t outsz)
+{
+    out[0] = '\0';
+    const char* kv = strstr(args, name);
+    while (kv) {
+        if (kv == args || kv[-1] == ' ') break;
+        kv = strstr(kv + 1, name);
+    }
+    if (!kv) return;
+    kv += strlen(name);
+    size_t kl = strcspn(kv, " \t");
+    if (kl >= outsz) kl = outsz - 1;
+    memcpy(out, kv, kl);
+    out[kl] = '\0';
+    if (strcmp(out, "-") == 0) out[0] = '\0';
+}
+
+static int parse_sess_msgs(char* msg, size_t nbytes,
+                           char roles[][16], const char** contents,
+                           char* store, size_t storesz, int maxn)
+{
+    if (nbytes < 6 || strncmp(msg, "MSGS ", 5) != 0) return -1;
+    int n = atoi(msg + 5);
+    if (n < 1 || n > maxn) return -1;
+    char* p = strchr(msg, '\n');
+    if (!p) return -1;
+    p++;
+    size_t off = 0;
+    int i;
+    for (i = 0; i < n; i++) {
+        unsigned long clen = 0;
+        if (sscanf(p, "%15s %lu", roles[i], &clen) != 2) return -1;
+        char* nl = strchr(p, '\n');
+        if (!nl) return -1;
+        p = nl + 1;
+        if (p + (size_t)clen > msg + nbytes) return -1;
+        if (off + (size_t)clen + 1 > storesz) return -1;
+        memcpy(store + off, p, (size_t)clen);
+        store[off + (size_t)clen] = '\0';
+        if (strcmp(roles[i], "system") == 0)
+            strip_tool_order_line(store + off);
+        contents[i] = store + off;
+        off += strlen(store + off) + 1;
+        p += (size_t)clen;
+    }
+    return n;
+}
+
+static void sess_try_disk(Server* s, SessVal* sv, const char* key, uint32_t* resume)
+{
+    if (!s->cache_dir[0] || !sv) return;
+    char path[512];
+    int npre = snprintf(path, sizeof(path), "%s/", s->cache_dir);
+    if (npre < 0 || npre >= (int)sizeof(path)) return;
+    sess_file_name(path + npre, sizeof(path) - (size_t)npre, key, ".sess");
+    if (sess_load(sv, path) == 0) {
+        *resume = sv->n;
+        ylog_info("server: session %s restored from %s (%u tokens)", key, path, sv->n);
+    }
+}
+
+/* 会话 INFER: INFER_SESS <max_tokens> <nbytes> key=<id|->"\n<MSGS 或单条文本>
+ * key 即客户端会话 id; 无则 "-" , server 按 token 前缀续接或自动分配。
+ * rank kv 损坏: 先全量重发; 仍失败则按新会话重渲染。 */
+static void forward_infer_sess(int client_fd, Server* s, const char* args)
+{
+    int max_tokens = 0;
+    long nbytes = 0;
+    char key[128] = "";
+    if (sscanf(args, "%d %ld", &max_tokens, &nbytes) != 2 || max_tokens <= 0 || nbytes < 0) {
+        sock_send_line(client_fd, PROTO_ERROR " bad INFER_SESS args");
+        return;
+    }
+    copy_named_arg(args, "key=", key, sizeof(key));
+    int has_key = key[0] && strcmp(key, "-") != 0;
+    if (!has_key) key[0] = '\0';
+    if (!s->sess_vocab_ok) { sock_send_line(client_fd, PROTO_ERROR " server: session vocab not loaded"); return; }
+
+    char* msg = (char*)malloc((size_t)nbytes + 1);
+    if (!msg) { sock_send_line(client_fd, PROTO_ERROR " server: oom"); return; }
+    if (sock_recv_n(client_fd, msg, (size_t)nbytes) != 0) { free(msg); return; }
+    msg[nbytes] = '\0';
+
+    char roles[SESS_MSG_MAX][16];
+    const char* contents[SESS_MSG_MAX];
+    char* store = (char*)malloc((size_t)nbytes + (size_t)SESS_MSG_MAX * 8 + 8);
+    int n_msgs = 0;
+    int is_msgs = 0;
+    if (store)
+        n_msgs = parse_sess_msgs(msg, (size_t)nbytes, roles, contents, store,
+                                 (size_t)nbytes + (size_t)SESS_MSG_MAX * 8, SESS_MSG_MAX);
+    if (n_msgs > 0) is_msgs = 1;
+
+    uint32_t* full_ids = (uint32_t*)ymalloc(65536 * 4);
+    uint32_t* tokens = (uint32_t*)ymalloc(65536 * 4);
+    int nfull = 0, n = 0;
+    if (is_msgs) {
+        const char* rp[SESS_MSG_MAX];
+        int mi;
+        for (mi = 0; mi < n_msgs; mi++) rp[mi] = roles[mi];
+        nfull = vocab_chat_ids_multi(&s->sess_vocab, rp, contents, n_msgs, full_ids, 65536, 1);
+    } else {
+        nfull = vocab_chat_ids(&s->sess_vocab, msg, full_ids, 65536, 1);
+    }
+
+    pthread_mutex_lock(&s->infer_lock);
+    pthread_mutex_lock(&s->sess_lock);
+    SessVal* sv = NULL;
+    uint32_t resume = 0;
+    int eos = s->sess_vocab.eos;
+    uint32_t lcp = 0;
+    if (has_key) {
+        sv = sess_get(&s->sess, key);
+        if (!sv) {
+            sv = sess_put(&s->sess, key);
+            sess_try_disk(s, sv, key, &resume);
+        }
+        if (sv && nfull > 0) {
+            lcp = sess_lcp(sv, full_ids, (uint32_t)nfull, eos);
+            if (lcp < sv->n) sess_truncate(sv, lcp);
+            resume = lcp;
+            ylog_info("server: sess key=%s lcp=%u cached=%u req=%d", key, lcp, sv->n, nfull);
+        }
+    } else if (nfull > 0) {
+        sv = sess_find_prefix(&s->sess, full_ids, (uint32_t)nfull, eos, &lcp);
+        if (sv && lcp > 0) {
+            snprintf(key, sizeof(key), "%s", sv->key);
+            if (lcp < sv->n) sess_truncate(sv, lcp);
+            resume = lcp;
+            ylog_info("server: sess lcp-hit key=%s lcp=%u req=%d", key, lcp, nfull);
+        } else {
+            snprintf(key, sizeof(key), "a:%llx:%x",
+                     (unsigned long long)ynow_ms(),
+                     (unsigned)nfull ^ (nfull > 0 ? full_ids[0] : 0));
+            sv = sess_put(&s->sess, key);
+            resume = 0;
+            sess_try_disk(s, sv, key, &resume);
+        }
+    } else {
+        if (!key[0]) snprintf(key, sizeof(key), "a:%llx", (unsigned long long)ynow_ms());
+        sv = sess_get(&s->sess, key);
+        if (!sv) {
+            sv = sess_put(&s->sess, key);
+            sess_try_disk(s, sv, key, &resume);
+        } else {
+            resume = sv->n;
+        }
+    }
+    if (nfull <= 0) {
+        free(full_ids); free(tokens); free(store); free(msg);
+        pthread_mutex_unlock(&s->sess_lock);
+        pthread_mutex_unlock(&s->infer_lock);
+        sock_send_line(client_fd, PROTO_ERROR " server: render failed");
+        return;
+    }
+    /* 增量 = 整段渲染去掉已命中前缀, 不再只发最后一句 user */
+    if (resume > (uint32_t)nfull) resume = 0;
+    memcpy(tokens, full_ids + resume, (size_t)(nfull - (int)resume) * 4);
+    n = nfull - (int)resume;
+    /* PP 不能 ndelta=0: worker 等 X 帧, master 等 logits, 会死锁。完全命中时回放最后 1 个 prompt token。 */
+    int replay_last = 0;
+    if (n <= 0 && resume > 0 && nfull > 0) {
+        resume--;
+        tokens[0] = full_ids[resume];
+        n = 1;
+        replay_last = 1;
+        ylog_info("server: sess exact-prefix, replay last token resume=%u", resume);
+    }
+    if (n <= 0 && resume == 0) {
+        free(full_ids); free(tokens); free(store); free(msg);
+        pthread_mutex_unlock(&s->sess_lock);
+        pthread_mutex_unlock(&s->infer_lock);
+        sock_send_line(client_fd, PROTO_ERROR " server: render failed");
+        return;
+    }
+    /* 成功 DONE 前不 commit: 超时重试不得把同一条用户消息反复追加进会话 */
+    pthread_mutex_unlock(&s->sess_lock);
+
+    int sent = 0;    /* 1=已改走 resume=0 全量(或重置后的整段) */
+    int fresh = 0;   /* 1=历史已丢弃, 当前消息按新会话 */
+    int retry = 0;
+    uint32_t* gen = NULL;
+    uint32_t ngen = 0, gcap = 0;
+    for (;;) {
+        int fd = server_connect_leader(s);
+        if (fd < 0) {
+            free(gen); free(full_ids); free(tokens); free(store); free(msg);
+            pthread_mutex_unlock(&s->infer_lock);
+            sock_send_line(client_fd, PROTO_ERROR " server: cannot connect leader");
+            return;
+        }
+        sock_set_timeout(fd, (int)(srv_timeout_ms() / 1000));
+        uint32_t sr = sent ? 0 : resume;
+        const uint32_t* st = tokens;
+        uint32_t sn = (uint32_t)n;
+        uint32_t* full = NULL;
+        if (sent) {
+            pthread_mutex_lock(&s->sess_lock);
+            SessVal* rv = sess_get(&s->sess, key);
+            if (!rv) {
+                pthread_mutex_unlock(&s->sess_lock);
+                sock_close(fd); free(gen); free(full_ids); free(tokens); free(store); free(msg);
+                pthread_mutex_unlock(&s->infer_lock);
+                return;
+            }
+            sn = rv->n + (uint32_t)n;
+            full = (uint32_t*)ymalloc((size_t)sn * 4);
+            if (rv->n) memcpy(full, rv->tokens, (size_t)rv->n * 4);
+            memcpy(full + rv->n, tokens, (size_t)n * 4);
+            pthread_mutex_unlock(&s->sess_lock);
+            st = full;
+        }
+        char fargs[256];
+        float ftemp = 1.0f, ftop_p = 0.9f;
+        const char* tp = strstr(args, "temp=");
+        if (tp) {
+            ftemp = (float)atof(tp + 5);
+            const char* pp = strstr(tp, "top_p=");
+            if (pp) ftop_p = (float)atof(pp + 6);
+        }
+        snprintf(fargs, sizeof(fargs), "%d %u key=%s resume=%u seg=0 segs=%d peers=%s temp=%.6g top_p=%.6g",
+                 max_tokens, sn * 4, key, sr,
+                 s->lease_ranks > 0 ? s->lease_ranks : 1,
+                 s->lease_peers[0] ? s->lease_peers : "127.0.0.1",
+                 ftemp, ftop_p);
+        frame_send(fd, PROTO_INFER, fargs);
+        sock_send_n(fd, st, (size_t)sn * 4);
+        ylog_info("server: sess key=%s resume=%u +%u tokens -> rank%s",
+                  key, sr, sent ? (uint32_t)n : sn, fresh ? " (fresh)" : (sent ? " (full)" : ""));
+        if (sent)
+            ylog_info("server: sess key=%s full payload %u tokens", key, sn);
+
+        char out[SRV_MAX_LINE];
+        int done = 0, rc = 0;
+        ngen = 0;
+        while (!done) {
+            int sel = sock_wait_readable(fd, (int)srv_timeout_ms());
+            if (sel <= 0) { sock_send_line(client_fd, PROTO_ERROR " server: leader timeout"); rc = -1; break; }
+            int nn = sock_recv_line(fd, out, sizeof(out));
+            if (nn < 0) { rc = -1; break; }
+            if (strncmp(out, PROTO_PROG, 4) == 0)
+                continue;   /* prefill 保活, 刷新超时 */
+            if (proto_is_error(out)) {
+                int rebuild = sess_err_needs_rebuild(out);
+                if (rebuild && !sent) {
+                    sock_close(fd);
+                    server_unlink_rank0_kv(s, key);
+                    ylog_warn("server: sess %s kv/resume broken (%s), full resend",
+                              key, proto_error_msg(out));
+                    sent = 1;
+                    rc = -2;
+                    break;
+                }
+                if (rebuild && sent && !fresh) {
+                    sock_close(fd);
+                    server_unlink_rank0_kv(s, key);
+                    pthread_mutex_lock(&s->sess_lock);
+                    SessVal* rv = sess_get(&s->sess, key);
+                    if (rv) {
+                        sess_truncate(rv, 0);
+                        if (is_msgs) {
+                            const char* rp[SESS_MSG_MAX];
+                            int mi;
+                            for (mi = 0; mi < n_msgs; mi++) rp[mi] = roles[mi];
+                            n = vocab_chat_ids_multi(&s->sess_vocab, rp, contents, n_msgs, tokens, 65536, 1);
+                        } else {
+                            n = vocab_chat_ids(&s->sess_vocab, msg, tokens, 65536, 1);
+                        }
+                        if (s->cache_dir[0]) {
+                            char path[512];
+                            sess_file_name(path + snprintf(path, sizeof(path), "%s/", s->cache_dir),
+                                           sizeof(path), key, ".sess");
+                            remove(path);
+                        }
+                    } else {
+                        n = -1;
+                    }
+                    pthread_mutex_unlock(&s->sess_lock);
+                    if (n <= 0) {
+                        free(full); free(gen); free(full_ids); free(tokens); free(store); free(msg);
+                        pthread_mutex_unlock(&s->infer_lock);
+                        sock_send_line(client_fd, PROTO_ERROR " server: sess reset render failed");
+                        return;
+                    }
+                    ylog_warn("server: sess %s reset as new (%d tokens)", key, n);
+                    fresh = 1;
+                    resume = 0;
+                    rc = -2;
+                    break;
+                }
+                if (!sent) { sock_close(fd); sent = 1; rc = -2; break; }
+                if (retry < 5) {
+                    sock_close(fd);
+                    retry++;
+                    rc = -2;
+                    ylog_warn("server: sess %s backend reject (%s), retry %d/5",
+                              key, proto_error_msg(out), retry);
+                    sock_sleep_ms(1000 * retry);
+                    break;
+                }
+                sock_send_line(client_fd, "%s", out);
+                rc = -1;
+                break;
+            }
+            if (strncmp(out, PROTO_DONE, 4) == 0) {
+                done = 1;
+                pthread_mutex_lock(&s->sess_lock);
+                SessVal* ev = sess_get(&s->sess, key);
+                if (ev) {
+                    if (n > 0 && !replay_last) sess_commit(ev, tokens, (uint32_t)n);
+                    {
+                        uint32_t gi;
+                        for (gi = 0; gi < ngen; gi++) sess_append(ev, gen[gi]);
+                    }
+                    if (s->sess_vocab.eos >= 0) sess_append(ev, (uint32_t)s->sess_vocab.eos);
+                    char dline[SRV_MAX_LINE];
+                    snprintf(dline, sizeof(dline), "%s %u", out, ev->n);
+                    sock_send_line(client_fd, "%s", dline);
+                    if (s->cache_dir[0]) {
+                        char path[512];
+                        sess_file_name(path + snprintf(path, sizeof(path), "%s/", s->cache_dir), sizeof(path), key, ".sess");
+                        int rc2 = sess_save(ev, path);
+                        ylog_info("server: sess %s saved (%u tokens) rc=%d -> %s", key, ev->n, rc2, path);
+                    }
+                } else {
+                    sock_send_line(client_fd, "%s", out);
+                }
+                pthread_mutex_unlock(&s->sess_lock);
+            } else if (strncmp(out, "TS ", 3) == 0) {
+                sock_send_line(client_fd, "%s", out);
+                uint32_t tok = 0;
+                size_t tlen = 0;
+                sscanf(out + 3, "%zu %u", &tlen, &tok);
+                if (tlen <= 0) { rc = -1; break; }
+                char* payload = (char*)malloc(tlen + 1);
+                if (!payload) { rc = -1; break; }
+                if (sock_recv_n(fd, payload, tlen) != 0) { free(payload); rc = -1; break; }
+                payload[tlen] = '\0';
+                if (ngen + 1 > gcap) {
+                    uint32_t nc = gcap ? gcap * 2 : 64;
+                    uint32_t* ng = (uint32_t*)realloc(gen, (size_t)nc * 4);
+                    if (!ng) { free(payload); rc = -1; break; }
+                    gen = ng;
+                    gcap = nc;
+                }
+                gen[ngen++] = tok;
+                sock_send_n(client_fd, payload, tlen);
+                free(payload);
+            } else {
+                sock_send_line(client_fd, "%s", out);
+            }
+        }
+        sock_close(fd);
+        free(full);
+        if (rc == -2) continue;
+        free(gen); free(full_ids); free(tokens); free(store); free(msg);
+        pthread_mutex_unlock(&s->infer_lock);
+        return;
+    }
+}
+
+/* 向 sv 租用该模型一组 rank(标记忙), 成功填 leader_host/port */
+static int server_lease(Server* s)
+{
+    char args[512];
+    snprintf(args, sizeof(args), "%s model=%s", s->node.node_id, s->node.model);
+    if (strcmp(s->lease_strategy, "permanent") == 0) {
+        strncat(args, " permanent", sizeof(args) - strlen(args) - 1);
+    } else if (strcmp(s->lease_strategy, "timed") == 0 && s->lease_duration > 0) {
+        char d[64];
+        snprintf(d, sizeof(d), " duration=%d", s->lease_duration);
+        strncat(args, d, sizeof(args) - strlen(args) - 1);
+    }
+    int fd = sock_connect(s->node.sv_host, s->node.sv_port, 3);
+    if (fd < 0) return -1;
+    sock_set_timeout(fd, 5);
+    frame_send(fd, PROTO_LEASE, args);
+    Frame f;
+    int rc = -1;
+    if (frame_recv(fd, &f) >= 0 && strcmp(f.cmd, "OK") == 0) {
+        const char* leader = proto_get(f.args, "leader");
+        if (leader) {
+            const char* colon = strchr(leader, ':');
+            if (colon) {
+                size_t hlen = (size_t)(colon - leader);
+                if (hlen >= sizeof(s->leader_host)) hlen = sizeof(s->leader_host) - 1;
+                memcpy(s->leader_host, leader, hlen);
+                s->leader_host[hlen] = '\0';
+                s->leader_port = (uint16_t)atoi(colon + 1);
+                rc = 0;
+            }
+        }
+        s->lease_ranks = atoi(proto_get(f.args, "ranks") ? proto_get(f.args, "ranks") : "1");
+        const char* peers = proto_get(f.args, "peers");
+        if (peers) snprintf(s->lease_peers, sizeof(s->lease_peers), "%s", peers);
+        else s->lease_peers[0] = '\0';
+        const char* rids = proto_get(f.args, "rank_ids");
+        if (rids) snprintf(s->lease_rank_ids, sizeof(s->lease_rank_ids), "%s", rids);
+        else s->lease_rank_ids[0] = '\0';
+    }
+    sock_close(fd);
+    return rc;
+}
+
+/* 释放租用(rank 回池) */
+static void server_release(Server* s)
+{
+    int fd = sock_connect(s->node.sv_host, s->node.sv_port, 3);
+    if (fd < 0) return;
+    sock_set_timeout(fd, 5);
+    frame_send(fd, PROTO_RELEASE, s->node.node_id);
+    Frame f;
+    (void)frame_recv(fd, &f);
+    sock_close(fd);
+}
+
+static void handle_frame(int fd, Server* s, const char* cmd, const char* args)
+{
+    if (strcmp(cmd, PROTO_INFER_SESS) == 0) {
+        s->node.inflight++;
+        s->node.state = NODE_STATE_BUSY;   /* 转发中, 通知 supervisor */
+        node_heartbeat(&s->node);
+        int request_lease = strcmp(s->lease_strategy, "request") == 0;
+        int ok = 1;
+        if (request_lease && server_lease(s) != 0) {
+            ylog_warn("server: sess lease failed (no free rank), reject");
+            sock_send_line(fd, PROTO_ERROR " server: no rank leased");
+            ok = 0;
+        }
+        if (ok) {
+            forward_infer_sess(fd, s, args);
+            if (request_lease) server_release(s);
+        }
+        s->node.inflight--;
+        s->node.state = NODE_STATE_READY;  /* 转发结束 */
+        node_heartbeat(&s->node);
+        return;
+    }
+    if (strcmp(cmd, PROTO_INFER) == 0) {
+        s->node.inflight++;
+        s->node.state = NODE_STATE_BUSY;   /* 转发中, 通知 supervisor */
+        node_heartbeat(&s->node);
+        int request_lease = strcmp(s->lease_strategy, "request") == 0;
+        int ok = 1;
+        if (request_lease && server_lease(s) != 0) {
+            ylog_warn("server: lease failed (no free rank), reject");
+            sock_send_line(fd, PROTO_ERROR " server: no rank leased");
+            ok = 0;
+        }
+        if (ok) forward_infer(fd, s, args);
+        if (request_lease) server_release(s);
+        s->node.inflight--;
+        s->node.state = NODE_STATE_READY;  /* 转发结束 */
+        node_heartbeat(&s->node);
+    } else if (strcmp(cmd, PROTO_PING) == 0) {
+        frame_send(fd, "OK", "READY");
+    } else if (strcmp(cmd, PROTO_STAT) == 0) {
+        uint64_t uptime = s->start_s ? (uint64_t)(time(NULL) - (time_t)s->start_s) : 0;
+        char st[640];
+        snprintf(st, sizeof(st),
+                 "inflight=%d kv_mb=0.0 prefix_hits=0 uptime_s=%llu "
+                 "lease_ranks=%d lease_peers=%s lease_rank_ids=%s",
+                 s->node.inflight, (unsigned long long)uptime,
+                 s->lease_ranks > 0 ? s->lease_ranks : 1,
+                 s->lease_peers[0] ? s->lease_peers : "127.0.0.1",
+                 s->lease_rank_ids[0] ? s->lease_rank_ids : "?");
+        frame_send(fd, "OK", st);
+    } else if (strcmp(cmd, PROTO_DRAIN) == 0 || strcmp(cmd, PROTO_QUIT) == 0) {
+        frame_send(fd, "OK", NULL);
+        s->quit = 1;
+    } else {
+        frame_send(fd, PROTO_ERROR, "unknown cmd");
+    }
+}
+
+/* 单连接处理(线程化: 长生成不阻塞该 server 的其他连接)。
+ * s 随线程参数传入, 不共享全局(多 server 并存时避免串台)。 */
+typedef struct { Server* s; int fd; } SrvConnArg;
+static void* srv_conn(void* arg)
+{
+    SrvConnArg* a = (SrvConnArg*)arg;
+    int fd = a->fd;
+    Server* s = a->s;
+    free(a);
+    Frame f;
+    if (frame_recv(fd, &f) >= 0)
+        handle_frame(fd, s, f.cmd, f.args);
+    sock_close(fd);
+    return NULL;
+}
+
+/* 独立心跳线程: 长请求转发期间 accept 循环被占用, 心跳不能停 */
+static void srv_hb_thread(void* arg)
+{
+    Server* s = (Server*)arg;
+    while (!s->quit) {
+        sock_sleep_ms(2000);
+        s->node.kv_mb = 0; /* P2: 无组内汇总, 占位 */
+        node_heartbeat(&s->node);
+    }
+}
+
+static void server_sess_init(Server* s)
+{
+    if (s->vocab_path[0]) {
+        if (vocab_load(s->vocab_path, &s->sess_vocab) == 0) {
+            s->sess_vocab_ok = 1;
+            sess_init(&s->sess, 256);
+            pthread_mutex_init(&s->sess_lock, NULL);
+            pthread_mutex_init(&s->infer_lock, NULL);
+            ylog_info("server: session vocab=%s loaded (%d pieces)", s->vocab_path, s->sess_vocab.n);
+            if (s->cache_dir[0]) {
+                int n = sess_load_dir(&s->sess, s->cache_dir);
+                ylog_info("server: loaded %d sessions from %s", n, s->cache_dir);
+            }
+        } else {
+            ylog_warn("server: session vocab load failed: %s", s->vocab_path);
+        }
+    }
+}
+
+int server_run(Server* s)
+{
+    server_sess_init(s);
+    sock_init();
+
+    /* leader 未指定: 按租用策略 —— timed/permanent 启动时租一次;
+     * request 策略不预租(每次推理时 LEASE/RELEASE) */
+    if (!s->leader_host[0] && strcmp(s->lease_strategy, "request") != 0) {
+        int tries;
+        for (tries = 0; tries < 90; tries++) {
+            if (server_lease(s) == 0) break;
+            sock_sleep_ms(1000);
+        }
+        if (!s->leader_host[0]) {
+            ylog_error("server: lease failed (no ready rank for %s)", s->node.model);
+            return 1;
+        }
+    }
+
+    int srv = sock_listen(s->port, 8);
+    if (srv < 0) return 1;
+    ylog_info("server %s: listening on port %u (leader=%s:%u, heartbeat → %s:%u)",
+              s->node.node_id, s->port, s->leader_host, s->leader_port,
+              s->node.sv_host, s->node.sv_port);
+
+    void* hb = NULL;
+    if (s->node.sv_enabled) ythread_create(&hb, srv_hb_thread, s);
+    for (;;) {
+        int fd = sock_accept_with_timeout(srv, 500);
+        if (fd >= 0) {
+            SrvConnArg* a = (SrvConnArg*)malloc(sizeof(*a));
+            if (a) {
+                a->s = s;
+                a->fd = fd;
+                pthread_t t;
+                if (pthread_create(&t, NULL, srv_conn, a) != 0) {
+                    free(a);
+                    sock_close(fd);
+                } else {
+                    pthread_detach(t);
+                }
+            } else {
+                sock_close(fd);
+            }
+        }
+        if (s->quit) break;
+    }
+    sock_close(srv);
+    return 0;
+}
+
+/* 自动发现 leader: 向 supervisor 查询该模型的 ready rank, 取第一个填 leader_host/port。
+ * 返回 0 成功, -1 失败(无 rank / 查询失败)。 */
+int server_resolve_leader(Server* s, const char* sv_host, uint16_t sv_port, const char* model)
+{
+    int fd = sock_connect(sv_host, sv_port, 3);
+    if (fd < 0) return -1;
+    sock_set_timeout(fd, 5);
+    char qargs[512];
+    snprintf(qargs, sizeof(qargs), "model=%s", model ? model : "");
+    frame_send(fd, PROTO_QUERY_RANKS, qargs);
+    for (;;) {
+        Frame f;
+        if (frame_recv(fd, &f) < 0) break;
+        if (strcmp(f.cmd, PROTO_RANK_INFO) == 0) {
+            const char* a = proto_get(f.args, "addr");
+            if (a) {
+                const char* colon = strchr(a, ':');
+                if (colon) {
+                    size_t hlen = (size_t)(colon - a);
+                    if (hlen >= sizeof(s->leader_host)) hlen = sizeof(s->leader_host) - 1;
+                    memcpy(s->leader_host, a, hlen);
+                    s->leader_host[hlen] = '\0';
+                    s->leader_port = (uint16_t)atoi(colon + 1);
+                    sock_close(fd);
+                    ylog_info("server: leader auto-discovered %s:%u (model=%s)",
+                              s->leader_host, s->leader_port, model);
+                    return 0;
+                }
+            }
+        } else if (strcmp(f.cmd, PROTO_QUERY_DONE) == 0) {
+            break;
+        }
+    }
+    sock_close(fd);
+    return -1;
+}
+
+int cmd_server(ServeConfig* cfg)
+{
+    if (!cfg->model_name[0]) {
+        fprintf(stderr, "usage: yllm server --id <name> --model-name <name> [--leader <ip:port>] "
+                        "--supervisor <ip:port> [--port N]\n");
+        return 1;
+    }
+
+    Server s;
+    memset(&s, 0, sizeof(s));
+    if (cfg->node_id[0] && strcmp(cfg->node_id, "node-0") != 0)
+        snprintf(s.node.node_id, sizeof(s.node.node_id), "%s", cfg->node_id);
+    else
+        snprintf(s.node.node_id, sizeof(s.node.node_id), "server-0");
+    snprintf(s.node.type, sizeof(s.node.type), "server");
+    snprintf(s.node.model, sizeof(s.node.model), "%s", cfg->model_name);
+    s.node.state = NODE_STATE_READY;
+    s.port = (uint16_t)cfg->server_port;
+    s.start_s = (uint64_t)time(NULL);
+    if (cfg->model[0])
+        snprintf(s.resolve_model, sizeof(s.resolve_model), "%s", cfg->model);
+    if (cfg->vocab[0])
+        snprintf(s.vocab_path, sizeof(s.vocab_path), "%s", cfg->vocab);
+    if (cfg->cache_dir[0])
+        snprintf(s.cache_dir, sizeof(s.cache_dir), "%s", cfg->cache_dir);
+
+    /* 租用策略(默认 request: 每次推理 LEASE/RELEASE) */
+    snprintf(s.lease_strategy, sizeof(s.lease_strategy), "%s",
+             cfg->lease_strategy[0] ? cfg->lease_strategy : "request");
+    s.lease_duration = cfg->lease_duration;
+
+    /* 解析 leader ip:port; 未配置 → 走租用(LEASE), request 策略每次推理时租 */
+    if (cfg->leader[0]) {
+        const char* colon = strchr(cfg->leader, ':');
+        if (!colon) { fprintf(stderr, "bad leader addr: %s\n", cfg->leader); return 1; }
+        size_t hlen = (size_t)(colon - cfg->leader);
+        if (hlen >= sizeof(s.leader_host)) hlen = sizeof(s.leader_host) - 1;
+        memcpy(s.leader_host, cfg->leader, hlen);
+        s.leader_host[hlen] = '\0';
+        s.leader_port = (uint16_t)atoi(colon + 1);
+    }
+
+    /* 自身 addr(上报 supervisor 用): ip:port */
+    snprintf(s.node.addr, sizeof(s.node.addr), "%s:%u", cfg->sv_host, s.port);
+
+    /* supervisor 地址 */
+    snprintf(s.node.sv_host, sizeof(s.node.sv_host), "%s", cfg->sv_host);
+    s.node.sv_port = (uint16_t)cfg->sv_port;
+    s.node.sv_enabled = 1;
+
+    return server_run(&s);
+}

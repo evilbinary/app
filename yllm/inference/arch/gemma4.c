@@ -1,0 +1,792 @@
+#include "arch.h"
+#include "yllm.h"
+#include "llf.h"
+#include "matvec.h"
+#include "log.h"
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <stdio.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+#ifdef _WIN32
+#include <malloc.h>
+#else
+#include <alloca.h>
+#endif
+
+
+typedef struct {
+    float *ple, *ple_work, *ple_batch;
+    uint32_t n_ple;
+    float *rope_ff, *rope_if_swa;
+    uint32_t n_rope_ff, n_rope_if_swa;
+} Gemma4Ctx;
+
+static Gemma4Ctx* g4c(Engine* e)
+{
+    return (e && e->arch_ctx) ? (Gemma4Ctx*)e->arch_ctx : NULL;
+}
+
+/* 层内分段剖析(YLLM_PROF=2 开启): qkv/attn/o/gateup/down/ple 每段耗时,
+ * 正常运行零开销(仅一次 getenv)。 */
+static int g4_seg_prof = -1;
+static double g4s_qkv, g4s_attn, g4s_o, g4s_gu, g4s_down, g4s_ple, g4s_tot;
+static int g4s_n;
+
+const ArchOps arch_gemma4_ops = {
+    .name = "gemma4",
+    .id = ARCH_GEMMA4,
+    .cpu_batch_prefill = 1,
+    .prefill_batch_min = 2,
+    .gpu_fused = 0,
+    .qwen_rope = 0,
+    .alloc = arch_gemma4_alloc,
+    .free = arch_gemma4_free,
+    .after_embed = arch_gemma4_after_embed,
+    .after_embed_batch = arch_gemma4_after_embed_batch,
+    .refresh_ple_pp = arch_gemma4_refresh_ple_pp,
+    .post_logits = arch_gemma4_post_logits,
+    .fwd_block = arch_gemma4_fwd_block,
+    .fwd_block_batch = arch_gemma4_fwd_block_batch,
+};
+
+static void gemma4_fill_inv_freq(float* out, uint32_t n, uint32_t d, float theta, int fold_self)
+{
+    uint32_t j;
+    for (j = 0; j < n; j++) {
+        float f = powf(theta, -2.0f * (float)j / (float)d);
+        if (fold_self) {
+            float x = out[j];
+            if (x > 0.0f) f /= x;
+        }
+        out[j] = f;
+    }
+}
+
+int arch_gemma4_alloc(Engine* e)
+{
+    Ws* ws = &e->ws;
+    LlModel* m = &ws->model;
+    uint32_t hidden = m->h.hidden;
+    LlfGemma4Ext g4;
+    Gemma4Ctx* c = (Gemma4Ctx*)ycalloc(1, sizeof(*c));
+    if (!c) return -1;
+    e->arch_ctx = c;
+    llf_gemma4_ext(&m->h, &g4);
+    c->n_ple = g4.n_embd_per_layer;
+    if (c->n_ple > 0) {
+        uint32_t psz = c->n_ple * m->h.n_blocks;
+        c->ple = (float*)ycalloc(psz, 4);
+        c->ple_work = (float*)ycalloc(psz, 4);
+    }
+    {
+        const LlfTensorMeta* tm = &m->metas[m->base_idx[0] + SLOT_ROPE_FREQS];
+        if (tm->size > 0) {
+            uint32_t n = 1, d;
+            for (d = 0; d < tm->ndim && d < 4; d++) {
+                if (tm->shape[d] > 0) n *= tm->shape[d];
+            }
+            if (n > 0 && n <= 8192) {
+                const uint8_t* p = (const uint8_t*)ws->map.base + m->dir[0].offset + tm->offset;
+                c->rope_ff = (float*)ymalloc((size_t)n * 4);
+                c->n_rope_ff = n;
+                if (tm->dtype == DT_F32) {
+                    memcpy(c->rope_ff, p, (size_t)n * 4);
+                } else if (tm->dtype == DT_F16) {
+                    const uint16_t* hp = (const uint16_t*)p;
+                    uint32_t j;
+                    for (j = 0; j < n; j++) c->rope_ff[j] = f16_to_f32(hp[j]);
+                } else {
+                    free(c->rope_ff);
+                    c->rope_ff = NULL;
+                    c->n_rope_ff = 0;
+                }
+            }
+        }
+    }
+    {
+        float theta_g;
+        uint32_t hd_g = m->h.head_dim ? m->h.head_dim : 1;
+        uint32_t hd_s = 0, li, swa_il = 0;
+        memcpy(&theta_g, &m->h.rope_theta_bits, 4);
+        if (c->rope_ff && c->n_rope_ff > 0) {
+            uint32_t d = c->n_rope_ff * 2u;
+            gemma4_fill_inv_freq(c->rope_ff, c->n_rope_ff, d, theta_g, 1);
+        } else if (hd_g >= 2) {
+            c->n_rope_ff = hd_g / 2;
+            c->rope_ff = (float*)ymalloc((size_t)c->n_rope_ff * 4);
+            gemma4_fill_inv_freq(c->rope_ff, c->n_rope_ff, hd_g, theta_g, 0);
+        }
+        for (li = 1; li <= m->h.n_blocks; li++) {
+            const LlfTensorMeta* mt = &m->metas[m->base_idx[li]];
+            if (!llf_gemma4_is_swa(&g4, li - 1)) continue;
+            if (mt[SLOT_Q].ndim >= 2 && hidden > 0 && m->h.n_heads) {
+                uint32_t qd = mt[SLOT_Q].shape[0] * mt[SLOT_Q].shape[1] / hidden;
+                hd_s = qd / m->h.n_heads;
+            }
+            swa_il = li - 1;
+            break;
+        }
+        if (hd_s >= 2) {
+            float ths = llf_gemma4_rope_theta(&m->h, &g4, swa_il);
+            c->n_rope_if_swa = hd_s / 2;
+            c->rope_if_swa = (float*)ymalloc((size_t)c->n_rope_if_swa * 4);
+            gemma4_fill_inv_freq(c->rope_if_swa, c->n_rope_if_swa, hd_s, ths, 0);
+        }
+    }
+    if (hidden > 0 && e->pb_cap > 0) {
+        uint32_t li, q_dim_max = e->pbq_dim;
+        for (li = 1; li <= m->h.n_blocks; li++) {
+            const LlfTensorMeta* mt = &m->metas[m->base_idx[li]];
+            if (mt[SLOT_Q].ndim >= 2) {
+                uint32_t qd = mt[SLOT_Q].shape[0] * mt[SLOT_Q].shape[1] / hidden;
+                if (qd > q_dim_max) q_dim_max = qd;
+            }
+        }
+        if (q_dim_max > e->pbq_dim) {
+            free(e->pbq);
+            e->pbq = (float*)ycalloc((size_t)e->pb_cap * q_dim_max, 4);
+            e->pbq_dim = q_dim_max;
+        }
+    }
+    if (c->n_ple > 0 && e->pb_cap > 0) {
+        size_t psz = (size_t)c->n_ple * m->h.n_blocks;
+        c->ple_batch = (float*)ycalloc((size_t)e->pb_cap * psz, 4);
+        free(c->ple_work);
+        c->ple_work = (float*)ycalloc((size_t)e->pb_cap * psz, 4);
+    }
+    ylog_info("gemma4: n_ple=%u shared_kv=%u swa_win=%u swa_pat=%u rope_freqs=%u",
+              c->n_ple, g4.n_kv_shared_layers, g4.swa_window, g4.swa_pattern,
+              c->n_rope_ff);
+    return 0;
+}
+
+void arch_gemma4_free(Engine* e)
+{
+    Gemma4Ctx* c = g4c(e);
+    if (!c) return;
+    free(c->ple);
+    free(c->ple_work);
+    free(c->ple_batch);
+    free(c->rope_ff);
+    free(c->rope_if_swa);
+    free(c);
+    e->arch_ctx = NULL;
+}
+
+static void gemma4_prepare_ple_resid(Engine* e, uint32_t token, const float* resid)
+{
+    Gemma4Ctx* c = g4c(e);
+
+    if (!c || !c->n_ple || !c->ple || !c->ple_work || !resid) return;
+    Ws* ws = &e->ws;
+    LlModel* m = &ws->model;
+    const LlfHeader* h = &m->h;
+    const uint8_t* ebase = (const uint8_t*)ws->map.base + m->dir[0].offset;
+    const LlfTensorMeta* em = &m->metas[m->base_idx[0]];
+    const LlfTensorMeta* tok = &em[SLOT_PLE_TOK];
+    const LlfTensorMeta* mproj = &em[SLOT_PLE_MPROJ];
+    const LlfTensorMeta* pnorm = &em[SLOT_PLE_PNORM];
+    uint32_t n_ple = c->n_ple;
+    uint32_t nblk = h->n_blocks;
+    uint32_t width = n_ple * nblk;
+    uint32_t j, il;
+    float eps;
+    float ts, ps, isc;
+    if (tok->size == 0 || mproj->size == 0) return;
+    memcpy(&eps, &h->norm_eps_bits, 4);
+    switch (tok->dtype) {
+    case DT_F32: embed_f32(c->ple, ebase + tok->offset, token, width); break;
+    case DT_Q4K: embed_q4k(c->ple, ebase + tok->offset, token, width); break;
+    case DT_Q6K: embed_q6k(c->ple, ebase + tok->offset, token, width); break;
+    case DT_Q5K: embed_q5k(c->ple, ebase + tok->offset, token, width); break;
+    default: embed_f16(c->ple, ebase + tok->offset, token, width); break;
+    }
+    ts = sqrtf((float)n_ple);
+    for (j = 0; j < width; j++) c->ple[j] *= ts;
+    matmul(c->ple_work, resid, ebase + mproj->offset, width, h->hidden, mproj->dtype);
+    ps = 1.0f / sqrtf((float)h->hidden);
+    for (j = 0; j < width; j++) c->ple_work[j] *= ps;
+    isc = 1.0f / sqrtf(2.0f);
+    for (il = 0; il < nblk; il++) {
+        float* sl = c->ple_work + (size_t)il * n_ple;
+        float* pe = c->ple + (size_t)il * n_ple;
+        if (pnorm->size > 0)
+            rmsnorm(sl, sl, ebase + pnorm->offset, n_ple, eps, pnorm->dtype);
+        else
+            rmsnorm_unit(sl, sl, n_ple, eps);
+        for (j = 0; j < n_ple; j++)
+            pe[j] = (sl[j] + pe[j]) * isc;
+    }
+}
+
+void arch_gemma4_after_embed(Engine* e, uint32_t token)
+{
+    uint32_t hidden = e->ws.model.h.hidden;
+    float scale = sqrtf((float)hidden);
+    uint32_t j;
+    /* llama.cpp: 图像 raw embed 不再乘 √hidden; PLE 用 pad id 0 */
+    if (e->vis_tok >= 0 && e->vis_use && e->vis_tok < e->vis_seq && e->vis_use[e->vis_tok]) {
+        gemma4_prepare_ple_resid(e, 0, e->x);
+        return;
+    }
+    for (j = 0; j < hidden; j++) e->x[j] *= scale;
+    gemma4_prepare_ple_resid(e, token, e->x);
+}
+
+void arch_gemma4_refresh_ple_pp(Engine* e, uint32_t token)
+{
+    Gemma4Ctx* c = g4c(e);
+
+    if (!c || !c->n_ple || !e->hb) return;
+    Ws* ws = &e->ws;
+    LlModel* m = &ws->model;
+    const LlfHeader* h = &m->h;
+    const uint8_t* base = (const uint8_t*)ws->map.base + m->dir[0].offset;
+    const LlfTensorMeta* tm = &m->metas[m->base_idx[0]];
+    float* emb = e->hb;
+    uint32_t j;
+    switch (tm->dtype) {
+    case DT_F32: embed_f32(emb, base + tm->offset, token, h->hidden); break;
+    case DT_Q4K: embed_q4k(emb, base + tm->offset, token, h->hidden); break;
+    case DT_Q6K: embed_q6k(emb, base + tm->offset, token, h->hidden); break;
+    case DT_Q5K: embed_q5k(emb, base + tm->offset, token, h->hidden); break;
+    case DT_IQ4XS: embed_iq4xs(emb, base + tm->offset, token, h->hidden); break;
+    default: embed_f16(emb, base + tm->offset, token, h->hidden); break;
+    }
+    {
+        float scale = sqrtf((float)h->hidden);
+        for (j = 0; j < h->hidden; j++) emb[j] *= scale;
+    }
+    gemma4_prepare_ple_resid(e, token, emb);
+}
+
+static void gemma4_prepare_ple_batch(Engine* e, const uint32_t* tokens, uint32_t B)
+{
+    Gemma4Ctx* c = g4c(e);
+
+    if (!c || !c->n_ple || !c->ple_batch || !c->ple_work || B == 0) return;
+    Ws* ws = &e->ws;
+    LlModel* m = &ws->model;
+    const LlfHeader* h = &m->h;
+    const uint8_t* ebase = (const uint8_t*)ws->map.base + m->dir[0].offset;
+    const LlfTensorMeta* em = &m->metas[m->base_idx[0]];
+    const LlfTensorMeta* tok = &em[SLOT_PLE_TOK];
+    const LlfTensorMeta* mproj = &em[SLOT_PLE_MPROJ];
+    const LlfTensorMeta* pnorm = &em[SLOT_PLE_PNORM];
+    uint32_t n_ple = c->n_ple;
+    uint32_t nblk = h->n_blocks;
+    uint32_t width = n_ple * nblk;
+    uint32_t b, j, il;
+    float eps, ts, ps, isc;
+    if (tok->size == 0 || mproj->size == 0) return;
+    memcpy(&eps, &h->norm_eps_bits, 4);
+    ts = sqrtf((float)n_ple);
+    ps = 1.0f / sqrtf((float)h->hidden);
+    isc = 1.0f / sqrtf(2.0f);
+    for (b = 0; b < B; b++) {
+        float* pe = c->ple_batch + (size_t)b * width;
+        uint32_t tid = tokens[b];
+        /* llama.cpp multimodal PLE: pad token 0 */
+        if (e->vis_use && e->vis_seq > 0) {
+            int vi = e->vis_off + (int)b;
+            if (vi >= 0 && vi < e->vis_seq && e->vis_use[vi]) tid = 0;
+        }
+        switch (tok->dtype) {
+        case DT_F32: embed_f32(pe, ebase + tok->offset, tid, width); break;
+        case DT_Q4K: embed_q4k(pe, ebase + tok->offset, tid, width); break;
+        case DT_Q6K: embed_q6k(pe, ebase + tok->offset, tid, width); break;
+        case DT_Q5K: embed_q5k(pe, ebase + tok->offset, tid, width); break;
+        default: embed_f16(pe, ebase + tok->offset, tid, width); break;
+        }
+        for (j = 0; j < width; j++) pe[j] *= ts;
+    }
+    matmul_batch(c->ple_work, e->pb, ebase + mproj->offset, width, h->hidden, mproj->dtype, B);
+    for (b = 0; b < B; b++) {
+        float* sl0 = c->ple_work + (size_t)b * width;
+        float* pe = c->ple_batch + (size_t)b * width;
+        for (j = 0; j < width; j++) sl0[j] *= ps;
+        for (il = 0; il < nblk; il++) {
+            float* sl = sl0 + (size_t)il * n_ple;
+            float* pel = pe + (size_t)il * n_ple;
+            if (pnorm->size > 0)
+                rmsnorm(sl, sl, ebase + pnorm->offset, n_ple, eps, pnorm->dtype);
+            else
+                rmsnorm_unit(sl, sl, n_ple, eps);
+            for (j = 0; j < n_ple; j++)
+                pel[j] = (sl[j] + pel[j]) * isc;
+        }
+    }
+}
+
+void arch_gemma4_after_embed_batch(Engine* e, const uint32_t* tokens, uint32_t B)
+{
+    Gemma4Ctx* c = g4c(e);
+
+    uint32_t hidden = e->ws.model.h.hidden;
+    float scale = sqrtf((float)hidden);
+    uint32_t b2, j;
+    for (b2 = 0; b2 < B; b2++) {
+        int vis = (e->vis_use && e->vis_seq > 0 &&
+                   e->vis_off + (int)b2 >= 0 && e->vis_off + (int)b2 < e->vis_seq &&
+                   e->vis_use[e->vis_off + (int)b2]);
+        if (vis) continue;
+        for (j = 0; j < hidden; j++)
+            e->pb[(size_t)b2 * hidden + j] *= scale;
+    }
+    if (c && c->ple_batch && c->n_ple)
+        gemma4_prepare_ple_batch(e, tokens, B);
+}
+
+void arch_gemma4_cuda_tables(Engine* e,
+                             const float** rope_ff, uint32_t* n_ff,
+                             const float** rope_swa, uint32_t* n_swa,
+                             const float** ple, uint32_t* n_ple)
+{
+    Gemma4Ctx* c = g4c(e);
+    if (rope_ff) *rope_ff = c ? c->rope_ff : NULL;
+    if (n_ff) *n_ff = c ? c->n_rope_ff : 0;
+    if (rope_swa) *rope_swa = c ? c->rope_if_swa : NULL;
+    if (n_swa) *n_swa = c ? c->n_rope_if_swa : 0;
+    if (ple) *ple = c ? c->ple : NULL;
+    if (n_ple) *n_ple = c ? c->n_ple : 0;
+}
+
+void arch_gemma4_post_logits(Engine* e)
+{
+    float cap = llf_gemma4_final_cap(&e->ws.model.h);
+    if (cap > 0.0f) {
+        /* 26 万词表逐 token 全量 tanh, 向量化(标量 tanhf 每 token 数十毫秒级) */
+        y_tanh_scale_vec(e->logits, e->logits, 1.0f / cap, cap, e->ws.model.h.vocab);
+    }
+}
+
+/* gemma4 批量前向: QKV/O/FFN 走 matmul_batch; attn/PLE 按 token */
+int arch_gemma4_fwd_block_batch(Engine* e, uint32_t layer, uint32_t pos_start, uint32_t B)
+{
+    Gemma4Ctx* c = g4c(e);
+    if (!c) return -1;
+
+    Ws* ws = &e->ws;
+    LlModel* m = &ws->model;
+    const LlfHeader* h = &m->h;
+    const uint8_t* base = (const uint8_t*)ws->map.base + m->dir[layer].offset;
+    uint32_t hidden = h->hidden;
+    uint32_t kv_dim = h->n_kv_heads * h->head_dim;
+    float eps, theta;
+    const LlfTensorMeta* mt = &m->metas[m->base_idx[layer]];
+    uint32_t inter = mt[SLOT_GATE].shape[0] * mt[SLOT_GATE].shape[1] / hidden;
+    uint32_t q_dim = h->n_heads * h->head_dim;
+    uint32_t hd = h->head_dim;
+    uint32_t kvd = kv_dim;
+    LlfGemma4Ext g4;
+    uint32_t il = layer > 0 ? layer - 1 : 0;
+    int has_kv = 1;
+    uint32_t kv_layer = layer;
+    uint32_t b, hh;
+    size_t ple_stride = (c->n_ple > 0) ? (size_t)c->n_ple * h->n_blocks : 0;
+    float* att_batch = e->pba; /* [B x q_dim] 暂存 attn 输出 */
+    const float* rope_if = NULL;
+    float inv_d = 1.0f;
+    int swa;
+
+    memcpy(&eps, &h->norm_eps_bits, 4);
+    memcpy(&theta, &h->rope_theta_bits, 4);
+    llf_gemma4_ext(h, &g4);
+    theta = llf_gemma4_rope_theta(h, &g4, il);
+    swa = llf_gemma4_is_swa(&g4, il);
+    if (g4.n_kv_shared_layers > 0 && g4.n_kv_shared_layers < h->n_blocks) {
+        uint32_t kv_from = h->n_blocks - g4.n_kv_shared_layers;
+        if (il >= kv_from) {
+            has_kv = 0;
+            kv_layer = kv_from - (swa ? 2u : 1u) + 1u;
+        }
+    }
+    if (mt[SLOT_K].size == 0) has_kv = 0;
+    if (mt[SLOT_Q].ndim >= 2 && hidden > 0)
+        q_dim = mt[SLOT_Q].shape[0] * mt[SLOT_Q].shape[1] / hidden;
+    hd = h->n_heads ? q_dim / h->n_heads : hd;
+    if (has_kv && mt[SLOT_K].ndim >= 2 && hidden > 0)
+        kvd = mt[SLOT_K].shape[0] * mt[SLOT_K].shape[1] / hidden;
+
+    /* 缓冲不够或尺寸异常时退回逐 token */
+    if (q_dim > e->pbq_dim || inter > e->inter || B > e->pb_cap) {
+        for (b = 0; b < B; b++) {
+            memcpy(e->x, e->pb + (size_t)b * hidden, (size_t)hidden * 4);
+            if (c->ple && c->ple_batch && ple_stride)
+                memcpy(c->ple, c->ple_batch + (size_t)b * ple_stride, ple_stride * 4);
+            if (e->ops->fwd_block(e, layer, pos_start + b) != 0) return -1;
+            memcpy(e->pb + (size_t)b * hidden, e->x, (size_t)hidden * 4);
+        }
+        return 0;
+    }
+
+    if (swa && c->rope_if_swa && c->n_rope_if_swa == hd / 2)
+        rope_if = c->rope_if_swa;
+    else if (!swa && c->rope_ff && c->n_rope_ff == hd / 2)
+        rope_if = c->rope_ff;
+
+    for (b = 0; b < B; b++)
+        rmsnorm(e->pb2 + (size_t)b * hidden, e->pb + (size_t)b * hidden,
+                base + mt[SLOT_NORM1].offset, hidden, eps, mt[SLOT_NORM1].dtype);
+    matmul_batch(e->pbq, e->pb2, base + mt[SLOT_Q].offset, q_dim, hidden, mt[SLOT_Q].dtype, B);
+    if (has_kv) {
+        matmul_batch(e->pbk, e->pb2, base + mt[SLOT_K].offset, kvd, hidden, mt[SLOT_K].dtype, B);
+        if (mt[SLOT_V].size > 0)
+            matmul_batch(e->pbv, e->pb2, base + mt[SLOT_V].offset, kvd, hidden, mt[SLOT_V].dtype, B);
+        else
+            memcpy(e->pbv, e->pbk, (size_t)B * kvd * 4);
+    }
+
+    {
+        uint8_t* kcache = (uint8_t*)e->kv + (size_t)kv_layer * e->max_seq * e->kv_row_sz;
+        uint8_t* vcache = (uint8_t*)e->kv + (size_t)(h->n_blocks + kv_layer) * e->max_seq * e->kv_row_sz;
+        for (b = 0; b < B; b++) {
+            uint32_t pos = pos_start + b;
+            float* q = e->pbq + (size_t)b * q_dim;
+            float* k = e->pbk + (size_t)b * kvd;
+            float* v = e->pbv + (size_t)b * kvd;
+            if (mt[SLOT_QBIAS].size > 0) {
+                const float* bq = (const float*)(base + mt[SLOT_QBIAS].offset);
+                uint32_t j; for (j = 0; j < q_dim; j++) q[j] += bq[j];
+            }
+            if (has_kv && mt[SLOT_KBIAS].size > 0) {
+                const float* bk = (const float*)(base + mt[SLOT_KBIAS].offset);
+                uint32_t j; for (j = 0; j < kvd; j++) k[j] += bk[j];
+            }
+            if (has_kv && mt[SLOT_VBIAS].size > 0) {
+                const float* bv = (const float*)(base + mt[SLOT_VBIAS].offset);
+                uint32_t j; for (j = 0; j < kvd; j++) v[j] += bv[j];
+            }
+            if (mt[SLOT_QNORM].size > 0)
+                for (hh = 0; hh < h->n_heads; hh++)
+                    rmsnorm(q + (size_t)hh * hd, q + (size_t)hh * hd,
+                            base + mt[SLOT_QNORM].offset, hd, eps, mt[SLOT_QNORM].dtype);
+            if (has_kv && mt[SLOT_KNORM].size > 0)
+                for (hh = 0; hh < h->n_kv_heads; hh++)
+                    rmsnorm(k + (size_t)hh * hd, k + (size_t)hh * hd,
+                            base + mt[SLOT_KNORM].offset, hd, eps, mt[SLOT_KNORM].dtype);
+            if (has_kv)
+                for (hh = 0; hh < h->n_kv_heads; hh++)
+                    rmsnorm_unit(v + (size_t)hh * hd, v + (size_t)hh * hd, hd, eps);
+            for (hh = 0; hh < h->n_heads; hh++) {
+                if (rope_if) rope_inplace_neox_if(q + (size_t)hh * hd, hd, pos, rope_if);
+                else rope_inplace_qwen_ff(q + (size_t)hh * hd, hd, pos, theta, NULL);
+            }
+            if (has_kv) {
+                for (hh = 0; hh < h->n_kv_heads; hh++) {
+                    if (rope_if) rope_inplace_neox_if(k + (size_t)hh * hd, hd, pos, rope_if);
+                    else rope_inplace_qwen_ff(k + (size_t)hh * hd, hd, pos, theta, NULL);
+                }
+                {
+                    size_t kvp = (size_t)pos * e->kv_row_sz;
+                    if (e->kv_q8) {
+                        f32_to_q8_buf(k, kcache + kvp, kvd);
+                        f32_to_q8_buf(v, vcache + kvp, kvd);
+                    } else {
+                        f32_to_f16_buf(k, (uint16_t*)(kcache + kvp), kvd);
+                        f32_to_f16_buf(v, (uint16_t*)(vcache + kvp), kvd);
+                    }
+                }
+            }
+        }
+        #pragma omp parallel for schedule(static)
+        for (b = 0; b < B; b++) {
+            uint32_t pos = pos_start + b;
+            float* q = e->pbq + (size_t)b * q_dim;
+            float* att_out = att_batch + (size_t)b * q_dim;
+            uint32_t s0 = 0;
+            if (swa && g4.swa_window > 0 && pos + 1 > g4.swa_window)
+                s0 = pos + 1 - g4.swa_window;
+            /* 本批 KV 已写完. llama.cpp 图像段 non-causal, 但不看未写 KV、也不看图后文本 */
+            {
+                uint32_t kend = pos;
+                if (e->vis_use && (int)pos < e->vis_seq && e->vis_use[pos]) {
+                    kend = pos_start + B - 1;
+                    while (kend > pos && ((int)kend >= e->vis_seq || !e->vis_use[kend]))
+                        kend--;
+                }
+                if (e->kv_q8)
+                    attn_kv_q8(att_out, q, kcache, vcache, e->kv_row_sz, s0, kend,
+                               h->n_heads, h->n_kv_heads, hd, kv_dim, inv_d, 0.0f);
+                else
+                    attn_kv_f16(att_out, q, (const uint16_t*)kcache, (const uint16_t*)vcache, s0, kend,
+                                h->n_heads, h->n_kv_heads, hd, kv_dim, inv_d, 0.0f);
+            }
+        }
+    }
+
+    matmul_batch(e->pb2, att_batch, base + mt[SLOT_O].offset, hidden, q_dim, mt[SLOT_O].dtype, B);
+    for (b = 0; b < B; b++) {
+        float* x = e->pb + (size_t)b * hidden;
+        float* ao = e->pb2 + (size_t)b * hidden;
+        float* x2 = e->hb;
+        rmsnorm(x2, ao, base + mt[SLOT_NORM3].offset, hidden, eps, mt[SLOT_NORM3].dtype);
+        add_inplace(x, x2, hidden);
+        rmsnorm(x2, x, base + mt[SLOT_NORM2].offset, hidden, eps, mt[SLOT_NORM2].dtype);
+        memcpy(e->pb2 + (size_t)b * hidden, x2, (size_t)hidden * 4);
+    }
+    matmul_batch(e->pbg, e->pb2, base + mt[SLOT_GATE].offset, inter, hidden, mt[SLOT_GATE].dtype, B);
+    matmul_batch(e->pbu, e->pb2, base + mt[SLOT_UP].offset, inter, hidden, mt[SLOT_UP].dtype, B);
+    for (b = 0; b < B; b++)
+        geglu(e->pbg + (size_t)b * inter, e->pbg + (size_t)b * inter, e->pbu + (size_t)b * inter, inter);
+    matmul_batch(e->pb2, e->pbg, base + mt[SLOT_DOWN].offset, hidden, inter, mt[SLOT_DOWN].dtype, B);
+    for (b = 0; b < B; b++) {
+        float* x = e->pb + (size_t)b * hidden;
+        float* ao = e->pb2 + (size_t)b * hidden;
+        float* x2 = e->hb;
+        rmsnorm(x2, ao, base + mt[SLOT_NORM4].offset, hidden, eps, mt[SLOT_NORM4].dtype);
+        add_inplace(x, x2, hidden);
+    }
+    if (c->n_ple > 0 && mt[SLOT_PLE_GATE].size > 0 && c->ple_batch && ple_stride) {
+        uint32_t n_ple = c->n_ple;
+        uint32_t j;
+        matmul_batch(e->pbg, e->pb, base + mt[SLOT_PLE_GATE].offset, n_ple, hidden, mt[SLOT_PLE_GATE].dtype, B);
+        for (b = 0; b < B; b++) {
+            float* gate = e->pbg + (size_t)b * n_ple;
+            const float* pe = c->ple_batch + (size_t)b * ple_stride + (size_t)il * n_ple;
+            gelu_inplace(gate, n_ple);
+            for (j = 0; j < n_ple; j++) gate[j] *= pe[j];
+        }
+        matmul_batch(e->pb2, e->pbg, base + mt[SLOT_PLE_PROJ].offset, hidden, n_ple, mt[SLOT_PLE_PROJ].dtype, B);
+        for (b = 0; b < B; b++) {
+            float* x = e->pb + (size_t)b * hidden;
+            float* ao = e->pb2 + (size_t)b * hidden;
+            if (mt[SLOT_PLE_POST].size > 0)
+                rmsnorm(ao, ao, base + mt[SLOT_PLE_POST].offset, hidden, eps, mt[SLOT_PLE_POST].dtype);
+            add_inplace(x, ao, hidden);
+        }
+    }
+    for (b = 0; b < B; b++) {
+        float* x = e->pb + (size_t)b * hidden;
+        float ls = 1.0f;
+        uint32_t j;
+        if (mt[SLOT_LAYER_SCALE].size > 0) {
+            const uint8_t* lsptr = base + mt[SLOT_LAYER_SCALE].offset;
+            if (mt[SLOT_LAYER_SCALE].dtype == DT_F32) memcpy(&ls, lsptr, 4);
+            else { uint16_t lsh; memcpy(&lsh, lsptr, 2); ls = f16_to_f32(lsh); }
+            for (j = 0; j < hidden; j++) x[j] *= ls;
+        }
+    }
+    return 0;
+}
+
+int arch_gemma4_fwd_block(Engine* e, uint32_t layer, uint32_t pos)
+{
+    Gemma4Ctx* c = g4c(e);
+    if (!c) return -1;
+    if (g4_seg_prof < 0) g4_seg_prof = getenv("YLLM_PROF") != NULL && strcmp(getenv("YLLM_PROF"), "2") == 0;
+    uint64_t pt0 = g4_seg_prof ? ynow_ns() : 0;
+    uint64_t ptD = 0, ptE = 0;
+
+    Ws* ws = &e->ws;
+    LlModel* m = &ws->model;
+    const LlfHeader* h = &m->h;
+    const uint8_t* base = (const uint8_t*)ws->map.base + ws->model.dir[layer].offset;
+    uint8_t* kv = e->kv;
+    uint32_t hidden = h->hidden;
+    uint32_t kv_dim = h->n_kv_heads * h->head_dim;
+    float eps, theta;
+    memcpy(&eps, &h->norm_eps_bits, 4);
+    memcpy(&theta, &h->rope_theta_bits, 4);
+    float* x = e->x;
+    float* x2 = e->hb;
+    float* q = e->hb2;
+    float* k = e->hb2 + h->n_heads * h->head_dim;
+    float* v = e->hb2 + h->n_heads * h->head_dim + kv_dim;
+    float* att_out = e->hb2 + h->n_heads * h->head_dim + 2 * kv_dim;
+    const LlfTensorMeta* mt = &m->metas[m->base_idx[layer]];
+    uint32_t inter = mt[SLOT_GATE].shape[0] * mt[SLOT_GATE].shape[1] / hidden;
+    uint32_t q_dim = h->n_heads * h->head_dim;
+    uint32_t hd = h->head_dim;
+    uint32_t kvd = kv_dim;
+    LlfGemma4Ext g4;
+    uint32_t il = layer > 0 ? layer - 1 : 0;
+    int has_kv = 1;
+    uint32_t kv_layer = layer;
+    uint32_t hh;
+    const float* rope_if = NULL;
+    uint32_t s0 = 0;
+
+    llf_gemma4_ext(h, &g4);
+    theta = llf_gemma4_rope_theta(h, &g4, il);
+    if (g4.n_kv_shared_layers > 0 && g4.n_kv_shared_layers < h->n_blocks) {
+        uint32_t kv_from = h->n_blocks - g4.n_kv_shared_layers;
+        if (il >= kv_from) {
+            has_kv = 0;
+            kv_layer = kv_from - (llf_gemma4_is_swa(&g4, il) ? 2u : 1u) + 1u;
+        }
+    }
+    if (mt[SLOT_K].size == 0) has_kv = 0;
+    if (hidden > 0) {
+        if (mt[SLOT_Q].ndim >= 2)
+            q_dim = mt[SLOT_Q].shape[0] * mt[SLOT_Q].shape[1] / hidden;
+        hd = h->n_heads ? q_dim / h->n_heads : hd;
+        if (has_kv && mt[SLOT_K].ndim >= 2)
+            kvd = mt[SLOT_K].shape[0] * mt[SLOT_K].shape[1] / hidden;
+    }
+
+    rmsnorm(x2, x, base + mt[SLOT_NORM1].offset, hidden, eps, mt[SLOT_NORM1].dtype);
+    if (mt[SLOT_Q].dtype == DT_W4B64) {
+        uint32_t nb = hidden / W4B64_BLK;
+        int8_t* xq = (int8_t*)alloca((size_t)hidden);
+        float* xs = (float*)alloca((size_t)nb * 4);
+        int32_t* xsum = (int32_t*)alloca((size_t)nb * 4);
+        w4b64_act_quant(x2, xq, xs, xsum, hidden);
+        matmul_w4b64_xq(q, xq, xs, xsum, base + mt[SLOT_Q].offset, q_dim, hidden);
+        if (has_kv) {
+            matmul_w4b64_xq(k, xq, xs, xsum, base + mt[SLOT_K].offset, kvd, hidden);
+            if (mt[SLOT_V].size > 0)
+                matmul_w4b64_xq(v, xq, xs, xsum, base + mt[SLOT_V].offset, kvd, hidden);
+            else
+                memcpy(v, k, (size_t)kvd * 4);
+        }
+    } else {
+        matmul(q, x2, base + mt[SLOT_Q].offset, q_dim, hidden, mt[SLOT_Q].dtype);
+        if (has_kv) {
+            matmul(k, x2, base + mt[SLOT_K].offset, kvd, hidden, mt[SLOT_K].dtype);
+            if (mt[SLOT_V].size > 0)
+                matmul(v, x2, base + mt[SLOT_V].offset, kvd, hidden, mt[SLOT_V].dtype);
+            else
+                memcpy(v, k, (size_t)kvd * 4);
+        }
+    }
+    uint64_t ptA = g4_seg_prof ? ynow_ns() : 0;
+    if (mt[SLOT_QBIAS].size > 0) {
+        const float* bq = (const float*)(base + mt[SLOT_QBIAS].offset);
+        uint32_t j;
+        for (j = 0; j < q_dim; j++) q[j] += bq[j];
+    }
+    if (has_kv && mt[SLOT_KBIAS].size > 0) {
+        const float* bk = (const float*)(base + mt[SLOT_KBIAS].offset);
+        uint32_t j;
+        for (j = 0; j < kvd; j++) k[j] += bk[j];
+    }
+    if (has_kv && mt[SLOT_VBIAS].size > 0) {
+        const float* bv = (const float*)(base + mt[SLOT_VBIAS].offset);
+        uint32_t j;
+        for (j = 0; j < kvd; j++) v[j] += bv[j];
+    }
+    if (mt[SLOT_QNORM].size > 0) {
+        for (hh = 0; hh < h->n_heads; hh++)
+            rmsnorm(q + (size_t)hh * hd, q + (size_t)hh * hd,
+                    base + mt[SLOT_QNORM].offset, hd, eps, mt[SLOT_QNORM].dtype);
+    }
+    if (has_kv && mt[SLOT_KNORM].size > 0) {
+        for (hh = 0; hh < h->n_kv_heads; hh++)
+            rmsnorm(k + (size_t)hh * hd, k + (size_t)hh * hd,
+                    base + mt[SLOT_KNORM].offset, hd, eps, mt[SLOT_KNORM].dtype);
+    }
+    if (has_kv) {
+        for (hh = 0; hh < h->n_kv_heads; hh++)
+            rmsnorm_unit(v + (size_t)hh * hd, v + (size_t)hh * hd, hd, eps);
+    }
+
+    {
+        uint8_t* kcache = kv + (size_t)kv_layer * e->max_seq * e->kv_row_sz;
+        uint8_t* vcache = kv + (size_t)(h->n_blocks + kv_layer) * e->max_seq * e->kv_row_sz;
+        size_t kvp = (size_t)pos * e->kv_row_sz;
+        int swa = llf_gemma4_is_swa(&g4, il);
+        if (swa && c->rope_if_swa && c->n_rope_if_swa == hd / 2)
+            rope_if = c->rope_if_swa;
+        else if (!swa && c->rope_ff && c->n_rope_ff == hd / 2)
+            rope_if = c->rope_ff;
+        for (hh = 0; hh < h->n_heads; hh++) {
+            if (rope_if)
+                rope_inplace_neox_if(q + (size_t)hh * hd, hd, pos, rope_if);
+            else
+                rope_inplace_qwen_ff(q + (size_t)hh * hd, hd, pos, theta, NULL);
+        }
+        if (has_kv) {
+            for (hh = 0; hh < h->n_kv_heads; hh++) {
+                if (rope_if)
+                    rope_inplace_neox_if(k + (size_t)hh * hd, hd, pos, rope_if);
+                else
+                    rope_inplace_qwen_ff(k + (size_t)hh * hd, hd, pos, theta, NULL);
+            }
+            if (e->kv_q8) {
+                f32_to_q8_buf(k, kcache + kvp, kvd);
+                f32_to_q8_buf(v, vcache + kvp, kvd);
+            } else {
+                f32_to_f16_buf(k, (uint16_t*)(kcache + kvp), kvd);
+                f32_to_f16_buf(v, (uint16_t*)(vcache + kvp), kvd);
+            }
+        }
+        if (swa && g4.swa_window > 0 && pos + 1 > g4.swa_window)
+            s0 = pos + 1 - g4.swa_window;
+        if (e->kv_q8)
+            attn_kv_q8(att_out, q, kcache, vcache, e->kv_row_sz, s0, pos,
+                       h->n_heads, h->n_kv_heads, hd, kv_dim, 1.0f, 0.0f);
+        else
+            attn_kv_f16(att_out, q, (const uint16_t*)kcache, (const uint16_t*)vcache, s0, pos,
+                        h->n_heads, h->n_kv_heads, hd, kv_dim, 1.0f, 0.0f);
+    }
+    uint64_t ptB = g4_seg_prof ? ynow_ns() : 0;
+    memcpy(x2, att_out, (size_t)q_dim * 4);
+    matmul(att_out, x2, base + mt[SLOT_O].offset, hidden, q_dim, mt[SLOT_O].dtype);
+    uint64_t ptC = g4_seg_prof ? ynow_ns() : 0;
+    {
+        float ls = 1.0f;
+        uint32_t j;
+        rmsnorm(x2, att_out, base + mt[SLOT_NORM3].offset, hidden, eps, mt[SLOT_NORM3].dtype);
+        add_inplace(x, x2, hidden);
+        rmsnorm(x2, x, base + mt[SLOT_NORM2].offset, hidden, eps, mt[SLOT_NORM2].dtype);
+        {
+            float* fg = e->ffn;
+            float* fu = e->ffn + inter;
+            if (mt[SLOT_GATE].dtype == DT_W4B64) {
+                uint32_t nb = hidden / W4B64_BLK;
+                int8_t* xq = (int8_t*)alloca((size_t)hidden);
+                float* xs = (float*)alloca((size_t)nb * 4);
+                int32_t* xsum = (int32_t*)alloca((size_t)nb * 4);
+                w4b64_act_quant(x2, xq, xs, xsum, hidden);
+                matmul_w4b64_xq(fg, xq, xs, xsum, base + mt[SLOT_GATE].offset, inter, hidden);
+                matmul_w4b64_xq(fu, xq, xs, xsum, base + mt[SLOT_UP].offset, inter, hidden);
+            } else {
+                matmul(fg, x2, base + mt[SLOT_GATE].offset, inter, hidden, mt[SLOT_GATE].dtype);
+                matmul(fu, x2, base + mt[SLOT_UP].offset, inter, hidden, mt[SLOT_UP].dtype);
+            }
+            geglu(x2, fg, fu, inter);
+        }
+        if (g4_seg_prof) ptD = ynow_ns();
+        matmul(att_out, x2, base + mt[SLOT_DOWN].offset, hidden, inter, mt[SLOT_DOWN].dtype);
+        rmsnorm(x2, att_out, base + mt[SLOT_NORM4].offset, hidden, eps, mt[SLOT_NORM4].dtype);
+        add_inplace(x, x2, hidden);
+        if (g4_seg_prof) ptE = ynow_ns();
+        if (c->ple && c->n_ple > 0 && mt[SLOT_PLE_GATE].size > 0) {
+            uint32_t n_ple = c->n_ple;
+            float* gate = c->ple_work;
+            matmul(gate, x, base + mt[SLOT_PLE_GATE].offset, n_ple, hidden, mt[SLOT_PLE_GATE].dtype);
+            gelu_inplace(gate, n_ple);
+            for (j = 0; j < n_ple; j++)
+                gate[j] *= c->ple[(size_t)il * n_ple + j];
+            matmul(att_out, gate, base + mt[SLOT_PLE_PROJ].offset, hidden, n_ple, mt[SLOT_PLE_PROJ].dtype);
+            if (mt[SLOT_PLE_POST].size > 0)
+                rmsnorm(att_out, att_out, base + mt[SLOT_PLE_POST].offset, hidden, eps, mt[SLOT_PLE_POST].dtype);
+            add_inplace(x, att_out, hidden);
+        }
+        if (mt[SLOT_LAYER_SCALE].size > 0) {
+            const uint8_t* lsptr = base + mt[SLOT_LAYER_SCALE].offset;
+            if (mt[SLOT_LAYER_SCALE].dtype == DT_F32) memcpy(&ls, lsptr, 4);
+            else { uint16_t lsh; memcpy(&lsh, lsptr, 2); ls = f16_to_f32(lsh); }
+            for (j = 0; j < hidden; j++) x[j] *= ls;
+        }
+    }
+    if (g4_seg_prof) {
+        uint64_t tend = ynow_ns();
+        g4s_qkv += (ptA - pt0) / 1e6; g4s_attn += (ptB - ptA) / 1e6;
+        g4s_o += (ptC - ptB) / 1e6;
+        g4s_gu += (ptD - ptC) / 1e6; g4s_down += (ptE - ptD) / 1e6;
+        g4s_ple += (tend - ptE) / 1e6; g4s_tot += (tend - pt0) / 1e6;
+        if (layer == h->n_blocks && ++g4s_n % 16 == 0) {
+            fprintf(stderr,
+                "[g4seg] qkv=%.2f attn=%.2f o=%.2f gateup=%.2f down=%.2f ple+=%.2f blocks=%.2f ms/token\n",
+                g4s_qkv, g4s_attn, g4s_o, g4s_gu, g4s_down, g4s_ple, g4s_tot);
+            fflush(stderr);
+            g4s_qkv = g4s_attn = g4s_o = g4s_gu = g4s_down = g4s_ple = g4s_tot = 0;
+        }
+    }
+    return 0;
+}

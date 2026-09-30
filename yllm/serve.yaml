@@ -1,0 +1,102 @@
+# yllm serve 统一配置(多模型)
+# 用法:
+#   yllm hub --config serve.yaml                # 合并模式(推荐): 每模型一组 rank + server 线程
+#   yllm supervisor --config serve.yaml         # 分开模式 supervisor
+#   yllm ctl start / yllm ctl stop / yllm ctl status
+# 多模型: models 列表, 每个模型独立一组 rank(端口 rank-port-base + mi*stride)和一个 server(server-port + mi*stride)
+# stride = 所有模型 ranks 的最大值; gemma4-e2b ranks=2 → stride=2:
+#   mi=0 qwen3.8        rank 9410 / server 9420(外部)
+#   mi=1 qwen2.5        rank 9412 / server 9422
+#   mi=2 tinyllama      rank 9414 / server 9424
+#   mi=3 qwen3-vl-2b    rank 9416 / server 9426
+#   mi=4 gemma4-e2b     rank 9418-9419 / server 9428 (local=1: 本机 rank0, 手机 rank1)
+#   mi=5 gemma4-e4b     rank 9420 / server 9430
+#   mi=6 qwen2.5-1.5b   rank 9422 / server 9432
+#   mi=7 qwen3-8b       rank 9424 / server 9434
+# hub --model gemma4-e2b 过滤后仅该模型(mi=0): rank 9410/9411, pipe 9510
+# 注意: make hub 不带 --model 会尝试拉起全部本机模型; 日常请用 make server-<name>
+
+# 日志
+log: logs/serve.log
+log-level: info
+api-log: 1              # API 请求/响应日志(1 开启默认, 0 关闭; 请求含完整 body)
+api-key: "sk-yllm-123"   # OpenAI 兼容 API key(Authorization: Bearer <key>; 空/注释 = 不校验)
+
+bin: ./build/avx2/yllm.exe
+
+# 端口(模型 mi 的 rank 基址 = rank-port-base + mi*stride, server 端口 = server-port + mi*stride)
+sv-port: 9500          # supervisor 心跳口
+router-port: 9400      # router 客户端口
+server-port: 9420      # 模型0 server 端口
+rank-port-base: 9410   # 模型0 rank 推理口基址
+http-port: 8000        # OpenAI 兼容 HTTP(可选, 0 关闭)
+cache-dir: ./sessions   # 会话缓存落盘目录(空 = 纯内存; server 存 token 列表, rank 存 KV)
+budget: auto            # rank KV 内存预算模式: auto | <n>MB | <n>G | <n>KB(如 2048MB / 1.5G)
+kv: q8               # KV cache 量化: q8 = per-token int8(rank 内存减半, 仅 CPU; 默认 f16)
+
+# 拓扑
+sv-host: 127.0.0.1     # 本机 hub 用; 远程 rank 须显式 --supervisor <本机LAN>:9500
+# bind-host: 0.0.0.0   # 跨机部署才需要; 单机默认 127.0.0.1 即可(server 回连 leader 失败时自动回退 127.0.0.1)
+router-addrs: 127.0.0.1:9400
+servers: 1
+
+# 行为
+auto-heal: 0
+strategy: least
+lease-strategy: request
+
+# ---- 多模型 ----
+# ranks: 总段数; local: 本机拉起段数(0=全外部; N=前 N 段本地)
+models:
+  - name: qwen3.8
+    model: models/qwen3.8-27b.llf
+    vocab: models/qwen3.vocab.txt
+    ranks: 1
+    local: 0
+  - name: qwen2.5
+    model: models/qwen2.5-7b.llf
+    vocab: models/qwen2.5-7b.vocab.txt
+    ranks: 1
+  - name: tinyllama
+    model: models/tinyllama-1.1b-chat-v1.0.Q4_K_M.llf
+    vocab: models/tinyllama.vocab.txt
+    ranks: 1
+  - name: qwen3-vl-2b
+    model: models/qwen3-vl-2b.llf
+    vocab: models/qwen3-vl-2b.vocab.txt
+    mmproj: models/mmproj-Qwen3VL-2B-Instruct-Q8_0.gguf
+    ranks: 1
+  - name: gemma4-e2b
+    model: models/gemma-4-E2B-it-Q4_K_M.llf
+    vocab: models/gemma4.vocab.txt
+    mmproj: models/mmproj-gemma-4-E2B-F16.gguf
+    mtp: 1
+    ranks: 1           # PP 两段
+    local: 1           # 本机 hub 只拉 rank0; rank1 远程手工起
+  - name: gemma4-e4b
+    model: models/gemma-4-E4B-it-Q4_K_M.llf
+    vocab: models/gemma4.vocab.txt
+    mmproj: models/mmproj-gemma-4-E4B-f16.gguf
+    ranks: 1
+  - name: minicpm-v-4.6
+    model: models/minicpm-v-4.6.llf
+    vocab: models/minicpm-v-4.6.vocab.txt
+    mmproj: models/mmproj-model-f16.gguf
+    ranks: 1
+  - name: qwen2.5-1.5b
+    model: models/qwen2.5-1.5b.llf
+    vocab: models/qwen2.5.vocab.txt
+    ranks: 1
+  - name: qwen3-8b
+    model: models/qwen3-8b.llf
+    vocab: models/qwen3-8b.vocab.txt
+    ranks: 1
+  - name: minicpm5-2b
+    model: models/minicpm5-2b.llf
+    vocab: models/minicpm5-2b.vocab.txt
+    ranks: 1
+    # opt: chat --opt 同款 k=v 参数(enable_thinking 控制思考模板;
+    #      max_soft_tokens/min_soft_tokens/downsample/max_slice_nums 需配 mmproj)
+    # opt: enable_thinking=0
+    # mtp: 1 开启 MTP 投机解码; 需 GGUF 含 MTP 权重(张量名带 nextn.), 当前量化无 → 打开只警告
+    # mtp: 1

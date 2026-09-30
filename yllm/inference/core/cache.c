@@ -1,0 +1,394 @@
+#include "cache.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <dirent.h>
+#include <sys/stat.h>
+#endif
+
+void sess_init(SessCache* c, int cap)
+{
+    memset(c, 0, sizeof(*c));
+    c->cap = cap > 0 ? cap : 16;
+    c->v = (SessVal*)ycalloc((size_t)c->cap, sizeof(SessVal));
+}
+
+void sess_free(SessCache* c)
+{
+    int i;
+    for (i = 0; i < c->n; i++) {
+        free(c->v[i].tokens);
+    }
+    free(c->v);
+    memset(c, 0, sizeof(*c));
+}
+
+SessVal* sess_get(SessCache* c, const char* key)
+{
+    int i;
+    for (i = 0; i < c->n; i++) {
+        if (strcmp(c->v[i].key, key) == 0) {
+            c->v[i].last_use = ynow_ms();
+            return &c->v[i];
+        }
+    }
+    return NULL;
+}
+
+static SessVal* sess_new(SessCache* c)
+{
+    SessVal* v;
+    int i;
+    if (c->n >= c->cap) {
+        /* LRU 淘汰: 找最久未用 */
+        int old = 0;
+        for (i = 1; i < c->n; i++)
+            if (c->v[i].last_use < c->v[old].last_use) old = i;
+        free(c->v[old].tokens);
+        memset(&c->v[old], 0, sizeof(SessVal));
+        v = &c->v[old];
+    } else {
+        v = &c->v[c->n++];
+    }
+    return v;
+}
+
+SessVal* sess_put(SessCache* c, const char* key)
+{
+    SessVal* v = sess_get(c, key);
+    if (v) return v;
+    v = sess_new(c);
+    snprintf(v->key, sizeof(v->key), "%s", key);
+    v->n = 0;
+    v->cap = 256;
+    v->tokens = (uint32_t*)ymalloc((size_t)v->cap * 4);
+    v->last_use = ynow_ms();
+    return v;
+}
+
+uint32_t sess_prefix(const SessVal* v, const uint32_t* req, uint32_t n)
+{
+    uint32_t m = v->n < n ? v->n : n;
+    uint32_t i;
+    for (i = 0; i < m; i++)
+        if (v->tokens[i] != req[i]) break;
+    return i;
+}
+
+uint32_t sess_lcp(const SessVal* v, const uint32_t* req, uint32_t n, int eos)
+{
+    if (!v || !req || !v->tokens) return 0;
+    uint32_t vn = v->n;
+    if (eos >= 0 && vn > 0 && v->tokens[vn - 1] == (uint32_t)eos) vn--;
+    uint32_t m = vn < n ? vn : n;
+    uint32_t i;
+    for (i = 0; i < m; i++)
+        if (v->tokens[i] != req[i]) break;
+    return i;
+}
+
+/* 找与本请求公共前缀最长的会话(忽略尾 eos)。无则 NULL。 */
+SessVal* sess_find_prefix(SessCache* c, const uint32_t* req, uint32_t n, int eos, uint32_t* plen)
+{
+    SessVal* best = NULL;
+    uint32_t best_p = 0;
+    int i;
+    if (plen) *plen = 0;
+    if (!c || !req || n == 0) return NULL;
+    for (i = 0; i < c->n; i++) {
+        SessVal* v = &c->v[i];
+        if (!v->key[0] || v->n == 0 || !v->tokens) continue;
+        uint32_t p = sess_lcp(v, req, n, eos);
+        if (p > best_p) {
+            best = v;
+            best_p = p;
+        }
+    }
+    if (best) best->last_use = ynow_ms();
+    if (plen) *plen = best_p;
+    return best_p > 0 ? best : NULL;
+}
+
+void sess_truncate(SessVal* v, uint32_t n)
+{
+    if (n < v->n) v->n = n;
+    v->last_use = ynow_ms();
+}
+
+static int sess_grow(SessVal* v, uint32_t need)
+{
+    if (need <= v->cap) return 0;
+    uint32_t nc = v->cap ? v->cap : 256;
+    while (nc < need) nc *= 2;
+    uint32_t* nt = (uint32_t*)realloc(v->tokens, (size_t)nc * 4);
+    if (!nt) return -1;
+    v->tokens = nt;
+    v->cap = nc;
+    return 0;
+}
+
+int sess_commit(SessVal* v, const uint32_t* tok, uint32_t n)
+{
+    if (sess_grow(v, v->n + n) != 0) return -1;
+    memcpy(v->tokens + v->n, tok, (size_t)n * 4);
+    v->n += n;
+    v->last_use = ynow_ms();
+    return 0;
+}
+
+int sess_append(SessVal* v, uint32_t tok)
+{
+    if (sess_grow(v, v->n + 1) != 0) return -1;
+    v->tokens[v->n++] = tok;
+    v->last_use = ynow_ms();
+    return 0;
+}
+
+void sess_evict(SessCache* c)
+{
+    if (c->n == 0) return;
+    int old = 0, i;
+    for (i = 1; i < c->n; i++)
+        if (c->v[i].last_use < c->v[old].last_use) old = i;
+    free(c->v[old].tokens);
+    memset(&c->v[old], 0, sizeof(SessVal));
+    /* 尾部条目前移填补空洞 */
+    if (old != c->n - 1) {
+        c->v[old] = c->v[c->n - 1];
+        memset(&c->v[c->n - 1], 0, sizeof(SessVal));
+    }
+    c->n--;
+}
+
+/* ---- 磁盘落盘 ---- */
+
+#define SESS_FILE_MAGIC "YLLMSESS1"   /* 会话 token 文件 */
+#define SESS_KV_MAGIC  "YLLMSKV01"   /* KV 缓存文件 */
+
+static int write_all(FILE* f, const void* p, size_t n)
+{
+    return fwrite(p, 1, n, f) == n ? 0 : -1;
+}
+
+static int read_all(FILE* f, void* p, size_t n)
+{
+    return fread(p, 1, n, f) == n ? 0 : -1;
+}
+
+int sess_save(const SessVal* v, const char* path)
+{
+    FILE* f = fopen(path, "wb");
+    if (!f) return -1;
+    int rc = 0;
+    if (write_all(f, SESS_FILE_MAGIC, 8) != 0) rc = -1;
+    else if (write_all(f, &v->n, 4) != 0) rc = -1;
+    else if (v->n > 0 && write_all(f, v->tokens, (size_t)v->n * 4) != 0) rc = -1;
+    fclose(f);
+    return rc;
+}
+
+int sess_load(SessVal* v, const char* path)
+{
+    FILE* f = fopen(path, "rb");
+    if (!f) return -1;
+    char magic[8];
+    uint32_t n = 0;
+    int rc = 0;
+    if (read_all(f, magic, 8) != 0 || memcmp(magic, SESS_FILE_MAGIC, 8) != 0) rc = -1;
+    else if (read_all(f, &n, 4) != 0) rc = -1;
+    else {
+        if (sess_grow(v, n) != 0) rc = -1;
+        else if (n > 0 && read_all(f, v->tokens, (size_t)n * 4) != 0) rc = -1;
+        else {
+            v->n = n;
+            v->last_use = ynow_ms();
+        }
+    }
+    fclose(f);
+    return rc;
+}
+
+#define SESS_SCAN_MAX 1024
+
+typedef struct {
+    char path[512];
+    char key[128];
+    uint64_t mtime;
+} SessFile;
+
+static int sess_file_newer_first(const void* a, const void* b)
+{
+    const SessFile* x = (const SessFile*)a;
+    const SessFile* y = (const SessFile*)b;
+    if (x->mtime < y->mtime) return 1;
+    if (x->mtime > y->mtime) return -1;
+    return 0;
+}
+
+static int sess_key_from_name(const char* name, char* key, size_t keysz)
+{
+    size_t n = strlen(name);
+    if (n < 6 || strcmp(name + n - 5, ".sess") != 0) return -1;
+    n -= 5;
+    if (n == 0 || n >= keysz) return -1;
+    memcpy(key, name, n);
+    key[n] = '\0';
+    return 0;
+}
+
+int sess_load_dir(SessCache* c, const char* dir)
+{
+    SessFile* files;
+    int nf = 0, i, nloaded = 0;
+    if (!c || !dir || !dir[0]) return 0;
+    files = (SessFile*)calloc(SESS_SCAN_MAX, sizeof(SessFile));
+    if (!files) return 0;
+
+#ifdef _WIN32
+    {
+        char pat[512];
+        WIN32_FIND_DATAA fd;
+        HANDLE h;
+        snprintf(pat, sizeof(pat), "%s/*.sess", dir);
+        h = FindFirstFileA(pat, &fd);
+        if (h != INVALID_HANDLE_VALUE) {
+            do {
+                if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+                if (sess_key_from_name(fd.cFileName, files[nf].key, sizeof(files[nf].key)) != 0)
+                    continue;
+                snprintf(files[nf].path, sizeof(files[nf].path), "%s/%s", dir, fd.cFileName);
+                {
+                    ULARGE_INTEGER u;
+                    u.LowPart = fd.ftLastWriteTime.dwLowDateTime;
+                    u.HighPart = fd.ftLastWriteTime.dwHighDateTime;
+                    files[nf].mtime = u.QuadPart;
+                }
+                nf++;
+            } while (nf < SESS_SCAN_MAX && FindNextFileA(h, &fd));
+            FindClose(h);
+        }
+    }
+#else
+    {
+        DIR* d = opendir(dir);
+        if (d) {
+            struct dirent* de;
+            while (nf < SESS_SCAN_MAX && (de = readdir(d)) != NULL) {
+                struct stat st;
+                char path[512];
+                if (sess_key_from_name(de->d_name, files[nf].key, sizeof(files[nf].key)) != 0)
+                    continue;
+                snprintf(path, sizeof(path), "%s/%s", dir, de->d_name);
+                if (stat(path, &st) != 0 || !S_ISREG(st.st_mode)) continue;
+                snprintf(files[nf].path, sizeof(files[nf].path), "%s", path);
+                files[nf].mtime = (uint64_t)st.st_mtime * 1000ull;
+                nf++;
+            }
+            closedir(d);
+        }
+    }
+#endif
+    if (nf > 1) qsort(files, (size_t)nf, sizeof(SessFile), sess_file_newer_first);
+    for (i = 0; i < nf; i++) {
+        SessVal tmp;
+        SessVal* v;
+        if (sess_get(c, files[i].key)) continue;
+        if (c->n >= c->cap && c->cap > 0) break;
+        memset(&tmp, 0, sizeof(tmp));
+        if (sess_load(&tmp, files[i].path) != 0 || tmp.n == 0) {
+            free(tmp.tokens);
+            continue;
+        }
+        v = sess_put(c, files[i].key);
+        if (!v) { free(tmp.tokens); continue; }
+        free(v->tokens);
+        v->tokens = tmp.tokens;
+        v->n = tmp.n;
+        v->cap = tmp.cap;
+        v->last_use = files[i].mtime ? files[i].mtime : ynow_ms();
+        nloaded++;
+    }
+    free(files);
+    return nloaded;
+}
+
+int sess_kv_save(Engine* e, uint32_t pos, const char* path)
+{
+    const LlfHeader* h = &e->ws.model.h;
+    uint32_t kv_dim = e->kv_dim, max_seq = e->max_seq, nb = h->n_blocks;
+    uint32_t flags = e->kv_q8 ? 1u : 0u;
+    FILE* f = fopen(path, "wb");
+    if (!f) return -1;
+    int rc = 0;
+    if (write_all(f, SESS_KV_MAGIC, 8) != 0 ||
+        write_all(f, &nb, 4) != 0 || write_all(f, &kv_dim, 4) != 0 ||
+        write_all(f, &max_seq, 4) != 0 || write_all(f, &pos, 4) != 0 ||
+        write_all(f, &flags, 4) != 0)
+        rc = -1;
+    size_t rowb = (size_t)pos * e->kv_row_sz;
+    uint32_t l;
+    /* 前向用块 1..nb 的 kv 分区(区域 1..nb 为 K, nb+1..2nb 为 V); 区域 0 未用 */
+    for (l = 1; !rc && l <= nb; l++) {
+        const uint8_t* k = (const uint8_t*)e->kv + (size_t)l * max_seq * e->kv_row_sz;
+        const uint8_t* v = (const uint8_t*)e->kv + (size_t)(h->n_blocks + l) * max_seq * e->kv_row_sz;
+        if (write_all(f, k, rowb) != 0 || write_all(f, v, rowb) != 0) rc = -1;
+    }
+    fclose(f);
+    return rc;
+}
+
+void cache_path(char* out, size_t outsz, const char* dir, const char* key, const char* ext)
+{
+    size_t o = 0;
+    if (dir && dir[0]) {
+        size_t dl = strlen(dir);
+        if (o + dl + 1 < outsz) {
+            memcpy(out + o, dir, dl);
+            o += dl;
+            out[o++] = '/';
+        }
+    }
+    const char* p;
+    for (p = key; *p && o + 16 < outsz; p++) {
+        char c = *p;
+        if (c == ':' || c == '/' || c == '\\' || c == '?' || c == '*' ||
+            c == '<' || c == '>' || c == '|' || c == '"')
+            c = '_';
+        out[o++] = c;
+    }
+    if (o + strlen(ext) + 1 < outsz) memcpy(out + o, ext, strlen(ext) + 1);
+}
+
+int sess_kv_load(Engine* e, const char* path, uint32_t* pos)
+{
+    const LlfHeader* h = &e->ws.model.h;
+    FILE* f = fopen(path, "rb");
+    if (!f) return -1;
+    char magic[8];
+    uint32_t nb = 0, kv_dim = 0, max_seq = 0, pos0 = 0, flags = 0;
+    int rc = 0;
+    if (read_all(f, magic, 8) != 0 || memcmp(magic, SESS_KV_MAGIC, 8) != 0) rc = -1;
+    else if (read_all(f, &nb, 4) != 0 || read_all(f, &kv_dim, 4) != 0 ||
+             read_all(f, &max_seq, 4) != 0 || read_all(f, &pos0, 4) != 0 ||
+             read_all(f, &flags, 4) != 0)
+        rc = -1;
+    /* 结构与引擎不符 → 拒绝载入(防错模型/错配置; flags: 旧文件无此字段也读失败, 一并拒绝) */
+    else if (nb != h->n_blocks || kv_dim != e->kv_dim || max_seq != e->max_seq ||
+             pos0 > max_seq || flags != (e->kv_q8 ? 1u : 0u))
+        rc = -1;
+    else {
+        size_t rowb = (size_t)pos0 * e->kv_row_sz;
+        uint32_t l;
+        for (l = 1; !rc && l <= nb; l++) {
+            uint8_t* k = (uint8_t*)e->kv + (size_t)l * max_seq * e->kv_row_sz;
+            uint8_t* v = (uint8_t*)e->kv + (size_t)(h->n_blocks + l) * max_seq * e->kv_row_sz;
+            if (read_all(f, k, rowb) != 0 || read_all(f, v, rowb) != 0) rc = -1;
+        }
+        if (!rc && pos) *pos = pos0;
+    }
+    fclose(f);
+    return rc;
+}
