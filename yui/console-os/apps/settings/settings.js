@@ -74,12 +74,14 @@ function onSettingsVolumeDown() {
 function onSettingsBrightnessUp() {
     Console.brightness = Math.min(100, Console.brightness + 10);
     saveConsoleConfig();
+    if (typeof applyConsoleBrightness === "function") applyConsoleBrightness();  /* 写进内核 ✓ */
     refreshSettingsUI();
     if (typeof refreshDesktopHero === "function") refreshDesktopHero();
 }
 
 function onSettingsBrightnessDown() {
     Console.brightness = Math.max(10, Console.brightness - 10);
+    if (typeof applyConsoleBrightness === "function") applyConsoleBrightness();  /* 写进内核 ✓ */
     saveConsoleConfig();
     refreshSettingsUI();
     if (typeof refreshDesktopHero === "function") refreshDesktopHero();

@@ -111,6 +111,7 @@ function applyConsoleConfig(cfg) {
     if (typeof cfg.volume === "number") Console.volume = cfg.volume;
     applyConsoleVolume();   /* YiYiYa: 启动时把保存的音量写进内核 ✓ */
     if (typeof cfg.brightness === "number") Console.brightness = cfg.brightness;
+    applyConsoleBrightness();   /* YiYiYa: 启动时把保存的亮度写进内核 ✓ */
     if (cfg.wifi) Console.wifi = cfg.wifi;
     if (cfg.recent && cfg.recent.length !== undefined && cfg.recent.length > 0) {
         Console.recent = cfg.recent;
@@ -122,6 +123,14 @@ function applyConsoleConfig(cfg) {
 function applyConsoleVolume() {
     if (typeof YUI.setVolume === "function") {
         YUI.setVolume(Console.volume);
+    }
+}
+
+/* YiYiYa: 亮度对接内核（VGA 背光）—— YUI.setBrightness 走 /dev/fb 的
+ * VGA_IOC_SET_BRIGHTNESS（见 duck/modules/vga/vga.h / gpu/ssd202d.c）✓ */
+function applyConsoleBrightness() {
+    if (typeof YUI.setBrightness === "function") {
+        YUI.setBrightness(Console.brightness);
     }
 }
 
