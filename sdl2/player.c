@@ -78,35 +78,75 @@ int ffplayer(int argc, char *argv[]) {
     pCodecCtx->height = 240;
   }
 
-  AVFrame *pFrame, *pFrameYUV;
-  pFrame = av_frame_alloc();     // 存储解码后AVFrame
-  pFrameYUV = av_frame_alloc();  // 存储转换后AVFrame
-  uint8_t *out_buffer;
-  out_buffer =
-      malloc(avpicture_get_size(AV_PIX_FMT_YUV420P, pCodecCtx->width,
-                                pCodecCtx->height));  // 分配AVFrame所需内存
-  avpicture_fill((AVPicture *)pFrameYUV, out_buffer, AV_PIX_FMT_YUV420P,
-                 pCodecCtx->width, pCodecCtx->height);  // 填充AVFrame
-
   //------------SDL初始化--------
   if (SDL_Init(SDL_INIT_VIDEO)) {  //| SDL_INIT_AUDIO | SDL_INIT_TIMER
     printf("Could not initialize SDL - %s\n", SDL_GetError());
     return -1;
   }
+
+  /* YiYiYa: 视频分辨率超过屏幕分辨率时，等比缩小到屏幕内再显示，
+     避免按视频原始分辨率分配纹理/转换缓冲导致内存不足。 */
+  int dst_w = pCodecCtx->width, dst_h = pCodecCtx->height;
+  SDL_DisplayMode dmode;
+  if (SDL_GetCurrentDisplayMode(0, &dmode) == 0 && dmode.w > 0 && dmode.h > 0 &&
+      (dst_w > dmode.w || dst_h > dmode.h)) {
+    if ((long long)dst_w * dmode.h > (long long)dmode.w * dst_h) {
+      dst_w = dmode.w;
+      dst_h = (int)((long long)pCodecCtx->height * dmode.w / pCodecCtx->width);
+    } else {
+      dst_h = dmode.h;
+      dst_w = (int)((long long)pCodecCtx->width * dmode.h / pCodecCtx->height);
+    }
+    if (dst_w < 2) dst_w = 2;
+    if (dst_h < 2) dst_h = 2;
+    dst_w &= ~1;  // YUV420P 宽高取偶数
+    dst_h &= ~1;
+    printf("player: screen %dx%d, video %dx%d -> display %dx%d\n", dmode.w,
+           dmode.h, pCodecCtx->width, pCodecCtx->height, dst_w, dst_h);
+  }
+
+  AVFrame *pFrame, *pFrameYUV;
+  pFrame = av_frame_alloc();     // 存储解码后AVFrame
+  pFrameYUV = av_frame_alloc();  // 存储转换后AVFrame
+  uint8_t *out_buffer;
+  out_buffer = malloc(
+      avpicture_get_size(AV_PIX_FMT_YUV420P, dst_w, dst_h));  // 分配AVFrame所需内存
+  if (!out_buffer) {
+    printf("player: 内存不足，分配 %dx%d 转换缓冲失败\n", dst_w, dst_h);
+    return -1;
+  }
+  avpicture_fill((AVPicture *)pFrameYUV, out_buffer, AV_PIX_FMT_YUV420P, dst_w,
+                 dst_h);  // 填充AVFrame
+
   SDL_Window *screen = SDL_CreateWindow(
       "RTSP Client Demo", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-      pCodecCtx->width, pCodecCtx->height,
+      dst_w, dst_h,
       SDL_WINDOW_RESIZABLE /* SDL_WINDOW_HIDDEN*/);  //| SDL_WINDOW_OPENGL
   if (!screen) {
     printf("SDL: could not set video mode - exiting\n");
     return -1;
   }
   SDL_Renderer *sdlRenderer = SDL_CreateRenderer(screen, -1, 0);
+  /* 注意：sws 输出是 AV_PIX_FMT_YUV420P（Y+U+V），对应 SDL 的 IYUV；
+     用 YV12（Y+V+U）会把 U/V 平面搞反 ⇒ 蓝红互换。 */
   SDL_Texture *sdlTexture = SDL_CreateTexture(
-      sdlRenderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING,
-      pCodecCtx->width, pCodecCtx->height);
+      sdlRenderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, dst_w,
+      dst_h);
+  if (!sdlTexture) {
+    printf("SDL: could not create texture - %s\n", SDL_GetError());
+    return -1;
+  }
 
+  /* 显示区域：按窗口实际大小居中（yiyiya 后端会把窗口固定为整屏） */
   SDL_Rect rect;
+  int win_w = dst_w, win_h = dst_h;
+  SDL_GetWindowSize(screen, &win_w, &win_h);
+  rect.x = (win_w - dst_w) / 2;
+  rect.y = (win_h - dst_h) / 2;
+  if (rect.x < 0) rect.x = 0;
+  if (rect.y < 0) rect.y = 0;
+  rect.w = dst_w;
+  rect.h = dst_h;
   //-----------------------------
   int ret, got_picture;
   static struct SwsContext *img_convert_ctx;
@@ -132,25 +172,26 @@ int ffplayer(int argc, char *argv[]) {
         return -1;
       }
       if (got_picture) {
-        // 像素格式转换。pFrame转换为pFrameYUV。
+        // 像素格式转换（超过屏幕分辨率时缩到 dst_w x dst_h）。
         img_convert_ctx = sws_getContext(pCodecCtx->width, pCodecCtx->height,
-                                         pCodecCtx->pix_fmt, pCodecCtx->width,
-                                         pCodecCtx->height, AV_PIX_FMT_YUV420P,
-                                         SWS_BICUBIC, NULL, NULL, NULL);
+                                         pCodecCtx->pix_fmt, dst_w, dst_h,
+                                         AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL,
+                                         NULL, NULL);
         sws_scale(img_convert_ctx, (const uint8_t *const *)pFrame->data,
                   pFrame->linesize, 0, pCodecCtx->height, pFrameYUV->data,
                   pFrameYUV->linesize);
         sws_freeContext(img_convert_ctx);
         //------------SDL显示--------
-        rect.x = 0;
-        rect.y = 0;
-        rect.w = pCodecCtx->width;
-        rect.h = pCodecCtx->height;
+        SDL_Rect src_rect;
+        src_rect.x = 0;
+        src_rect.y = 0;
+        src_rect.w = dst_w;
+        src_rect.h = dst_h;
 
-        SDL_UpdateTexture(sdlTexture, &rect, pFrameYUV->data[0],
+        SDL_UpdateTexture(sdlTexture, &src_rect, pFrameYUV->data[0],
                           pFrameYUV->linesize[0]);
         SDL_RenderClear(sdlRenderer);
-        SDL_RenderCopy(sdlRenderer, sdlTexture, &rect, &rect);
+        SDL_RenderCopy(sdlRenderer, sdlTexture, &src_rect, &rect);
         SDL_RenderPresent(sdlRenderer);
         // 延时20ms
         SDL_Delay(20);
