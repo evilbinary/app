@@ -56,6 +56,7 @@ function onSettingsCycleRunMode() {
 function onSettingsVolumeUp() {
     Console.volume = Math.min(100, Console.volume + 10);
     saveConsoleConfig();
+    if (typeof applyConsoleVolume === "function") applyConsoleVolume();  /* 写进内核 ✓ */
     updateConsoleChrome();
     refreshSettingsUI();
     if (typeof refreshDesktopHero === "function") refreshDesktopHero();
@@ -64,6 +65,7 @@ function onSettingsVolumeUp() {
 function onSettingsVolumeDown() {
     Console.volume = Math.max(0, Console.volume - 10);
     saveConsoleConfig();
+    if (typeof applyConsoleVolume === "function") applyConsoleVolume();  /* 写进内核 ✓ */
     updateConsoleChrome();
     refreshSettingsUI();
     if (typeof refreshDesktopHero === "function") refreshDesktopHero();

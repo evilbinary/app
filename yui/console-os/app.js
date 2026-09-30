@@ -109,10 +109,19 @@ function applyConsoleConfig(cfg) {
         Console.emulatorRunMode = cfg.emulatorRunMode;
     }
     if (typeof cfg.volume === "number") Console.volume = cfg.volume;
+    applyConsoleVolume();   /* YiYiYa: 启动时把保存的音量写进内核 ✓ */
     if (typeof cfg.brightness === "number") Console.brightness = cfg.brightness;
     if (cfg.wifi) Console.wifi = cfg.wifi;
     if (cfg.recent && cfg.recent.length !== undefined && cfg.recent.length > 0) {
         Console.recent = cfg.recent;
+    }
+}
+
+/* YiYiYa: 音量对接内核（软件音量）—— YUI.setVolume 走 /dev/dsp 的
+ * SNDCTL_DSP_SETVOLUME（见 duck/modules/sound/sound.h / miyoo.c）✓ */
+function applyConsoleVolume() {
+    if (typeof YUI.setVolume === "function") {
+        YUI.setVolume(Console.volume);
     }
 }
 
