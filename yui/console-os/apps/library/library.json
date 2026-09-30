@@ -55,7 +55,7 @@
                 "icon": "${icon}",
                 "text": "${line}",
                 "iconSize": 16,
-                "fontSize": 12,
+                "fontSize": 14,
                 "textAlign": "left",
                 "style": { "bgColor": "#141C30", "color": "#E6EAF5", "borderRadius": 10 },
                 "size": [592, 34]
