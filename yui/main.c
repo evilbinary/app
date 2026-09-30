@@ -322,7 +322,8 @@ int main(int argc, char* argv[]) {
 
     /* 先给一帧，避免"启动后黑屏、毫无反应" */
     if (argc > 1) {
-        g_use_spinner = 1;   /* 带参数 = 启动指定应用（圆形 loading） */
+        g_use_spinner = 1;        /* 带参数 = 启动指定应用（圆形 loading） */
+        backend_set_home_quit(1); /* 应用模式：按 HOME 退出回 console-os ✓ */
     }
     loading_mark("init", 40, 3);
 

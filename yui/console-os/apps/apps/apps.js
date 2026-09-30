@@ -58,14 +58,27 @@ function appsResolve(dir) {
     meta = appsReadMeta(base + "/" + dir + ".json", dir);
     if (meta) return meta;
     var sub = YUI.listDir(base);
+    var has_self = false;
     if (sub) {
         for (var i = 0; i < sub.length; i++) {
             if (sub[i].isDir) continue;
             var fn = sub[i].name;
+            if (fn === dir) has_self = true;   /* native：与目录同名的可执行文件 */
             if (fn.indexOf(".json") < 0) continue;
             meta = appsReadMeta(base + "/" + fn, dir);
             if (meta) return meta;
         }
+    }
+    if (has_self) {
+        /* YiYiYa: native 应用（doom/doom、doom2/doom2、gpsp/gpsp...）——
+         * 没有 app.json，目录名即应用名，直接运行目录里的同名可执行文件 ✓ */
+        return {
+            title: dir,
+            icon: "📦",
+            path: base + "/" + dir,
+            native: 1,
+            source: null
+        };
     }
     return null;
 }
@@ -122,7 +135,11 @@ function onAppsItemSelect(layerId) {
         setConsoleHint("当前后端不支持启动外部应用");
         return;
     }
-    var cmd = "ymain " + consoleShellQuote(path);
+    /* json 应用 → ymain <json>；native 应用 → 直接运行同名可执行文件 */
+    var isNative = item && item.native;
+    var cmd = isNative
+        ? consoleShellQuote(path)
+        : ("ymain " + consoleShellQuote(path));
     YUI.log("[apps] spawn " + cmd);
     var rc = YUI.spawn(cmd);
     YUI.log("[apps] spawn rc=" + rc + " (" + path + ")");
