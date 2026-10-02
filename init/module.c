@@ -112,6 +112,10 @@ void modules_init(void) {
   /* raspi5 bring-up: 还没有 DWC2 USB / BCM2836 外设驱动
    * （Pi5 用 xHCI + GIC），先只注册有平台支持的模块 */
   REGISTER_MODULE(test);
+  /* bcm2712 SDHCI（microSD，dtsi sdio1@fff000）：复用 bcm2836.c 标准 SDHCI
+   * 驱动。必须排在 fatfs 之前 —— fatfs 靠 device_find(DEVICE_SATA) 找它挂
+   * 根文件系统。 */
+  REGISTER_MODULE(sdhci);
 #else
   REGISTER_MODULE(mouse);
   REGISTER_MODULE(usb);
