@@ -30,6 +30,18 @@ int kmain(int argc, char* argv[]) {
   kernel_init();
 
 #ifdef MP_ENABLE
+  /* 从核创建 idle 会抢 thread_create_lock。Pi 5 核间缓存此时还不可见，
+   * 从核看不到主核放掉的锁，卡在创建里，ps 就没有其它核的 idle。
+   * 主核先按 cpu_id 建好，mp_init 放核前会把这块内存刷出去。 */
+  for (int cpu = 1; cpu < cpu_get_number() && cpu < MAX_CPU; cpu++) {
+    thread_t* idle = thread_create_name_level(
+        "idle", (void*)&do_idle_thread, NULL, LEVEL_KERNEL_SHARE);
+    if (idle == NULL) continue;
+    thread_bind_cpu(idle, cpu);
+    idle->priority = THREAD_PRIORITY_IDLE;
+    idle->priority_base = THREAD_PRIORITY_IDLE;
+    thread_run(idle);
+  }
   mp_init();
 #endif
 
@@ -50,13 +62,16 @@ int kmain(int argc, char* argv[]) {
 
 int ksecondary(int cpu, int argc, char* argv[]) {
   kernel_init();
-  thread_t* t1 = thread_create_name_level("idle", (void*)&do_idle_thread, NULL,
-                                          LEVEL_KERNEL_SHARE);
-  if (t1 != NULL) {
-    t1->priority = THREAD_PRIORITY_IDLE;
-    t1->priority_base = THREAD_PRIORITY_IDLE;
+  thread_t* t1 = thread_head();
+  if (t1 == NULL) {
+    t1 = thread_create_name_level("idle", (void*)&do_idle_thread, NULL,
+                                  LEVEL_KERNEL_SHARE);
+    if (t1 != NULL) {
+      t1->priority = THREAD_PRIORITY_IDLE;
+      t1->priority_base = THREAD_PRIORITY_IDLE;
+    }
+    thread_run(t1);
   }
-  thread_run(t1);
 
   log_info("kernel run secondary %d\n", cpu);
   kernel_run();
