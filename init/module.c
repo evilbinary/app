@@ -122,6 +122,8 @@ void modules_init(void) {
    * 驱动。必须排在 partition / fatfs 之前 —— partition 读这张整卡切分区，
    * fatfs 再挂根文件系统。 */
   REGISTER_MODULE(sdhci);
+  /* 没有接 Pi5 的电池 RTC。general.c 用启动后的 tick 提供 /dev/time。 */
+  REGISTER_MODULE(rtc);
 #else
   REGISTER_MODULE(mouse);
   REGISTER_MODULE(usb);
