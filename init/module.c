@@ -45,6 +45,8 @@ void modules_init(void) {
 #endif
 
 #ifdef FATFS_MODULE
+  /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
+  REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
 #endif
   REGISTER_MODULE(test);
@@ -82,6 +84,8 @@ void modules_init(void) {
 #endif
 
 #ifdef FATFS_MODULE
+  /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
+  REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
 #endif
   // REGISTER_MODULE(fat32);
@@ -113,8 +117,8 @@ void modules_init(void) {
    * （Pi5 用 xHCI + GIC），先只注册有平台支持的模块 */
   REGISTER_MODULE(test);
   /* bcm2712 SDHCI（microSD，dtsi sdio1@fff000）：复用 bcm2836.c 标准 SDHCI
-   * 驱动。必须排在 fatfs 之前 —— fatfs 靠 device_find(DEVICE_SATA) 找它挂
-   * 根文件系统。 */
+   * 驱动。必须排在 partition / fatfs 之前 —— partition 读这张整卡切分区，
+   * fatfs 再挂根文件系统。 */
   REGISTER_MODULE(sdhci);
 #else
   REGISTER_MODULE(mouse);
@@ -132,6 +136,8 @@ void modules_init(void) {
 #endif
 
 #ifdef FATFS_MODULE
+  /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
+  REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
 #endif
 
