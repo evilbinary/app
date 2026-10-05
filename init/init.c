@@ -162,14 +162,27 @@ int do_exec(char* cmd, int count, char** env) {
   }
   int ret =0;
 #ifdef USE_FORK
-  sprintf(buf, "/bin/%s", argv[0]);
-  ret = syscall2(SYS_ACESS, buf, 0);
-  if (ret < 0) {
-    sprintf(buf, "/%s", argv[0]);
+  /* ./yes 这种路径按当前目录打开，不要拼成 /bin/./yes。 */
+  int has_slash = 0;
+  for (ptr = argv[0]; *ptr != 0; ptr++) {
+    if (*ptr == '/') {
+      has_slash = 1;
+      break;
+    }
+  }
+  if (has_slash) {
+    sprintf(buf, "%s", argv[0]);
+    ret = syscall2(SYS_ACESS, buf, 0);
+  } else {
+    sprintf(buf, "/bin/%s", argv[0]);
     ret = syscall2(SYS_ACESS, buf, 0);
     if (ret < 0) {
-      sprintf(buf, "./%s", argv[0]);
+      sprintf(buf, "/%s", argv[0]);
       ret = syscall2(SYS_ACESS, buf, 0);
+      if (ret < 0) {
+        sprintf(buf, "./%s", argv[0]);
+        ret = syscall2(SYS_ACESS, buf, 0);
+      }
     }
   }
 #else

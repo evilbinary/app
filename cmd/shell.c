@@ -186,7 +186,7 @@ int do_exec(char* cmd) {
   char cmd_buf[128];
   char* cmd_argv[64];
   int i = 0;
-  int k;
+  int ret;
   memset(cmd_buf, 0, sizeof(cmd_buf));
   memset(cmd_argv, 0, sizeof(cmd_argv));
   /* 引号感知切分：带空格的路径（"roms/nes/The Legend.nes"）也正确 ✓ */
@@ -194,19 +194,19 @@ int do_exec(char* cmd) {
   if (i <= 0 || cmd_argv[0] == NULL) {
     return 0;
   }
-  /* 绝对路径直接用：否则 "/bin/gnuboy" 会先被拼成 "/bin//bin/gnuboy"
-     再 fallback，每次 spawn 都白刷 3 行内核错误
-     （not found file bin in bin code 4 / cannot found file /bin//bin/gnuboy）。 */
-  if (cmd_argv[0][0] == '/') {
+  /* 带斜杠的按路径打开（./yes、/mnt/sda2/bin/yes）。
+   * 没有斜杠才去 /bin、/ 里找，避免 /bin/./yes。 */
+  if (strchr(cmd_argv[0], '/') != NULL) {
     strncpy(cmd_buf, cmd_argv[0], sizeof(cmd_buf) - 1);
     cmd_buf[sizeof(cmd_buf) - 1] = '\0';
+    ret = access(cmd_buf, 0);
   } else {
     sprintf(cmd_buf, "/bin/%s", cmd_argv[0]);
-  }
-  int ret = access(cmd_buf, 0);
-  if (ret < 0) {
-    sprintf(cmd_buf, "/%s", cmd_argv[0]);
     ret = access(cmd_buf, 0);
+    if (ret < 0) {
+      sprintf(cmd_buf, "/%s", cmd_argv[0]);
+      ret = access(cmd_buf, 0);
+    }
   }
   int pid = 0;
   if (ret == 0) {
