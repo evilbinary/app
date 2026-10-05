@@ -6,6 +6,7 @@ int show_all = 0;
 int long_mode = 0;
 int show_nice = 0;
 char buf[512];
+char entpath[512];
 
 void show_usage(int argc, char* argv[]) {
   printf(
@@ -53,7 +54,16 @@ void ls(char* path) {
     }
 
     if (long_mode) {
-      printf("%-20s", ent->d_name);
+      int n = 0;
+      while (ent->d_name[n] != '\0') {
+        n++;
+      }
+      printf("%s", ent->d_name);
+      while (n < 20) {
+        printf(" ");
+        n++;
+      }
+      printf(" ");
       if (ent->d_type == DT_DIR) {
         printf("dir");
       } else if (ent->d_type == DT_REG) {
@@ -61,17 +71,30 @@ void ls(char* path) {
       } else {
         printf("%x", ent->d_type);
       }
-      sprintf(buf, "%s/%s", path, ent->d_name);
-      if (stat(buf, &st) == 0) {
+      sprintf(entpath, "%s/%s", path, ent->d_name);
+      if (stat(entpath, &st) == 0) {
         printf(" %d", (int)st.st_size);
       }
       printf("\n");
     } else {
-      if (col > 0 && (col % 6) == 0) {
-        printf("\n");
+      int n = 0;
+      while (ent->d_name[n] != '\0') {
+        n++;
       }
-      printf("%-18s", ent->d_name);
-      col++;
+      /* 超过一列就单独占一行，避免和后一个名字粘在一起。 */
+      if (n >= 18) {
+        if (col > 0) {
+          printf("\n");
+        }
+        printf("%s\n", ent->d_name);
+        col = 0;
+      } else {
+        if (col > 0 && (col % 6) == 0) {
+          printf("\n");
+        }
+        printf("%-18s", ent->d_name);
+        col++;
+      }
     }
   }
 
