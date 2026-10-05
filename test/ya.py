@@ -156,6 +156,13 @@ add_files(
 )
 add_cflags('-DHAVE_SIGNAL_H')
 
+target("test-http")
+set_type("cli")
+add_files(
+   'test-http.c'
+)
+add_cflags('-DHAVE_SIGNAL_H')
+
 target("test-system")
 set_type("cli")
 add_files(
