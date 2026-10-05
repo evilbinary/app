@@ -48,6 +48,7 @@ void modules_init(void) {
   /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
   REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
+  REGISTER_MODULE(ext);
 #endif
   REGISTER_MODULE(test);
   REGISTER_MODULE(rtc);
@@ -87,6 +88,7 @@ void modules_init(void) {
   /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
   REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
+  REGISTER_MODULE(ext);
 #endif
   // REGISTER_MODULE(fat32);
   // REGISTER_MODULE(hello);
@@ -139,6 +141,7 @@ void modules_init(void) {
   /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
   REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
+  REGISTER_MODULE(ext);
 #endif
 
 #elif defined(DUMMY)
