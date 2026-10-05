@@ -124,7 +124,7 @@ void modules_init(void) {
   REGISTER_MODULE(sdhci);
   /* 没有接 Pi5 的电池 RTC。general.c 用启动后的 tick 提供 /dev/time。 */
   REGISTER_MODULE(rtc);
-  /* RP1 Cadence GEM。驱动自己映射 0x1C0100000，失败只打日志。 */
+  /* RP1 Cadence GEM，BAR 在 0x1F00100000。失败只打日志。 */
   REGISTER_MODULE(net);
 #else
   REGISTER_MODULE(mouse);
