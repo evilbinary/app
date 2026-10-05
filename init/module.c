@@ -45,7 +45,7 @@ void modules_init(void) {
 #endif
 
 #ifdef FATFS_MODULE
-  /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
+  /* 先切分区（sda1/sda2…），fatfs 再按这些块设备挂载。 */
   REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
   REGISTER_MODULE(ext);
@@ -85,7 +85,7 @@ void modules_init(void) {
 #endif
 
 #ifdef FATFS_MODULE
-  /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
+  /* 先切分区（sda1/sda2…），fatfs 再按这些块设备挂载。 */
   REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
   REGISTER_MODULE(ext);
@@ -138,7 +138,7 @@ void modules_init(void) {
 #endif
 
 #ifdef FATFS_MODULE
-  /* 先切分区（sda/sdb…），fatfs 再按这些块设备挂载。 */
+  /* 先切分区（sda1/sda2…），fatfs 再按这些块设备挂载。 */
   REGISTER_MODULE(partition);
   REGISTER_MODULE(fatfs);
   REGISTER_MODULE(ext);
