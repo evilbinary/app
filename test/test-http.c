@@ -17,6 +17,14 @@
 
 #define HTTP_PORT 80
 
+/* 不用 printf：第一次进 libc 会碰用户堆 HEAP_ADDR(0x70100000)，
+ * 内核那条 page fault 会和卡住处混在一起。write 只走已经映射好的只读串。 */
+static void step(const char* s) {
+  int n = 0;
+  while (s[n] != 0) n++;
+  if (n > 0) write(2, s, (size_t)n);
+}
+
 static int write_all(int fd, const char* buf, int n) {
   int off = 0;
   while (off < n) {
@@ -98,28 +106,45 @@ int main(void) {
   int on = 1;
   struct sockaddr_in addr;
 
+  step("test-http: socket\n");
   srv = socket(AF_INET, SOCK_STREAM, 0);
   if (srv < 0) {
     perror("socket");
     return 1;
   }
+  step("test-http: setsockopt\n");
   setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_port = htons(HTTP_PORT);
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  step("test-http: bind\n");
   if (bind(srv, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
     perror("bind");
     close(srv);
     return 1;
   }
+  step("test-http: listen\n");
   if (listen(srv, 2) < 0) {
     perror("listen");
     close(srv);
     return 1;
   }
-  printf("test-http: http://192.168.1.250:%d/\n", HTTP_PORT);
-  printf("test-http: do not run test-net, the stack owns /dev/net\n");
+  step("test-http: http://192.168.1.250:80/\n");
+  step("test-http: do not run test-net, the stack owns /dev/net\n");
+  /* shell 对每条命令都 waitpid，没有 &。accept 不返回的话提示符就没了。
+   * 父进程退出把 shell 还给用户，子进程继续听端口。 */
+  step("test-http: fork\n");
+  {
+    int pid = fork();
+    if (pid < 0) {
+      perror("fork");
+    } else if (pid > 0) {
+      step("test-http: parent exit\n");
+      return 0;
+    }
+  }
+  step("test-http: child accept\n");
 
   for (;;) {
     struct sockaddr_in peer;

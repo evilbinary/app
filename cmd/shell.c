@@ -91,7 +91,7 @@ void print_promot() {
   fflush(stdout);
 }
 
-void print_help() { printf("supports help ps cd pwd command\n"); }
+void print_help() { printf("supports help ps cd pwd command, cmd &\n"); }
 void print_string(char* str) {
   printf(str);
   fflush(stdout);
@@ -143,17 +143,36 @@ void do_shell_cmd(char* cmd) {
   }
 }
 
-int run_exec(char* cmd, char** argv) {
+int run_exec(char* cmd, char** argv, int background) {
   int pid = fork();
   if (pid == 0) {
     execv(cmd, argv);
     exit(1);
+  }
+  if (pid > 0 && background) {
+    /* 不 waitpid：服务器停在 accept 时提示符还能回来。 */
+    printf("[%d]\n", pid);
+    fflush(stdout);
+    return pid;
   }
   if (pid > 0) {
     int status = 0;
     waitpid(pid, &status, 0);
   }
   return pid;
+}
+
+/* 后台任务退出后收成僵尸。WNOHANG 没有僵尸就立刻返回，不挡输入。 */
+static void shell_reap(void) {
+  int status = 0;
+  for (;;) {
+    int pid = waitpid(-1, &status, WNOHANG);
+    if (pid <= 0) {
+      break;
+    }
+    printf("[%d] done\n", pid);
+    fflush(stdout);
+  }
 }
 
 /* YiYiYa·修复：按【引号感知】切分命令行 —— 原实现 strtok(" ") 只按空格切 ✗，
@@ -194,6 +213,23 @@ int do_exec(char* cmd) {
   if (i <= 0 || cmd_argv[0] == NULL) {
     return 0;
   }
+  /* 行尾 & 或粘在最后一个参数上的 &（test-http &、test-http&）走后台。 */
+  int background = 0;
+  {
+    char* last = cmd_argv[i - 1];
+    int n = (int)strlen(last);
+    if (n > 0 && last[n - 1] == '&') {
+      background = 1;
+      last[n - 1] = '\0';
+      if (last[0] == '\0') {
+        cmd_argv[i - 1] = NULL;
+        i--;
+      }
+    }
+  }
+  if (i <= 0 || cmd_argv[0] == NULL) {
+    return 0;
+  }
   /* 带斜杠的按路径打开（./yes、/mnt/sda2/bin/yes）。
    * 没有斜杠才去 /bin、/ 里找，避免 /bin/./yes。 */
   if (strchr(cmd_argv[0], '/') != NULL) {
@@ -210,7 +246,7 @@ int do_exec(char* cmd) {
   }
   int pid = 0;
   if (ret == 0) {
-    pid = run_exec(cmd_buf, cmd_argv);
+    pid = run_exec(cmd_buf, cmd_argv, background);
   }
   return pid;
 }
@@ -227,6 +263,7 @@ void shell_loop() {
     if (ret > 0) {
       if (ch == '\r' || ch == '\n') {
         printf("\n");
+        shell_reap();
         do_shell_cmd(buf);
         count = 0;
         memset(buf, 0, 128);
@@ -244,6 +281,7 @@ void shell_loop() {
         fflush(stdout);
       }
     } else {
+      shell_reap();
       sleep(100);
     }
   }
