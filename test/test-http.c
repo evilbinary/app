@@ -30,7 +30,7 @@ static int write_all(int fd, const char* buf, int n) {
   while (off < n) {
     int w = write(fd, buf + off, (size_t)(n - off));
     if (w < 0) {
-      if (errno == EINTR) continue;
+      if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) continue;
       return -1;
     }
     if (w == 0) return -1;
@@ -44,7 +44,7 @@ static int read_req(int fd, char* buf, int cap) {
   while (n < cap - 1) {
     int r = read(fd, buf + n, (size_t)(cap - 1 - n));
     if (r < 0) {
-      if (errno == EINTR) continue;
+      if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) continue;
       return -1;
     }
     if (r == 0) break;
@@ -152,8 +152,9 @@ int main(void) {
     char req[1024];
     int c = accept(srv, (struct sockaddr*)&peer, &plen);
     unsigned char* ip;
+    /* 内核里阻塞会关着中断，accept 没人连时返回 EAGAIN，这里接着等。 */
     if (c < 0) {
-      if (errno == EINTR) continue;
+      if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) continue;
       perror("accept");
       break;
     }
