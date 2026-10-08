@@ -23,6 +23,14 @@
 
 #define VNC_SKIP_FORK 1
 
+/* 【调试开关】置 1 打开 send_frame / chunk / loop 等排查打印；默认 0 关闭。 */
+#define VNC_DEBUG 0
+#if VNC_DEBUG
+#define VDBG(...) printf(__VA_ARGS__)
+#else
+#define VDBG(...) ((void)0)
+#endif
+
 #define VNC_PORT 5900
 #define FB_W 640
 #define FB_H 480
@@ -173,11 +181,19 @@ static int wr_full(int fd, const void* buf, int n) {
       /* 【EAGAIN 让出 CPU + 防死连接】发送缓冲满时 return EAGAIN；睡一小拍
        * 让出（否则占满单核饿死 shell），等 ACK 腾空间再重试。若同一位置连续
        * EAGAIN 太多（对端已死/不发 ACK），说明这条连接没救了，直接返回 -1，
-       * 让上层 close 掉、accept 新连接，避免无限重试把整机拖死。 */
+       * 让上层 close 掉、accept 新连接，避免无限重试把整机拖死。
+       *
+       * 【注意·不要在这里 sched_yield】socket 的 write 走 vwrite，全程持有
+       * vfs 全局锁；此时让出 CPU 会让别的线程自旋等锁、本线程恢复后锁状态
+       * 错乱（实测：改成 sched_yield 后连接直接废掉、客户端连不上）。
+       * 只能"睡"（睡眠不释放锁，但也不会把锁交给别人）。 */
       if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
         eagain++;
         if (eagain > 4000) {
           return -1;
+        }
+        if (eagain == 1) {
+          VDBG("test-vnc: wr eagain n=%d off=%d\n", n, off);
         }
         usleep(200);
         continue;
@@ -550,9 +566,9 @@ static uint32_t pixel_at(int x, int y) {
 }
 
 static int send_raw_rect(int fd, int rx, int ry, int rw, int rh) {
-  unsigned char hdr[12];
   unsigned char chunk[4096];
   unsigned char px[4];
+  unsigned char hdr[12];
   int bpp, x, y, filled;
 
   if (rx < 0) {
@@ -594,17 +610,10 @@ static int send_raw_rect(int fd, int rx, int ry, int rw, int rh) {
   if (wr_full(fd, hdr, 12) < 0) return -1;
 
   filled = 0;
-  int _ck = 0;
   for (y = ry; y < ry + rh; y++) {
     for (x = rx; x < rx + rw; x++) {
       uint32_t c = pixel_at(x, y);
       if (filled + bpp > (int)sizeof(chunk)) {
-        if (_ck == 0 || (_ck % 8) == 0) {
-          char b[48];
-          sprintf(b, "test-vnc: chunk %d\n", _ck);
-          step(b);
-        }
-        _ck++;
         if (wr_full(fd, chunk, filled) < 0) return -1;
         filled = 0;
       }
@@ -614,11 +623,6 @@ static int send_raw_rect(int fd, int rx, int ry, int rw, int rh) {
     }
   }
   if (filled > 0 && wr_full(fd, chunk, filled) < 0) return -1;
-  {
-    char b[48];
-    sprintf(b, "test-vnc: chunks total %d\n", _ck);
-    step(b);
-  }
   return 0;
 }
 
@@ -628,17 +632,14 @@ static int send_frame(int fd, int incremental) {
 
   draw_desktop();
   if (frame_n == 1) step("test-vnc: frame\n");
-  printf("test-vnc: send_frame painted=%d inc=%d box=%d,%d prev=%d,%d\n",
-         painted, incremental, box_x, box_y, prev_box_x, prev_box_y);
+  VDBG("test-vnc: send_frame painted=%d inc=%d box=%d,%d prev=%d,%d\n", painted,
+       incremental, box_x, box_y, prev_box_x, prev_box_y);
   hdr[0] = 0;
   hdr[1] = 0;
   if (!painted || !incremental) {
     be16(hdr + 2, 1);
-    step("test-vnc: full hdr...\n");
     if (wr_full(fd, hdr, 4) < 0) return -1;
-    step("test-vnc: full body start\n");
     if (send_raw_rect(fd, 0, 0, FB_W, FB_H) < 0) return -1;
-    step("test-vnc: full body done\n");
     painted = 1;
   } else {
     /* 【nrects 必须与实际发送的矩形数一致】下面只发 4 个矩形（方块前后位
@@ -656,7 +657,6 @@ static int send_frame(int fd, int incremental) {
   prev_box_y = box_y;
   prev_mx = mouse_x;
   prev_my = mouse_y;
-  printf("test-vnc: send_frame done\n");
   return 0;
 }
 
@@ -753,13 +753,11 @@ static int client_loop(int fd) {
     unsigned count, n;
     static unsigned lc = 0;
     if (rd_full(fd, &type, 1) < 0) {
-      printf("test-vnc: loop rd fail lc=%u\n", lc);
+      VDBG("test-vnc: loop rd fail lc=%u\n", lc);
       return -1;
     }
     lc++;
-    if (lc <= 40 && (type != 3 || (lc % 10) == 0)) {
-      printf("test-vnc: loop #%u type=%u\n", lc, type);
-    }
+    VDBG("test-vnc: loop #%u type=%u\n", lc, type);
     if (type == 0) {
       if (rd_full(fd, msg, 19) < 0) return -1;
       set_format(msg + 3);
@@ -770,7 +768,7 @@ static int client_loop(int fd) {
     } else if (type == 3) {
       if (rd_full(fd, msg, 9) < 0) return -1;
       if (send_frame(fd, msg[0]) < 0) {
-        printf("test-vnc: loop send_frame fail lc=%u\n", lc);
+        VDBG("test-vnc: loop send_frame fail lc=%u\n", lc);
         return -1;
       }
     } else if (type == 4) {
