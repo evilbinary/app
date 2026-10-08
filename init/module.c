@@ -126,6 +126,11 @@ void modules_init(void) {
   REGISTER_MODULE(rtc);
   /* RP1 Cadence GEM，BAR 在 0x1F00100000。失败只打日志。 */
   REGISTER_MODULE(net);
+  /* 【BCM2712 显示：走固件 mailbox 申请 framebuffer】
+   * 双 HDMI（hdmi0@7c701400 / hdmi1@7c706400）注册 /dev/fb0、/dev/fb1。
+   * 注意：Pi5 固件若没开启显示输出（config.txt 无 dtoverlay=vc4-kms-v3d 且
+   * 未插显示器），ALLOCATE_BUFFER tag 会失败，gpu 只打错误日志不致命。 */
+  REGISTER_MODULE(gpu);
 #else
   REGISTER_MODULE(mouse);
   REGISTER_MODULE(usb);
