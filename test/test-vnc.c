@@ -166,31 +166,28 @@ static void step(const char* s) {
 static int wr_full(int fd, const void* buf, int n) {
   const unsigned char* p = buf;
   int off = 0;
-  int eagain = 0;
+  unsigned eagain = 0;
   while (off < n) {
     int w = write(fd, p + off, (size_t)(n - off));
     if (w < 0) {
-      /* 【必须让出 CPU】EAGAIN 裸 continue 会占满单核，同核的 shell/init
-       * 完全饿死（实测 shell 卡死）。发 1.2MB 首帧时 TCP 发送缓冲很快写满，
-       * 这里会高频 EAGAIN；睡一小拍把 CPU 让出去，让 shell 能跑。 */
+      /* 【EAGAIN 让出 CPU + 防死连接】发送缓冲满时 return EAGAIN；睡一小拍
+       * 让出（否则占满单核饿死 shell），等 ACK 腾空间再重试。若同一位置连续
+       * EAGAIN 太多（对端已死/不发 ACK），说明这条连接没救了，直接返回 -1，
+       * 让上层 close 掉、accept 新连接，避免无限重试把整机拖死。 */
       if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
         eagain++;
-        if (eagain == 1 || (eagain % 500) == 0) {
-          printf("test-vnc: wr_full eagain=%d errno=%d want=%d off=%d\n",
-                 eagain, errno, n, off);
+        if (eagain > 4000) {
+          return -1;
         }
-        /* 让出一小拍即可：TCP 发送缓冲满时很快会有 ACK 释放空间。睡 1ms 在
-         * 密集 EAGAIN 下会累积成秒级（实测每 16KB ~60 次 ⇒ 60ms）。 */
         usleep(200);
         continue;
       }
-      printf("test-vnc: wr_full write err errno=%d\n", errno);
       return -1;
     }
     if (w == 0) return -1;
+    eagain = 0;
     off += w;
   }
-  if (eagain > 0) printf("test-vnc: wr_full done eagain=%d\n", eagain);
   return 0;
 }
 
@@ -577,6 +574,16 @@ static int send_raw_rect(int fd, int rx, int ry, int rw, int rh) {
   if (rw < 1) rw = 1;
   if (rh < 1) rh = 1;
 
+  /* 【x/y 必须偶对齐】RFB 规范要求 Rectangle 的 x-position/y-position 为偶数；
+   * 鼠标坐标来自客户端（PointerEvent）可能为奇数，直接发会让客户端拒绝/错乱。
+   * 向下对齐到偶数，并把宽度/高度补足，保证覆盖原区域。 */
+  if (rx & 1) { rx -= 1; rw += 1; }
+  if (ry & 1) { ry -= 1; rh += 1; }
+  if (rx < 0) { rx = 0; }
+  if (ry < 0) { ry = 0; }
+  if (rx + rw > FB_W) rw = FB_W - rx;
+  if (ry + rh > FB_H) rh = FB_H - ry;
+
   bpp = pf_bpp / 8;
   if (bpp != 1 && bpp != 2 && bpp != 4) bpp = 4;
   be16(hdr + 0, (unsigned)rx);
@@ -584,27 +591,34 @@ static int send_raw_rect(int fd, int rx, int ry, int rw, int rh) {
   be16(hdr + 4, (unsigned)rw);
   be16(hdr + 6, (unsigned)rh);
   be32(hdr + 8, 0);
-  printf("test-vnc: raw_rect hdr %d,%d %dx%d bpp=%d\n", rx, ry, rw, rh, bpp);
-  if (wr_full(fd, hdr, 12) < 0) { printf("test-vnc: raw_rect hdr write fail\n"); return -1; }
+  if (wr_full(fd, hdr, 12) < 0) return -1;
 
   filled = 0;
-  int chunks = 0;
+  int _ck = 0;
   for (y = ry; y < ry + rh; y++) {
     for (x = rx; x < rx + rw; x++) {
       uint32_t c = pixel_at(x, y);
       if (filled + bpp > (int)sizeof(chunk)) {
-        if (wr_full(fd, chunk, filled) < 0) { printf("test-vnc: raw_rect body write fail\n"); return -1; }
+        if (_ck == 0 || (_ck % 8) == 0) {
+          char b[48];
+          sprintf(b, "test-vnc: chunk %d\n", _ck);
+          step(b);
+        }
+        _ck++;
+        if (wr_full(fd, chunk, filled) < 0) return -1;
         filled = 0;
-        chunks++;
-        if (chunks % 16 == 0) printf("test-vnc: raw_rect %d chunks\n", chunks);
       }
       pack_pixel(px, (c >> 16) & 255, (c >> 8) & 255, c & 255);
       memcpy(chunk + filled, px, (size_t)bpp);
       filled += bpp;
     }
   }
-  if (filled > 0 && wr_full(fd, chunk, filled) < 0) { printf("test-vnc: raw_rect tail write fail\n"); return -1; }
-  printf("test-vnc: raw_rect done %d chunks\n", chunks);
+  if (filled > 0 && wr_full(fd, chunk, filled) < 0) return -1;
+  {
+    char b[48];
+    sprintf(b, "test-vnc: chunks total %d\n", _ck);
+    step(b);
+  }
   return 0;
 }
 
@@ -614,20 +628,25 @@ static int send_frame(int fd, int incremental) {
 
   draw_desktop();
   if (frame_n == 1) step("test-vnc: frame\n");
-  printf("test-vnc: send_frame painted=%d inc=%d\n", painted, incremental);
+  printf("test-vnc: send_frame painted=%d inc=%d box=%d,%d prev=%d,%d\n",
+         painted, incremental, box_x, box_y, prev_box_x, prev_box_y);
   hdr[0] = 0;
   hdr[1] = 0;
   if (!painted || !incremental) {
     be16(hdr + 2, 1);
-    if (wr_full(fd, hdr, 4) < 0) { printf("test-vnc: frame hdr write fail\n"); return -1; }
-    printf("test-vnc: frame full-screen rect start\n");
+    step("test-vnc: full hdr...\n");
+    if (wr_full(fd, hdr, 4) < 0) return -1;
+    step("test-vnc: full body start\n");
     if (send_raw_rect(fd, 0, 0, FB_W, FB_H) < 0) return -1;
-    printf("test-vnc: frame full-screen rect done\n");
+    step("test-vnc: full body done\n");
     painted = 1;
   } else {
-    be16(hdr + 2, 5);
+    /* 【nrects 必须与实际发送的矩形数一致】下面只发 4 个矩形（方块前后位
+     * + 光标前后位）。原来这里写 5 是因为还包含 100,108,340x100 的固定文字
+     * 区；删掉那块后必须同步改成 4，否则客户端等第 5 个矩形却收不到，
+     * 协议错乱直接 RST（实测 errno=104 ECONNRESET）。 */
+    be16(hdr + 2, 4);
     if (wr_full(fd, hdr, 4) < 0) return -1;
-    if (send_raw_rect(fd, 100, 108, 340, 100) < 0) return -1;
     if (send_raw_rect(fd, prev_box_x, prev_box_y, 28, 28) < 0) return -1;
     if (send_raw_rect(fd, box_x, box_y, 28, 28) < 0) return -1;
     if (send_raw_rect(fd, prev_mx, prev_my, 10, 10) < 0) return -1;
@@ -637,6 +656,7 @@ static int send_frame(int fd, int incremental) {
   prev_box_y = box_y;
   prev_mx = mouse_x;
   prev_my = mouse_y;
+  printf("test-vnc: send_frame done\n");
   return 0;
 }
 
@@ -731,7 +751,15 @@ static int client_loop(int fd) {
     unsigned char type;
     unsigned char msg[20];
     unsigned count, n;
-    if (rd_full(fd, &type, 1) < 0) return -1;
+    static unsigned lc = 0;
+    if (rd_full(fd, &type, 1) < 0) {
+      printf("test-vnc: loop rd fail lc=%u\n", lc);
+      return -1;
+    }
+    lc++;
+    if (lc <= 40 && (type != 3 || (lc % 10) == 0)) {
+      printf("test-vnc: loop #%u type=%u\n", lc, type);
+    }
     if (type == 0) {
       if (rd_full(fd, msg, 19) < 0) return -1;
       set_format(msg + 3);
@@ -741,7 +769,10 @@ static int client_loop(int fd) {
       if (skip_n(fd, (int)count * 4) < 0) return -1;
     } else if (type == 3) {
       if (rd_full(fd, msg, 9) < 0) return -1;
-      if (send_frame(fd, msg[0]) < 0) return -1;
+      if (send_frame(fd, msg[0]) < 0) {
+        printf("test-vnc: loop send_frame fail lc=%u\n", lc);
+        return -1;
+      }
     } else if (type == 4) {
       if (rd_full(fd, msg, 7) < 0) return -1;
       key_down = msg[0] ? 1 : 0;
@@ -776,10 +807,8 @@ static uint32_t* map_fb(void) {
   const size_t bytes = (size_t)FB_W * FB_H * sizeof(uint32_t);
   void* p = mmap(NULL, bytes, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
   if (p == MAP_FAILED) {
-    printf("test-vnc: map_fb failed bytes=%lu\n", (unsigned long)bytes);
     return NULL;
   }
-  printf("test-vnc: map_fb ok at %p bytes=%lu\n", p, (unsigned long)bytes);
   return (uint32_t*)p;
 }
 
@@ -823,7 +852,11 @@ static void serve(int srv) {
     unsigned char* ip;
     /* 没人连接时 accept 返回 EAGAIN。错误码先留下，后面不再调会改 errno 的函数。 */
     if (c < 0) {
-      if (err == EINTR || err == EAGAIN || err == EWOULDBLOCK) continue;
+      if (err == EINTR || err == EAGAIN || err == EWOULDBLOCK) {
+        /* 【让出 CPU】accept EAGAIN 裸 continue 会占满单核把 shell/init 饿死。 */
+        usleep(2000);
+        continue;
+      }
       errno = err;
       perror("accept");
       break;
@@ -844,7 +877,6 @@ int main(void) {
 
   step("test-vnc: socket\n");
   srv = socket(AF_INET, SOCK_STREAM, 0);
-  printf("test-vnc: srv=%d\n", srv);
   if (srv < 0) {
     perror("socket");
     return 1;
@@ -870,16 +902,15 @@ int main(void) {
   step("test-vnc: password yiyiya\n");
   step("test-vnc: do not run test-net, the stack owns /dev/net\n");
 #ifdef VNC_SKIP_FORK
-  /* 【诊断开关】跳过 fork，直接在监听进程里 serve，验证是不是 fork
-   * 破坏了用户栈上的 srv。定位完请移除本宏恢复正式逻辑。 */
-  step("test-vnc: skip fork accept\n");
-  printf("test-vnc: serve srv=%d\n", srv);
+  /* 【规避已知问题】fork 在 raspi5(aarch64) 上会破坏子进程用户栈上的 srv
+   * （变成 -9），accept(srv) 随即失败刷屏。此处不 fork，直接在监听进程里
+   * serve，功能可用。见 zdata/faq.md Q10：fork bug 待修。 */
+  step("test-vnc: serve (skip fork)\n");
   serve(srv);
 #else
   step("test-vnc: fork\n");
   {
     int pid = fork();
-    printf("test-vnc: after fork pid=%d srv=%d\n", pid, srv);
     if (pid < 0) {
       perror("fork");
       return 1;
@@ -889,7 +920,6 @@ int main(void) {
     }
   }
   step("test-vnc: child accept\n");
-  printf("test-vnc: child serve srv=%d\n", srv);
   serve(srv);
 #endif
   close(srv);
