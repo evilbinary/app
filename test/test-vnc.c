@@ -551,7 +551,7 @@ static uint32_t pixel_at(int x, int y) {
 
 static int send_raw_rect(int fd, int rx, int ry, int rw, int rh) {
   unsigned char hdr[12];
-  unsigned char chunk[16384];
+  unsigned char chunk[4096];
   unsigned char px[4];
   int bpp, x, y, filled;
 
