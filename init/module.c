@@ -131,6 +131,9 @@ void modules_init(void) {
    * 注意：Pi5 固件若没开启显示输出（config.txt 无 dtoverlay=vc4-kms-v3d 且
    * 未插显示器），ALLOCATE_BUFFER tag 会失败，gpu 只打错误日志不致命。 */
   REGISTER_MODULE(gpu);
+
+  REGISTER_MODULE(fan); /* /dev/fan：RP1 PWM1 风扇 */
+  REGISTER_MODULE(cpu); /* /dev/cpu：firmware mailbox CPU 温度 */
 #else
   REGISTER_MODULE(mouse);
   REGISTER_MODULE(usb);
