@@ -134,6 +134,8 @@ void modules_init(void) {
 
   REGISTER_MODULE(fan); /* /dev/fan：RP1 PWM1 风扇 */
   REGISTER_MODULE(cpu); /* /dev/cpu：firmware mailbox CPU 温度 */
+
+  REGISTER_MODULE(gpio);
 #else
   REGISTER_MODULE(mouse);
   REGISTER_MODULE(usb);
