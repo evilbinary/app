@@ -132,9 +132,6 @@ void modules_init(void) {
    * 未插显示器），ALLOCATE_BUFFER tag 会失败，gpu 只打错误日志不致命。 */
   REGISTER_MODULE(gpu);
 
-  REGISTER_MODULE(fan); /* /dev/fan：RP1 PWM1 风扇 */
-  REGISTER_MODULE(cpu); /* /dev/cpu：firmware mailbox CPU 温度 */
-
   REGISTER_MODULE(gpio);
 #else
   REGISTER_MODULE(mouse);
@@ -195,6 +192,17 @@ void modules_init(void) {
   REGISTER_MODULE(hello);
 #endif
 
+/* /dev/fan 与 /dev/cpu 在所有平台都注册：raspi5 走真硬件（fan.c/fan RP1 PWM1、
+ * cpu.c/firmware mailbox），其它平台走各自的 general.c 空实现（read 返回 0 /
+ * 档位只存内存）。这样用户态 fand 到处都能安静地跑，不会每 2 秒刷 open 失败。
+ * 源文件由 duck/modules/{fan,cpu}/ya.py 按平台二选一编译。 */
+#ifdef FAN_MODULE
+  REGISTER_MODULE(fan);
+#endif
+
+#ifdef CPU_MODULE
+  REGISTER_MODULE(cpu);
+#endif
 
 #ifdef POSIX_MODULE
   REGISTER_MODULE(posix);

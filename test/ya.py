@@ -38,6 +38,14 @@ add_files(
 )
 add_cflags('-DHAVE_SIGNAL_H')
 
+target("test-mmap-file")
+set_type("cli")
+add_deps("cmocka")
+add_files(
+   'test-mmap-file.c'
+)
+add_cflags('-DHAVE_SIGNAL_H')
+
 target("test-uncompress")
 set_type("cli")
 add_deps("cmocka","zlib")
