@@ -7,6 +7,14 @@
 
 #define VERSION "1.4"
 
+/* 命令行缓冲：原来是 64，而且读字符时没有上限检查 —— 一行超过 63 字符就
+ * 越界写 init 自己的栈：buf 旁边的 count / ret / env / series 全被命令行内容
+ * 盖掉。真机现象就是长命令（yllm chat --model ... --vocab ... --prompt ...）
+ * 参数被截断、execve 收到 ASCII 垃圾 envp（实测 0x6d6f7270 = "prom"）。
+ * init 跑在用户栈上（1MB），1KB 静态缓冲随便放。 */
+#define INIT_LINE_MAX 1024
+
+
 const char* logo =
     " _  _  _ _  _  _      \n"
     "| || || | || || |     \n"
@@ -102,14 +110,14 @@ extern int cmd_exec(const char* name);
 
 int run_exec(char* cmd, char** argv, char** env) {
 #ifdef USE_FORK
-  char path[128];
+  char path[INIT_LINE_MAX];
   char* exec_argv[64];
   int argc = 0;
 
   if (cmd != NULL) {
     kstrncpy(path, cmd, sizeof(path) - 1);
   } else if (argv != NULL && argv[0] != NULL) {
-    sprintf(path, "/bin/%s", argv[0]);
+    ksnprintf(path, sizeof(path), "/bin/%s", argv[0]);
   } else {
     return -1;
   }
@@ -145,7 +153,7 @@ int run_exec(char* cmd, char** argv, char** env) {
 }
 
 int do_exec(char* cmd, int count, char** env) {
-  char buf[64];
+  char buf[INIT_LINE_MAX];
   cmd[count] = 0;
   char* argv[64];
   int i = 0;
@@ -171,22 +179,22 @@ int do_exec(char* cmd, int count, char** env) {
     }
   }
   if (has_slash) {
-    sprintf(buf, "%s", argv[0]);
+    ksnprintf(buf, sizeof(buf), "%s", argv[0]);
     ret = syscall2(SYS_ACESS, buf, 0);
   } else {
-    sprintf(buf, "/bin/%s", argv[0]);
+    ksnprintf(buf, sizeof(buf), "/bin/%s", argv[0]);
     ret = syscall2(SYS_ACESS, buf, 0);
     if (ret < 0) {
-      sprintf(buf, "/%s", argv[0]);
+      ksnprintf(buf, sizeof(buf), "/%s", argv[0]);
       ret = syscall2(SYS_ACESS, buf, 0);
       if (ret < 0) {
-        sprintf(buf, "./%s", argv[0]);
+        ksnprintf(buf, sizeof(buf), "./%s", argv[0]);
         ret = syscall2(SYS_ACESS, buf, 0);
       }
     }
   }
 #else
-sprintf(buf, "%s", argv[0]);
+ksnprintf(buf, sizeof(buf), "%s", argv[0]);
 #endif
   int pid = 0;
   if (ret == 0) {
@@ -288,7 +296,7 @@ static void reap_zombies(void) {
 }
 
 void do_init_thread(void) {
-  char buf[64];
+  char buf[INIT_LINE_MAX];
   int count = 0;
   int ret = 0;
 
@@ -319,16 +327,28 @@ void do_init_thread(void) {
   char** env = NULL;
   pre_launch();
 
+  /* 一次 read 尽可能多取：以前每次只 read 1 字节，粘贴一条长命令时
+   * UART 的 RX FIFO 会在用户态一个个 syscall+回显的过程中溢出丢字符。 */
+  char in[64];
+  int in_len = 0;
+  int in_pos = 0;
   for (;;) {
     int ch = 0;
     reap_zombies();
-    ret = syscall3(SYS_READ, 0, &ch, 1);
-    if (ret > 0) {
+    if (in_pos >= in_len) {
+      in_pos = 0;
+      in_len = syscall3(SYS_READ, 0, in, sizeof(in));
+      if (in_len < 0) {
+        in_len = 0;
+      }
+    }
+    if (in_pos < in_len) {
+      ch = (unsigned char)in[in_pos++];
       if (ch == '\r' || ch == '\n') {
         print_string("\n");
         do_shell_cmd(buf, count, env);
         count = 0;
-        memset(buf, 0, 64);
+        memset(buf, 0, sizeof(buf));
         print_promot();
       } else if (ch == 127) {
         if (count > 0) {
@@ -338,6 +358,12 @@ void do_init_thread(void) {
           print_string(buf);
         }
       } else {
+        /* 边界：以前是 buf[count++] 裸写，超过 63 字符直接踩栈 */
+        if (count >= (int)sizeof(buf) - 1) {
+          int bell = '\a';
+          syscall3(SYS_WRITE, 1, &bell, 1);
+          continue;
+        }
         buf[count++] = ch;
         syscall3(SYS_WRITE, 1, &ch, 1);
       }
@@ -348,11 +374,11 @@ void do_init_thread(void) {
 }
 
 void try_run(char* cmd, char** argv, char** env) {
-  char buf[64];
-  sprintf(buf, "/bin/%s", argv[0]);
+  char buf[INIT_LINE_MAX];
+  ksnprintf(buf, sizeof(buf), "/bin/%s", argv[0]);
   int ret = syscall2(SYS_ACESS, buf, 0);
   if (ret < 0) {
-    sprintf(buf, "/%s", argv[0]);
+    ksnprintf(buf, sizeof(buf), "/%s", argv[0]);
     ret = syscall2(SYS_ACESS, buf, 0);
   }
   if (ret >= 0) {
