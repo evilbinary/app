@@ -11,6 +11,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+/* 命令行缓冲：原来是 128，`yllm chat --model ... --vocab ... --prompt ...`
+ * 这种一条就上百字符，太小；而且原来没有上限检查会越界写栈。
+ * 用户栈是 1MB，1KB 静态缓冲随便放。cmd_buf（拼 /bin/xxx 的路径）同尺寸。 */
+#define SHELL_LINE_MAX 1024
+
 enum {
   SYS_EXIT = 1,
   SYS_FORK = 2,
@@ -202,7 +207,7 @@ static int shell_split_args(char* cmd, char** out, int max) {
 }
 
 int do_exec(char* cmd) {
-  char cmd_buf[128];
+  char cmd_buf[SHELL_LINE_MAX];
   char* cmd_argv[64];
   int i = 0;
   int ret;
@@ -237,10 +242,11 @@ int do_exec(char* cmd) {
     cmd_buf[sizeof(cmd_buf) - 1] = '\0';
     ret = access(cmd_buf, 0);
   } else {
-    sprintf(cmd_buf, "/bin/%s", cmd_argv[0]);
+    /* 名字长度不再有 128 的隐含上限：用 snprintf 截断保护 */
+    snprintf(cmd_buf, sizeof(cmd_buf), "/bin/%s", cmd_argv[0]);
     ret = access(cmd_buf, 0);
     if (ret < 0) {
-      sprintf(cmd_buf, "/%s", cmd_argv[0]);
+      snprintf(cmd_buf, sizeof(cmd_buf), "/%s", cmd_argv[0]);
       ret = access(cmd_buf, 0);
     }
   }
@@ -252,11 +258,11 @@ int do_exec(char* cmd) {
 }
 
 void shell_loop() {
-  char buf[128];
+  char buf[SHELL_LINE_MAX];
   int count = 0;
   int ret = 0;
   int ch;
-  memset(buf, 0, 128);
+  memset(buf, 0, sizeof(buf));
   for (;;) {
     ch = getchar();
     ret = ch;
@@ -266,7 +272,7 @@ void shell_loop() {
         shell_reap();
         do_shell_cmd(buf);
         count = 0;
-        memset(buf, 0, 128);
+        memset(buf, 0, sizeof(buf));
         print_promot();
       } else if (ch == 127) {
         if (count > 0) {
@@ -276,9 +282,17 @@ void shell_loop() {
           print_string(buf);
         }
       } else {
-        buf[count++] = ch;
-        putchar(ch);
-        fflush(stdout);
+        /* 边界：原来 buf 只有 128 而且没有上限检查，输入超过 127 字符就会
+         * 越界写 shell 自己的栈（后面 argv/environ 跟着被踩成脏值）。
+         * 现在 1KB，满了响铃提示，不静默吞字符。 */
+        if (count < (int)sizeof(buf) - 1) {
+          buf[count++] = ch;
+          putchar(ch);
+          fflush(stdout);
+        } else {
+          putchar('\a');
+          fflush(stdout);
+        }
       }
     } else {
       shell_reap();

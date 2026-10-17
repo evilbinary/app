@@ -56,6 +56,12 @@ target("config")
 set_type("cli")
 add_files("config.c") 
 
+# 风扇温控守护（raspi5）：读 /dev/cpu 温度 -> 写 /dev/fan 档位，2 秒一档。
+# 策略放用户态，内核只留两个设备节点（见 fand.c 顶部与 duck/modules/fan）。
+target("fand")
+set_type("cli")
+add_files("fand.c") 
+
 
 # YiYiYa OS 启动动画（首次进入 OS 时播一遍，见 logo.c 顶部说明）。
 # 用 libgui 的基础图元绘制，所以依赖 gui；set_type("cli") 会把产物装到
