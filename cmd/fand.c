@@ -91,8 +91,8 @@ int main(int argc, char* argv[]) {
         if (fd >= 0) {
           unsigned char v = (unsigned char)level;
           if (write(fd, &v, 1) == 1) {
-            printf("fand: %d.%d c -> level %d\n", mc / 1000, (mc % 1000) / 100,
-                   level);
+            // printf("fand: %d.%d c -> level %d\n", mc / 1000, (mc % 1000) / 100,
+            //        level);
           }
           close(fd);
         }
