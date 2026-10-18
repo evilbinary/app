@@ -17,6 +17,11 @@
 extern const ltp_entry_t ltp_tests[];
 extern const int ltp_test_count;
 
+/* lib/tst_test.c 的全局：tst_run_tcases 会设置它；旧 API 测试的
+ * NO_NEWLIB_ASSERT（tso_priv.h）看到它非 NULL 就 TBROK。新旧 API 混链在
+ * 单 runner 里，必须在每个测试结束后清掉，否则旧 API 测试全灭。 */
+extern struct tst_test *tst_test;
+
 #define LTP_CHILD_TIMEOUT 120
 
 static int name_matches(const char *name, int nfilter, char **filter) {
@@ -61,9 +66,10 @@ int main(int argc, char **argv) {
       continue;
     }
     if (pid == 0) {
-      /* 子进程：跑单个测试 */
+      /* 子进程：跑单个测试；新旧 API 互不残留全局状态 */
       signal(SIGALRM, child_alarm_handler);
       alarm(LTP_CHILD_TIMEOUT);
+      tst_test = NULL;
       if (e->old_run != NULL) {
         exit(e->old_run(argc, argv) == 0 ? 0 : 1);
       }
@@ -110,6 +116,7 @@ int main(int argc, char **argv) {
       printf("BROK\n");
       nfail++;
     }
+    tst_test = NULL; /* 防止 newlib 断言污染下一个测试 */
     fflush(stdout);
   }
 

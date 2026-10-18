@@ -1028,3 +1028,4 @@ gen/wrappers/writev_writev03.c
 gen/wrappers/writev_writev05.c
 gen/wrappers/writev_writev06.c
 gen/wrappers/writev_writev07.c
+gen/wrappers/zrepro_zrepro01.c

@@ -1033,6 +1033,7 @@ struct tst_test *ltp_get_writev_writev03(void);
 int ltp_run_writev_writev05(int argc, char **argv);
 int ltp_run_writev_writev06(int argc, char **argv);
 struct tst_test *ltp_get_writev_writev07(void);
+int ltp_run_zrepro_zrepro01(int argc, char **argv);
 
 const ltp_entry_t ltp_tests[] = {
   {"abort_abort01", ltp_get_abort_abort01, 0},
@@ -2065,5 +2066,6 @@ const ltp_entry_t ltp_tests[] = {
   {"writev_writev05", 0, ltp_run_writev_writev05},
   {"writev_writev06", 0, ltp_run_writev_writev06},
   {"writev_writev07", ltp_get_writev_writev07, 0},
+  {"zrepro_zrepro01", 0, ltp_run_zrepro_zrepro01},
 };
-const int ltp_test_count = 1030;
+const int ltp_test_count = 1031;

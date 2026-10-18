@@ -1028,6 +1028,7 @@ gen/objs/writev_writev03.o
 gen/objs/writev_writev05.o
 gen/objs/writev_writev06.o
 gen/objs/writev_writev07.o
+gen/objs/zrepro_zrepro01.o
 ltp/testcases/kernel/syscalls/bpf/bpf_common.c
 ltp/testcases/kernel/syscalls/memfd_create/memfd_create_common.c
 ltp/testcases/kernel/syscalls/migrate_pages/migrate_pages_common.c

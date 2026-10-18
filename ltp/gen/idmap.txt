@@ -1028,3 +1028,4 @@ writev_writev03 testcases/kernel/syscalls/writev/writev03.c
 writev_writev05 testcases/kernel/syscalls/writev/writev05.c
 writev_writev06 testcases/kernel/syscalls/writev/writev06.c
 writev_writev07 testcases/kernel/syscalls/writev/writev07.c
+zrepro_zrepro01 testcases/kernel/syscalls/zrepro/zrepro01.c
