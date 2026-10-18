@@ -1,0 +1,2069 @@
+/* 自动生成：勿改。LTP 测试注册表 */
+#define TST_NO_DEFAULT_MAIN
+#include <tst_test.h>
+#include "ltp_runner.h"
+
+struct tst_test *ltp_get_abort_abort01(void);
+struct tst_test *ltp_get_accept_accept01(void);
+struct tst_test *ltp_get_accept_accept03(void);
+struct tst_test *ltp_get_access_access01(void);
+struct tst_test *ltp_get_access_access02(void);
+struct tst_test *ltp_get_access_access03(void);
+struct tst_test *ltp_get_access_access04(void);
+struct tst_test *ltp_get_acct_acct01(void);
+struct tst_test *ltp_get_acct_acct02(void);
+int ltp_run_acct_acct02_helper(int argc, char **argv);
+struct tst_test *ltp_get_adjtimex_adjtimex01(void);
+struct tst_test *ltp_get_adjtimex_adjtimex02(void);
+struct tst_test *ltp_get_adjtimex_adjtimex03(void);
+struct tst_test *ltp_get_alarm_alarm02(void);
+struct tst_test *ltp_get_alarm_alarm03(void);
+struct tst_test *ltp_get_alarm_alarm05(void);
+struct tst_test *ltp_get_alarm_alarm06(void);
+struct tst_test *ltp_get_alarm_alarm07(void);
+struct tst_test *ltp_get_bind_bind01(void);
+struct tst_test *ltp_get_bind_bind02(void);
+struct tst_test *ltp_get_bind_bind03(void);
+struct tst_test *ltp_get_bind_bind04(void);
+struct tst_test *ltp_get_bind_bind05(void);
+struct tst_test *ltp_get_bpf_bpf_map01(void);
+struct tst_test *ltp_get_bpf_bpf_prog01(void);
+struct tst_test *ltp_get_bpf_bpf_prog02(void);
+struct tst_test *ltp_get_bpf_bpf_prog03(void);
+struct tst_test *ltp_get_bpf_bpf_prog04(void);
+struct tst_test *ltp_get_bpf_bpf_prog05(void);
+struct tst_test *ltp_get_bpf_bpf_prog06(void);
+struct tst_test *ltp_get_bpf_bpf_prog07(void);
+struct tst_test *ltp_get_brk_brk01(void);
+struct tst_test *ltp_get_brk_brk02(void);
+struct tst_test *ltp_get_cachestat_cachestat01(void);
+struct tst_test *ltp_get_cachestat_cachestat02(void);
+struct tst_test *ltp_get_cachestat_cachestat03(void);
+struct tst_test *ltp_get_cachestat_cachestat04(void);
+struct tst_test *ltp_get_chdir_chdir01(void);
+struct tst_test *ltp_get_chdir_chdir02(void);
+struct tst_test *ltp_get_chdir_chdir04(void);
+struct tst_test *ltp_get_chmod_chmod01(void);
+struct tst_test *ltp_get_chmod_chmod03(void);
+struct tst_test *ltp_get_chmod_chmod05(void);
+struct tst_test *ltp_get_chmod_chmod06(void);
+struct tst_test *ltp_get_chmod_chmod07(void);
+struct tst_test *ltp_get_chmod_chmod08(void);
+struct tst_test *ltp_get_chmod_chmod09(void);
+struct tst_test *ltp_get_chroot_chroot01(void);
+struct tst_test *ltp_get_chroot_chroot02(void);
+struct tst_test *ltp_get_chroot_chroot03(void);
+struct tst_test *ltp_get_chroot_chroot04(void);
+struct tst_test *ltp_get_clock_getres_clock_getres01(void);
+struct tst_test *ltp_get_clock_gettime_clock_gettime01(void);
+struct tst_test *ltp_get_clock_gettime_clock_gettime02(void);
+struct tst_test *ltp_get_clock_gettime_clock_gettime04(void);
+struct tst_test *ltp_get_clock_gettime_leapsec01(void);
+struct tst_test *ltp_get_clock_nanosleep_clock_nanosleep01(void);
+struct tst_test *ltp_get_clock_nanosleep_clock_nanosleep02(void);
+struct tst_test *ltp_get_clock_nanosleep_clock_nanosleep04(void);
+struct tst_test *ltp_get_clock_settime_clock_settime01(void);
+struct tst_test *ltp_get_clock_settime_clock_settime02(void);
+struct tst_test *ltp_get_clock_settime_clock_settime03(void);
+struct tst_test *ltp_get_clock_settime_clock_settime04(void);
+struct tst_test *ltp_get_clone_clone01(void);
+int ltp_run_clone_clone02(int argc, char **argv);
+struct tst_test *ltp_get_clone_clone03(void);
+struct tst_test *ltp_get_clone_clone04(void);
+struct tst_test *ltp_get_clone_clone05(void);
+struct tst_test *ltp_get_clone_clone06(void);
+struct tst_test *ltp_get_clone_clone07(void);
+struct tst_test *ltp_get_clone_clone10(void);
+struct tst_test *ltp_get_close_close01(void);
+struct tst_test *ltp_get_close_close02(void);
+struct tst_test *ltp_get_cma_process_vm01(void);
+struct tst_test *ltp_get_cma_process_vm_readv02(void);
+struct tst_test *ltp_get_cma_process_vm_readv03(void);
+struct tst_test *ltp_get_cma_process_vm_writev02(void);
+struct tst_test *ltp_get_confstr_confstr01(void);
+struct tst_test *ltp_get_connect_connect01(void);
+struct tst_test *ltp_get_connect_connect02(void);
+struct tst_test *ltp_get_connect_connect03(void);
+struct tst_test *ltp_get_creat_creat01(void);
+struct tst_test *ltp_get_creat_creat03(void);
+struct tst_test *ltp_get_creat_creat04(void);
+struct tst_test *ltp_get_creat_creat05(void);
+struct tst_test *ltp_get_creat_creat06(void);
+struct tst_test *ltp_get_creat_creat07(void);
+int ltp_run_creat_creat07_child(int argc, char **argv);
+struct tst_test *ltp_get_creat_creat08(void);
+struct tst_test *ltp_get_creat_creat09(void);
+struct tst_test *ltp_get_delete_module_delete_module01(void);
+struct tst_test *ltp_get_delete_module_delete_module02(void);
+struct tst_test *ltp_get_delete_module_delete_module03(void);
+struct tst_test *ltp_get_dup2_dup201(void);
+struct tst_test *ltp_get_dup2_dup202(void);
+struct tst_test *ltp_get_dup2_dup203(void);
+struct tst_test *ltp_get_dup2_dup204(void);
+struct tst_test *ltp_get_dup2_dup205(void);
+struct tst_test *ltp_get_dup2_dup206(void);
+struct tst_test *ltp_get_dup2_dup207(void);
+struct tst_test *ltp_get_dup3_dup3_01(void);
+struct tst_test *ltp_get_dup3_dup3_02(void);
+struct tst_test *ltp_get_dup_dup01(void);
+struct tst_test *ltp_get_dup_dup02(void);
+struct tst_test *ltp_get_dup_dup03(void);
+struct tst_test *ltp_get_dup_dup04(void);
+struct tst_test *ltp_get_dup_dup05(void);
+struct tst_test *ltp_get_dup_dup06(void);
+struct tst_test *ltp_get_dup_dup07(void);
+struct tst_test *ltp_get_epoll_create1_epoll_create1_01(void);
+struct tst_test *ltp_get_epoll_create1_epoll_create1_02(void);
+struct tst_test *ltp_get_epoll_ctl_epoll_ctl01(void);
+struct tst_test *ltp_get_epoll_ctl_epoll_ctl02(void);
+struct tst_test *ltp_get_epoll_ctl_epoll_ctl03(void);
+struct tst_test *ltp_get_epoll_ctl_epoll_ctl04(void);
+struct tst_test *ltp_get_epoll_ctl_epoll_ctl05(void);
+struct tst_test *ltp_get_epoll_ctl_epoll_ctl06(void);
+struct tst_test *ltp_get_epoll_ctl_epoll_ctl07(void);
+struct tst_test *ltp_get_epoll_pwait_epoll_pwait01(void);
+struct tst_test *ltp_get_epoll_pwait_epoll_pwait02(void);
+struct tst_test *ltp_get_epoll_pwait_epoll_pwait03(void);
+struct tst_test *ltp_get_epoll_pwait_epoll_pwait04(void);
+struct tst_test *ltp_get_epoll_pwait_epoll_pwait05(void);
+struct tst_test *ltp_get_epoll_pwait_epoll_pwait06(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait01(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait02(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait03(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait04(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait05(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait06(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait07(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait08(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait09(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait10(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait11(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait12(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait13(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait14(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait15(void);
+struct tst_test *ltp_get_epoll_wait_epoll_wait16(void);
+struct tst_test *ltp_get_eventfd2_eventfd2_01(void);
+struct tst_test *ltp_get_eventfd2_eventfd2_02(void);
+struct tst_test *ltp_get_eventfd2_eventfd2_03(void);
+struct tst_test *ltp_get_eventfd_eventfd01(void);
+struct tst_test *ltp_get_eventfd_eventfd02(void);
+struct tst_test *ltp_get_eventfd_eventfd03(void);
+struct tst_test *ltp_get_eventfd_eventfd04(void);
+struct tst_test *ltp_get_eventfd_eventfd05(void);
+struct tst_test *ltp_get_eventfd_eventfd06(void);
+struct tst_test *ltp_get_execl_execl01(void);
+int ltp_run_execl_execl01_child(int argc, char **argv);
+struct tst_test *ltp_get_execle_execle01(void);
+int ltp_run_execle_execle01_child(int argc, char **argv);
+struct tst_test *ltp_get_execlp_execlp01(void);
+int ltp_run_execlp_execlp01_child(int argc, char **argv);
+struct tst_test *ltp_get_execv_execv01(void);
+int ltp_run_execv_execv01_child(int argc, char **argv);
+struct tst_test *ltp_get_execve_execve01(void);
+int ltp_run_execve_execve01_child(int argc, char **argv);
+struct tst_test *ltp_get_execve_execve03(void);
+struct tst_test *ltp_get_execve_execve06(void);
+int ltp_run_execve_execve06_child(int argc, char **argv);
+int ltp_run_execve_execve_child(int argc, char **argv);
+int ltp_run_execveat_execveat_child(int argc, char **argv);
+int ltp_run_execveat_execveat_errno(int argc, char **argv);
+struct tst_test *ltp_get_execvp_execvp01(void);
+int ltp_run_execvp_execvp01_child(int argc, char **argv);
+int ltp_run_exit_exit01(int argc, char **argv);
+struct tst_test *ltp_get_exit_exit02(void);
+struct tst_test *ltp_get_exit_group_exit_group01(void);
+struct tst_test *ltp_get_faccessat2_faccessat201(void);
+struct tst_test *ltp_get_faccessat2_faccessat202(void);
+struct tst_test *ltp_get_faccessat_faccessat01(void);
+struct tst_test *ltp_get_faccessat_faccessat02(void);
+struct tst_test *ltp_get_fadvise_posix_fadvise01(void);
+struct tst_test *ltp_get_fadvise_posix_fadvise02(void);
+struct tst_test *ltp_get_fadvise_posix_fadvise03(void);
+struct tst_test *ltp_get_fadvise_posix_fadvise04(void);
+struct tst_test *ltp_get_fallocate_fallocate01(void);
+struct tst_test *ltp_get_fallocate_fallocate02(void);
+struct tst_test *ltp_get_fallocate_fallocate03(void);
+struct tst_test *ltp_get_fallocate_fallocate04(void);
+struct tst_test *ltp_get_fallocate_fallocate05(void);
+struct tst_test *ltp_get_fanotify_fanotify01(void);
+struct tst_test *ltp_get_fanotify_fanotify02(void);
+struct tst_test *ltp_get_fanotify_fanotify04(void);
+struct tst_test *ltp_get_fanotify_fanotify05(void);
+struct tst_test *ltp_get_fanotify_fanotify06(void);
+struct tst_test *ltp_get_fanotify_fanotify07(void);
+struct tst_test *ltp_get_fanotify_fanotify08(void);
+struct tst_test *ltp_get_fanotify_fanotify09(void);
+struct tst_test *ltp_get_fanotify_fanotify10(void);
+struct tst_test *ltp_get_fanotify_fanotify11(void);
+struct tst_test *ltp_get_fanotify_fanotify12(void);
+struct tst_test *ltp_get_fanotify_fanotify14(void);
+struct tst_test *ltp_get_fanotify_fanotify18(void);
+struct tst_test *ltp_get_fanotify_fanotify19(void);
+struct tst_test *ltp_get_fanotify_fanotify20(void);
+struct tst_test *ltp_get_fanotify_fanotify21(void);
+struct tst_test *ltp_get_fanotify_fanotify23(void);
+struct tst_test *ltp_get_fanotify_fanotify25(void);
+int ltp_run_fanotify_fanotify_child(int argc, char **argv);
+struct tst_test *ltp_get_fchdir_fchdir01(void);
+struct tst_test *ltp_get_fchdir_fchdir02(void);
+struct tst_test *ltp_get_fchdir_fchdir03(void);
+struct tst_test *ltp_get_fchmod_fchmod01(void);
+struct tst_test *ltp_get_fchmod_fchmod02(void);
+struct tst_test *ltp_get_fchmod_fchmod03(void);
+struct tst_test *ltp_get_fchmod_fchmod04(void);
+struct tst_test *ltp_get_fchmod_fchmod05(void);
+struct tst_test *ltp_get_fchmod_fchmod06(void);
+struct tst_test *ltp_get_fchmodat2_fchmodat2_01(void);
+struct tst_test *ltp_get_fchmodat2_fchmodat2_02(void);
+struct tst_test *ltp_get_fchmodat_fchmodat01(void);
+struct tst_test *ltp_get_fchmodat_fchmodat02(void);
+struct tst_test *ltp_get_fchownat_fchownat01(void);
+struct tst_test *ltp_get_fchownat_fchownat02(void);
+struct tst_test *ltp_get_fchownat_fchownat03(void);
+int ltp_run_fcntl_fcntl01(int argc, char **argv);
+struct tst_test *ltp_get_fcntl_fcntl02(void);
+struct tst_test *ltp_get_fcntl_fcntl03(void);
+struct tst_test *ltp_get_fcntl_fcntl04(void);
+struct tst_test *ltp_get_fcntl_fcntl05(void);
+int ltp_run_fcntl_fcntl07(int argc, char **argv);
+struct tst_test *ltp_get_fcntl_fcntl08(void);
+int ltp_run_fcntl_fcntl09(int argc, char **argv);
+int ltp_run_fcntl_fcntl10(int argc, char **argv);
+int ltp_run_fcntl_fcntl11(int argc, char **argv);
+struct tst_test *ltp_get_fcntl_fcntl12(void);
+struct tst_test *ltp_get_fcntl_fcntl13(void);
+struct tst_test *ltp_get_fcntl_fcntl14(void);
+struct tst_test *ltp_get_fcntl_fcntl15(void);
+int ltp_run_fcntl_fcntl16(int argc, char **argv);
+int ltp_run_fcntl_fcntl17(int argc, char **argv);
+int ltp_run_fcntl_fcntl18(int argc, char **argv);
+int ltp_run_fcntl_fcntl19(int argc, char **argv);
+int ltp_run_fcntl_fcntl20(int argc, char **argv);
+int ltp_run_fcntl_fcntl21(int argc, char **argv);
+int ltp_run_fcntl_fcntl22(int argc, char **argv);
+int ltp_run_fcntl_fcntl23(int argc, char **argv);
+int ltp_run_fcntl_fcntl24(int argc, char **argv);
+int ltp_run_fcntl_fcntl25(int argc, char **argv);
+int ltp_run_fcntl_fcntl26(int argc, char **argv);
+struct tst_test *ltp_get_fcntl_fcntl27(void);
+struct tst_test *ltp_get_fcntl_fcntl29(void);
+struct tst_test *ltp_get_fcntl_fcntl30(void);
+int ltp_run_fcntl_fcntl32(int argc, char **argv);
+struct tst_test *ltp_get_fcntl_fcntl33(void);
+struct tst_test *ltp_get_fcntl_fcntl34(void);
+struct tst_test *ltp_get_fcntl_fcntl35(void);
+struct tst_test *ltp_get_fcntl_fcntl36(void);
+struct tst_test *ltp_get_fcntl_fcntl37(void);
+struct tst_test *ltp_get_fcntl_fcntl38(void);
+struct tst_test *ltp_get_fcntl_fcntl39(void);
+struct tst_test *ltp_get_fcntl_fcntl40(void);
+int ltp_run_fdatasync_fdatasync01(int argc, char **argv);
+int ltp_run_fdatasync_fdatasync02(int argc, char **argv);
+struct tst_test *ltp_get_fdatasync_fdatasync03(void);
+struct tst_test *ltp_get_fgetxattr_fgetxattr01(void);
+struct tst_test *ltp_get_fgetxattr_fgetxattr02(void);
+struct tst_test *ltp_get_fgetxattr_fgetxattr03(void);
+struct tst_test *ltp_get_finit_module_finit_module01(void);
+struct tst_test *ltp_get_flistxattr_flistxattr01(void);
+struct tst_test *ltp_get_flistxattr_flistxattr02(void);
+struct tst_test *ltp_get_flistxattr_flistxattr03(void);
+struct tst_test *ltp_get_flock_flock01(void);
+struct tst_test *ltp_get_flock_flock02(void);
+struct tst_test *ltp_get_flock_flock03(void);
+struct tst_test *ltp_get_flock_flock04(void);
+struct tst_test *ltp_get_flock_flock06(void);
+struct tst_test *ltp_get_flock_flock07(void);
+int ltp_run_fmtmsg_fmtmsg01(int argc, char **argv);
+struct tst_test *ltp_get_fork_fork01(void);
+struct tst_test *ltp_get_fork_fork03(void);
+struct tst_test *ltp_get_fork_fork04(void);
+struct tst_test *ltp_get_fork_fork05(void);
+struct tst_test *ltp_get_fork_fork07(void);
+struct tst_test *ltp_get_fork_fork08(void);
+struct tst_test *ltp_get_fork_fork09(void);
+struct tst_test *ltp_get_fork_fork10(void);
+struct tst_test *ltp_get_fork_fork13(void);
+struct tst_test *ltp_get_fork_fork14(void);
+struct tst_test *ltp_get_fork_fork_procs(void);
+struct tst_test *ltp_get_fpathconf_fpathconf01(void);
+struct tst_test *ltp_get_fremovexattr_fremovexattr01(void);
+struct tst_test *ltp_get_fremovexattr_fremovexattr02(void);
+struct tst_test *ltp_get_fsconfig_fsconfig01(void);
+struct tst_test *ltp_get_fsconfig_fsconfig02(void);
+struct tst_test *ltp_get_fsconfig_fsconfig03(void);
+struct tst_test *ltp_get_fsetxattr_fsetxattr01(void);
+struct tst_test *ltp_get_fsetxattr_fsetxattr02(void);
+struct tst_test *ltp_get_fsmount_fsmount01(void);
+struct tst_test *ltp_get_fsmount_fsmount02(void);
+struct tst_test *ltp_get_fsopen_fsopen01(void);
+struct tst_test *ltp_get_fsopen_fsopen02(void);
+struct tst_test *ltp_get_fspick_fspick01(void);
+struct tst_test *ltp_get_fspick_fspick02(void);
+struct tst_test *ltp_get_fstat_fstat02(void);
+struct tst_test *ltp_get_fstat_fstat03(void);
+int ltp_run_fstatat_fstatat01(int argc, char **argv);
+struct tst_test *ltp_get_fstatfs_fstatfs01(void);
+struct tst_test *ltp_get_fstatfs_fstatfs02(void);
+struct tst_test *ltp_get_fsync_fsync01(void);
+struct tst_test *ltp_get_fsync_fsync02(void);
+struct tst_test *ltp_get_fsync_fsync03(void);
+struct tst_test *ltp_get_fsync_fsync04(void);
+struct tst_test *ltp_get_ftruncate_ftruncate01(void);
+struct tst_test *ltp_get_ftruncate_ftruncate03(void);
+struct tst_test *ltp_get_ftruncate_ftruncate04(void);
+struct tst_test *ltp_get_futex_futex_cmp_requeue01(void);
+struct tst_test *ltp_get_futex_futex_cmp_requeue02(void);
+struct tst_test *ltp_get_futex_futex_cmp_requeue03(void);
+struct tst_test *ltp_get_futex_futex_wait01(void);
+struct tst_test *ltp_get_futex_futex_wait02(void);
+struct tst_test *ltp_get_futex_futex_wait03(void);
+struct tst_test *ltp_get_futex_futex_wait04(void);
+struct tst_test *ltp_get_futex_futex_wait06(void);
+struct tst_test *ltp_get_futex_futex_wait07(void);
+struct tst_test *ltp_get_futex_futex_wait_bitset01(void);
+struct tst_test *ltp_get_futex_futex_waitv01(void);
+struct tst_test *ltp_get_futex_futex_waitv02(void);
+struct tst_test *ltp_get_futex_futex_waitv03(void);
+struct tst_test *ltp_get_futex_futex_wake01(void);
+struct tst_test *ltp_get_futex_futex_wake02(void);
+struct tst_test *ltp_get_futex_futex_wake03(void);
+struct tst_test *ltp_get_futex_futex_wake04(void);
+struct tst_test *ltp_get_futex_futex_wake05(void);
+int ltp_run_get_robust_list_get_robust_list01(int argc, char **argv);
+struct tst_test *ltp_get_getcontext_getcontext01(void);
+struct tst_test *ltp_get_getcwd_getcwd01(void);
+struct tst_test *ltp_get_getcwd_getcwd02(void);
+struct tst_test *ltp_get_getcwd_getcwd03(void);
+struct tst_test *ltp_get_getcwd_getcwd04(void);
+struct tst_test *ltp_get_gethostbyname_r_gethostbyname_r01(void);
+struct tst_test *ltp_get_gethostid_gethostid01(void);
+struct tst_test *ltp_get_gethostname_gethostname01(void);
+struct tst_test *ltp_get_gethostname_gethostname02(void);
+struct tst_test *ltp_get_getitimer_getitimer01(void);
+struct tst_test *ltp_get_getitimer_getitimer02(void);
+struct tst_test *ltp_get_getpagesize_getpagesize01(void);
+struct tst_test *ltp_get_getpeername_getpeername01(void);
+struct tst_test *ltp_get_getpgid_getpgid01(void);
+struct tst_test *ltp_get_getpgid_getpgid02(void);
+struct tst_test *ltp_get_getpgrp_getpgrp01(void);
+struct tst_test *ltp_get_getpid_getpid01(void);
+struct tst_test *ltp_get_getppid_getppid01(void);
+struct tst_test *ltp_get_getppid_getppid02(void);
+struct tst_test *ltp_get_getpriority_getpriority01(void);
+struct tst_test *ltp_get_getpriority_getpriority02(void);
+struct tst_test *ltp_get_getrlimit_getrlimit01(void);
+struct tst_test *ltp_get_getrlimit_getrlimit02(void);
+struct tst_test *ltp_get_getrusage_getrusage01(void);
+struct tst_test *ltp_get_getrusage_getrusage02(void);
+struct tst_test *ltp_get_getrusage_getrusage03(void);
+int ltp_run_getrusage_getrusage03_child(int argc, char **argv);
+int ltp_run_getrusage_getrusage04(int argc, char **argv);
+struct tst_test *ltp_get_getsid_getsid01(void);
+struct tst_test *ltp_get_getsid_getsid02(void);
+struct tst_test *ltp_get_getsockname_getsockname01(void);
+struct tst_test *ltp_get_getsockopt_getsockopt01(void);
+struct tst_test *ltp_get_getsockopt_getsockopt02(void);
+struct tst_test *ltp_get_gettid_gettid01(void);
+struct tst_test *ltp_get_gettid_gettid02(void);
+struct tst_test *ltp_get_gettimeofday_gettimeofday01(void);
+struct tst_test *ltp_get_gettimeofday_gettimeofday02(void);
+struct tst_test *ltp_get_getxattr_getxattr01(void);
+struct tst_test *ltp_get_getxattr_getxattr02(void);
+struct tst_test *ltp_get_getxattr_getxattr03(void);
+struct tst_test *ltp_get_getxattr_getxattr04(void);
+struct tst_test *ltp_get_init_module_init_module01(void);
+struct tst_test *ltp_get_inotify_init_inotify_init1_01(void);
+struct tst_test *ltp_get_inotify_init_inotify_init1_02(void);
+struct tst_test *ltp_get_inotify_inotify05(void);
+struct tst_test *ltp_get_inotify_inotify06(void);
+struct tst_test *ltp_get_inotify_inotify07(void);
+struct tst_test *ltp_get_inotify_inotify08(void);
+struct tst_test *ltp_get_inotify_inotify09(void);
+struct tst_test *ltp_get_inotify_inotify12(void);
+struct tst_test *ltp_get_io_cancel_io_cancel02(void);
+struct tst_test *ltp_get_io_destroy_io_destroy01(void);
+struct tst_test *ltp_get_io_getevents_io_getevents02(void);
+struct tst_test *ltp_get_io_pgetevents_io_pgetevents01(void);
+struct tst_test *ltp_get_io_pgetevents_io_pgetevents02(void);
+struct tst_test *ltp_get_io_setup_io_setup01(void);
+struct tst_test *ltp_get_io_submit_io_submit01(void);
+struct tst_test *ltp_get_io_uring_io_uring01(void);
+struct tst_test *ltp_get_io_uring_io_uring02(void);
+struct tst_test *ltp_get_io_uring_io_uring03(void);
+struct tst_test *ltp_get_ioctl_ioctl01(void);
+struct tst_test *ltp_get_ioctl_ioctl04(void);
+struct tst_test *ltp_get_ioctl_ioctl05(void);
+struct tst_test *ltp_get_ioctl_ioctl06(void);
+struct tst_test *ltp_get_ioctl_ioctl08(void);
+struct tst_test *ltp_get_ioctl_ioctl_pidfd01(void);
+struct tst_test *ltp_get_ioctl_ioctl_sg01(void);
+struct tst_test *ltp_get_ioperm_ioperm01(void);
+struct tst_test *ltp_get_ioperm_ioperm02(void);
+struct tst_test *ltp_get_iopl_iopl01(void);
+struct tst_test *ltp_get_iopl_iopl02(void);
+struct tst_test *ltp_get_ioprio_ioprio_get01(void);
+struct tst_test *ltp_get_ioprio_ioprio_set01(void);
+struct tst_test *ltp_get_ioprio_ioprio_set02(void);
+struct tst_test *ltp_get_ioprio_ioprio_set03(void);
+struct tst_test *ltp_get_kcmp_kcmp01(void);
+struct tst_test *ltp_get_kcmp_kcmp02(void);
+int ltp_run_kill_kill02(int argc, char **argv);
+struct tst_test *ltp_get_kill_kill03(void);
+struct tst_test *ltp_get_kill_kill05(void);
+struct tst_test *ltp_get_kill_kill06(void);
+struct tst_test *ltp_get_kill_kill08(void);
+int ltp_run_kill_kill10(int argc, char **argv);
+struct tst_test *ltp_get_kill_kill11(void);
+int ltp_run_kill_kill12(int argc, char **argv);
+struct tst_test *ltp_get_kill_kill13(void);
+int ltp_run_landlock_landlock_exec(int argc, char **argv);
+struct tst_test *ltp_get_lchown_lchown01(void);
+struct tst_test *ltp_get_lgetxattr_lgetxattr01(void);
+struct tst_test *ltp_get_lgetxattr_lgetxattr02(void);
+struct tst_test *ltp_get_link_link02(void);
+struct tst_test *ltp_get_link_link04(void);
+struct tst_test *ltp_get_link_link05(void);
+struct tst_test *ltp_get_link_link08(void);
+int ltp_run_linkat_linkat01(int argc, char **argv);
+int ltp_run_linkat_linkat02(int argc, char **argv);
+int ltp_run_listen_listen01(int argc, char **argv);
+struct tst_test *ltp_get_listmount_listmount03(void);
+struct tst_test *ltp_get_listmount_listmount04(void);
+struct tst_test *ltp_get_listxattr_listxattr01(void);
+struct tst_test *ltp_get_listxattr_listxattr02(void);
+struct tst_test *ltp_get_listxattr_listxattr03(void);
+struct tst_test *ltp_get_listxattr_listxattr04(void);
+struct tst_test *ltp_get_llistxattr_llistxattr01(void);
+struct tst_test *ltp_get_llistxattr_llistxattr02(void);
+struct tst_test *ltp_get_llistxattr_llistxattr03(void);
+struct tst_test *ltp_get_llseek_llseek01(void);
+struct tst_test *ltp_get_llseek_llseek02(void);
+struct tst_test *ltp_get_llseek_llseek03(void);
+struct tst_test *ltp_get_lremovexattr_lremovexattr01(void);
+struct tst_test *ltp_get_lseek_lseek01(void);
+struct tst_test *ltp_get_lseek_lseek02(void);
+struct tst_test *ltp_get_lseek_lseek07(void);
+struct tst_test *ltp_get_lseek_lseek11(void);
+struct tst_test *ltp_get_lsm_lsm_get_self_attr01(void);
+struct tst_test *ltp_get_lsm_lsm_get_self_attr02(void);
+struct tst_test *ltp_get_lsm_lsm_get_self_attr03(void);
+struct tst_test *ltp_get_lsm_lsm_list_modules01(void);
+struct tst_test *ltp_get_lsm_lsm_list_modules02(void);
+struct tst_test *ltp_get_lsm_lsm_set_self_attr01(void);
+struct tst_test *ltp_get_lstat_lstat01(void);
+struct tst_test *ltp_get_lstat_lstat02(void);
+struct tst_test *ltp_get_lstat_lstat03(void);
+struct tst_test *ltp_get_madvise_madvise01(void);
+struct tst_test *ltp_get_madvise_madvise02(void);
+struct tst_test *ltp_get_madvise_madvise03(void);
+struct tst_test *ltp_get_madvise_madvise05(void);
+struct tst_test *ltp_get_madvise_madvise06(void);
+struct tst_test *ltp_get_madvise_madvise07(void);
+struct tst_test *ltp_get_madvise_madvise08(void);
+struct tst_test *ltp_get_madvise_madvise09(void);
+struct tst_test *ltp_get_madvise_madvise10(void);
+struct tst_test *ltp_get_madvise_madvise11(void);
+struct tst_test *ltp_get_madvise_madvise12(void);
+struct tst_test *ltp_get_mallinfo_mallinfo01(void);
+struct tst_test *ltp_get_mallinfo_mallinfo02(void);
+struct tst_test *ltp_get_mallopt_mallopt01(void);
+struct tst_test *ltp_get_membarrier_membarrier01(void);
+struct tst_test *ltp_get_memcmp_memcmp01(void);
+struct tst_test *ltp_get_memcpy_memcpy01(void);
+struct tst_test *ltp_get_memfd_create_memfd_create01(void);
+struct tst_test *ltp_get_memfd_create_memfd_create02(void);
+struct tst_test *ltp_get_memfd_create_memfd_create03(void);
+struct tst_test *ltp_get_memfd_create_memfd_create04(void);
+struct tst_test *ltp_get_memset_memset01(void);
+int ltp_run_mincore_mincore01(int argc, char **argv);
+struct tst_test *ltp_get_mincore_mincore02(void);
+struct tst_test *ltp_get_mincore_mincore03(void);
+struct tst_test *ltp_get_mincore_mincore04(void);
+struct tst_test *ltp_get_mkdir_mkdir02(void);
+struct tst_test *ltp_get_mkdir_mkdir03(void);
+struct tst_test *ltp_get_mkdir_mkdir04(void);
+struct tst_test *ltp_get_mkdir_mkdir05(void);
+struct tst_test *ltp_get_mkdir_mkdir09(void);
+int ltp_run_mkdirat_mkdirat01(int argc, char **argv);
+struct tst_test *ltp_get_mkdirat_mkdirat02(void);
+struct tst_test *ltp_get_mknod_mknod01(void);
+struct tst_test *ltp_get_mknod_mknod02(void);
+struct tst_test *ltp_get_mknod_mknod03(void);
+struct tst_test *ltp_get_mknod_mknod04(void);
+struct tst_test *ltp_get_mknod_mknod05(void);
+struct tst_test *ltp_get_mknod_mknod06(void);
+struct tst_test *ltp_get_mknod_mknod07(void);
+struct tst_test *ltp_get_mknod_mknod08(void);
+struct tst_test *ltp_get_mknod_mknod09(void);
+int ltp_run_mknodat_mknodat01(int argc, char **argv);
+int ltp_run_mknodat_mknodat02(int argc, char **argv);
+struct tst_test *ltp_get_mlock2_mlock202(void);
+struct tst_test *ltp_get_mlock_mlock01(void);
+struct tst_test *ltp_get_mlock_mlock02(void);
+struct tst_test *ltp_get_mlock_mlock03(void);
+struct tst_test *ltp_get_mlock_mlock04(void);
+struct tst_test *ltp_get_mlock_mlock05(void);
+int ltp_run_mlockall_mlockall01(int argc, char **argv);
+int ltp_run_mlockall_mlockall02(int argc, char **argv);
+int ltp_run_mlockall_mlockall03(int argc, char **argv);
+struct tst_test *ltp_get_mmap_mmap01(void);
+struct tst_test *ltp_get_mmap_mmap02(void);
+struct tst_test *ltp_get_mmap_mmap03(void);
+struct tst_test *ltp_get_mmap_mmap04(void);
+struct tst_test *ltp_get_mmap_mmap05(void);
+struct tst_test *ltp_get_mmap_mmap06(void);
+struct tst_test *ltp_get_mmap_mmap08(void);
+struct tst_test *ltp_get_mmap_mmap09(void);
+struct tst_test *ltp_get_mmap_mmap10(void);
+int ltp_run_mmap_mmap11(int argc, char **argv);
+struct tst_test *ltp_get_mmap_mmap12(void);
+struct tst_test *ltp_get_mmap_mmap13(void);
+struct tst_test *ltp_get_mmap_mmap14(void);
+struct tst_test *ltp_get_mmap_mmap15(void);
+struct tst_test *ltp_get_mmap_mmap16(void);
+struct tst_test *ltp_get_mmap_mmap17(void);
+struct tst_test *ltp_get_mmap_mmap18(void);
+struct tst_test *ltp_get_mmap_mmap19(void);
+struct tst_test *ltp_get_mmap_mmap20(void);
+struct tst_test *ltp_get_mmap_mmap21(void);
+struct tst_test *ltp_get_mmap_mmap22(void);
+struct tst_test *ltp_get_mmap_mmap23(void);
+struct tst_test *ltp_get_mmap_mmap24(void);
+struct tst_test *ltp_get_modify_ldt_modify_ldt01(void);
+struct tst_test *ltp_get_modify_ldt_modify_ldt02(void);
+struct tst_test *ltp_get_mount_mount01(void);
+struct tst_test *ltp_get_mount_mount02(void);
+struct tst_test *ltp_get_mount_mount03(void);
+int ltp_run_mount_mount03_suid_child(int argc, char **argv);
+struct tst_test *ltp_get_mount_mount04(void);
+struct tst_test *ltp_get_mount_mount05(void);
+struct tst_test *ltp_get_mount_mount06(void);
+struct tst_test *ltp_get_mount_mount07(void);
+struct tst_test *ltp_get_mount_mount08(void);
+struct tst_test *ltp_get_mount_setattr_mount_setattr01(void);
+struct tst_test *ltp_get_mount_setattr_mount_setattr02(void);
+struct tst_test *ltp_get_move_mount_move_mount01(void);
+struct tst_test *ltp_get_move_mount_move_mount02(void);
+int ltp_run_mprotect_mprotect01(int argc, char **argv);
+int ltp_run_mprotect_mprotect02(int argc, char **argv);
+int ltp_run_mprotect_mprotect03(int argc, char **argv);
+int ltp_run_mprotect_mprotect04(int argc, char **argv);
+struct tst_test *ltp_get_mprotect_mprotect05(void);
+struct tst_test *ltp_get_mq_notify_mq_notify02(void);
+struct tst_test *ltp_get_mq_notify_mq_notify03(void);
+struct tst_test *ltp_get_mq_open_mq_open01(void);
+struct tst_test *ltp_get_mq_unlink_mq_unlink01(void);
+struct tst_test *ltp_get_mremap_mremap01(void);
+struct tst_test *ltp_get_mremap_mremap02(void);
+struct tst_test *ltp_get_mremap_mremap03(void);
+struct tst_test *ltp_get_mremap_mremap04(void);
+struct tst_test *ltp_get_mremap_mremap05(void);
+struct tst_test *ltp_get_mremap_mremap06(void);
+struct tst_test *ltp_get_mremap_mremap08(void);
+struct tst_test *ltp_get_mremap_mremap09(void);
+struct tst_test *ltp_get_mseal_mseal01(void);
+struct tst_test *ltp_get_mseal_mseal02(void);
+struct tst_test *ltp_get_msgctl_msgctl01(void);
+struct tst_test *ltp_get_msgctl_msgctl02(void);
+struct tst_test *ltp_get_msgctl_msgctl03(void);
+struct tst_test *ltp_get_msgctl_msgctl04(void);
+struct tst_test *ltp_get_msgctl_msgctl05(void);
+struct tst_test *ltp_get_msgctl_msgctl06(void);
+struct tst_test *ltp_get_msgctl_msgctl12(void);
+struct tst_test *ltp_get_msgget_msgget01(void);
+struct tst_test *ltp_get_msgget_msgget02(void);
+struct tst_test *ltp_get_msgget_msgget03(void);
+struct tst_test *ltp_get_msgget_msgget04(void);
+struct tst_test *ltp_get_msgget_msgget05(void);
+struct tst_test *ltp_get_msgrcv_msgrcv01(void);
+struct tst_test *ltp_get_msgrcv_msgrcv02(void);
+struct tst_test *ltp_get_msgrcv_msgrcv03(void);
+struct tst_test *ltp_get_msgrcv_msgrcv05(void);
+struct tst_test *ltp_get_msgrcv_msgrcv06(void);
+struct tst_test *ltp_get_msgrcv_msgrcv07(void);
+struct tst_test *ltp_get_msgrcv_msgrcv08(void);
+struct tst_test *ltp_get_msgsnd_msgsnd01(void);
+struct tst_test *ltp_get_msgsnd_msgsnd02(void);
+struct tst_test *ltp_get_msgsnd_msgsnd05(void);
+struct tst_test *ltp_get_msgsnd_msgsnd06(void);
+int ltp_run_msync_msync01(int argc, char **argv);
+int ltp_run_msync_msync02(int argc, char **argv);
+int ltp_run_msync_msync03(int argc, char **argv);
+struct tst_test *ltp_get_msync_msync04(void);
+struct tst_test *ltp_get_munlock_munlock01(void);
+struct tst_test *ltp_get_munlock_munlock02(void);
+struct tst_test *ltp_get_munlockall_munlockall01(void);
+struct tst_test *ltp_get_munmap_munmap01(void);
+struct tst_test *ltp_get_munmap_munmap03(void);
+struct tst_test *ltp_get_munmap_munmap04(void);
+struct tst_test *ltp_get_name_to_handle_at_name_to_handle_at01(void);
+struct tst_test *ltp_get_name_to_handle_at_name_to_handle_at02(void);
+struct tst_test *ltp_get_name_to_handle_at_name_to_handle_at03(void);
+struct tst_test *ltp_get_nanosleep_nanosleep01(void);
+struct tst_test *ltp_get_nanosleep_nanosleep02(void);
+struct tst_test *ltp_get_nanosleep_nanosleep04(void);
+struct tst_test *ltp_get_newuname_newuname01(void);
+struct tst_test *ltp_get_nice_nice01(void);
+struct tst_test *ltp_get_nice_nice02(void);
+struct tst_test *ltp_get_nice_nice03(void);
+struct tst_test *ltp_get_nice_nice04(void);
+struct tst_test *ltp_get_nice_nice05(void);
+struct tst_test *ltp_get_open_by_handle_at_open_by_handle_at01(void);
+struct tst_test *ltp_get_open_open01(void);
+struct tst_test *ltp_get_open_open02(void);
+struct tst_test *ltp_get_open_open03(void);
+struct tst_test *ltp_get_open_open04(void);
+struct tst_test *ltp_get_open_open06(void);
+struct tst_test *ltp_get_open_open07(void);
+struct tst_test *ltp_get_open_open08(void);
+struct tst_test *ltp_get_open_open09(void);
+struct tst_test *ltp_get_open_open10(void);
+struct tst_test *ltp_get_open_open11(void);
+struct tst_test *ltp_get_open_open12(void);
+int ltp_run_open_open12_child(int argc, char **argv);
+struct tst_test *ltp_get_open_open14(void);
+struct tst_test *ltp_get_open_open15(void);
+struct tst_test *ltp_get_open_tree_open_tree01(void);
+struct tst_test *ltp_get_open_tree_open_tree02(void);
+struct tst_test *ltp_get_openat_openat01(void);
+struct tst_test *ltp_get_openat_openat02(void);
+int ltp_run_openat_openat02_child(int argc, char **argv);
+int ltp_run_openat_openat03(int argc, char **argv);
+struct tst_test *ltp_get_openat_openat04(void);
+struct tst_test *ltp_get_pathconf_pathconf01(void);
+struct tst_test *ltp_get_pathconf_pathconf02(void);
+struct tst_test *ltp_get_pause_pause01(void);
+struct tst_test *ltp_get_pause_pause02(void);
+struct tst_test *ltp_get_personality_personality01(void);
+struct tst_test *ltp_get_personality_personality02(void);
+struct tst_test *ltp_get_pidfd_getfd_pidfd_getfd01(void);
+struct tst_test *ltp_get_pidfd_getfd_pidfd_getfd02(void);
+struct tst_test *ltp_get_pidfd_open_pidfd_open01(void);
+struct tst_test *ltp_get_pidfd_open_pidfd_open02(void);
+struct tst_test *ltp_get_pidfd_open_pidfd_open03(void);
+struct tst_test *ltp_get_pidfd_open_pidfd_open04(void);
+struct tst_test *ltp_get_pidfd_send_signal_pidfd_send_signal01(void);
+struct tst_test *ltp_get_pidfd_send_signal_pidfd_send_signal02(void);
+struct tst_test *ltp_get_pidfd_send_signal_pidfd_send_signal03(void);
+struct tst_test *ltp_get_pipe2_pipe2_01(void);
+struct tst_test *ltp_get_pipe2_pipe2_02(void);
+int ltp_run_pipe2_pipe2_02_child(int argc, char **argv);
+struct tst_test *ltp_get_pipe2_pipe2_04(void);
+struct tst_test *ltp_get_pipe_pipe01(void);
+struct tst_test *ltp_get_pipe_pipe02(void);
+struct tst_test *ltp_get_pipe_pipe03(void);
+int ltp_run_pipe_pipe04(int argc, char **argv);
+int ltp_run_pipe_pipe05(int argc, char **argv);
+struct tst_test *ltp_get_pipe_pipe06(void);
+struct tst_test *ltp_get_pipe_pipe07(void);
+struct tst_test *ltp_get_pipe_pipe08(void);
+int ltp_run_pipe_pipe09(int argc, char **argv);
+struct tst_test *ltp_get_pipe_pipe10(void);
+struct tst_test *ltp_get_pipe_pipe11(void);
+struct tst_test *ltp_get_pipe_pipe12(void);
+struct tst_test *ltp_get_pipe_pipe13(void);
+struct tst_test *ltp_get_pipe_pipe14(void);
+struct tst_test *ltp_get_pipe_pipe15(void);
+struct tst_test *ltp_get_pivot_root_pivot_root01(void);
+struct tst_test *ltp_get_poll_poll01(void);
+struct tst_test *ltp_get_poll_poll02(void);
+struct tst_test *ltp_get_poll_poll03(void);
+struct tst_test *ltp_get_poll_poll04(void);
+struct tst_test *ltp_get_ppoll_ppoll01(void);
+struct tst_test *ltp_get_prctl_prctl01(void);
+struct tst_test *ltp_get_pread_pread01(void);
+struct tst_test *ltp_get_pread_pread02(void);
+struct tst_test *ltp_get_preadv2_preadv201(void);
+struct tst_test *ltp_get_preadv2_preadv202(void);
+struct tst_test *ltp_get_preadv2_preadv203(void);
+struct tst_test *ltp_get_preadv_preadv01(void);
+struct tst_test *ltp_get_preadv_preadv02(void);
+struct tst_test *ltp_get_preadv_preadv03(void);
+struct tst_test *ltp_get_process_madvise_process_madvise01(void);
+int ltp_run_profil_profil01(int argc, char **argv);
+struct tst_test *ltp_get_pselect_pselect01(void);
+struct tst_test *ltp_get_pselect_pselect02(void);
+struct tst_test *ltp_get_pselect_pselect03(void);
+struct tst_test *ltp_get_ptrace_ptrace01(void);
+struct tst_test *ltp_get_ptrace_ptrace02(void);
+struct tst_test *ltp_get_ptrace_ptrace03(void);
+int ltp_run_ptrace_ptrace04(int argc, char **argv);
+struct tst_test *ltp_get_ptrace_ptrace05(void);
+struct tst_test *ltp_get_ptrace_ptrace06(void);
+struct tst_test *ltp_get_ptrace_ptrace07(void);
+struct tst_test *ltp_get_ptrace_ptrace08(void);
+struct tst_test *ltp_get_ptrace_ptrace10(void);
+struct tst_test *ltp_get_ptrace_ptrace11(void);
+struct tst_test *ltp_get_pwrite_pwrite01(void);
+struct tst_test *ltp_get_pwrite_pwrite02(void);
+struct tst_test *ltp_get_pwrite_pwrite03(void);
+struct tst_test *ltp_get_pwrite_pwrite04(void);
+struct tst_test *ltp_get_pwritev2_pwritev201(void);
+struct tst_test *ltp_get_pwritev2_pwritev202(void);
+struct tst_test *ltp_get_pwritev_pwritev01(void);
+struct tst_test *ltp_get_pwritev_pwritev02(void);
+struct tst_test *ltp_get_pwritev_pwritev03(void);
+struct tst_test *ltp_get_quotactl_quotactl01(void);
+struct tst_test *ltp_get_quotactl_quotactl02(void);
+struct tst_test *ltp_get_quotactl_quotactl03(void);
+struct tst_test *ltp_get_quotactl_quotactl04(void);
+struct tst_test *ltp_get_quotactl_quotactl05(void);
+struct tst_test *ltp_get_quotactl_quotactl06(void);
+struct tst_test *ltp_get_quotactl_quotactl07(void);
+struct tst_test *ltp_get_quotactl_quotactl08(void);
+struct tst_test *ltp_get_quotactl_quotactl09(void);
+struct tst_test *ltp_get_read_read01(void);
+struct tst_test *ltp_get_read_read02(void);
+struct tst_test *ltp_get_read_read03(void);
+struct tst_test *ltp_get_read_read04(void);
+struct tst_test *ltp_get_readahead_readahead01(void);
+struct tst_test *ltp_get_readahead_readahead02(void);
+struct tst_test *ltp_get_readdir_readdir01(void);
+struct tst_test *ltp_get_readlink_readlink01(void);
+struct tst_test *ltp_get_readlink_readlink03(void);
+struct tst_test *ltp_get_readlinkat_readlinkat01(void);
+struct tst_test *ltp_get_readlinkat_readlinkat02(void);
+struct tst_test *ltp_get_readv_readv01(void);
+struct tst_test *ltp_get_readv_readv02(void);
+struct tst_test *ltp_get_realpath_realpath01(void);
+int ltp_run_recv_recv01(int argc, char **argv);
+int ltp_run_recvfrom_recvfrom01(int argc, char **argv);
+struct tst_test *ltp_get_recvmsg_recvmsg01(void);
+struct tst_test *ltp_get_recvmsg_recvmsg02(void);
+struct tst_test *ltp_get_recvmsg_recvmsg03(void);
+int ltp_run_removexattr_removexattr01(int argc, char **argv);
+int ltp_run_removexattr_removexattr02(int argc, char **argv);
+struct tst_test *ltp_get_rename_rename01(void);
+struct tst_test *ltp_get_rename_rename03(void);
+struct tst_test *ltp_get_rename_rename04(void);
+struct tst_test *ltp_get_rename_rename05(void);
+struct tst_test *ltp_get_rename_rename06(void);
+struct tst_test *ltp_get_rename_rename07(void);
+struct tst_test *ltp_get_rename_rename08(void);
+struct tst_test *ltp_get_rename_rename09(void);
+struct tst_test *ltp_get_rename_rename10(void);
+int ltp_run_rename_rename11(int argc, char **argv);
+struct tst_test *ltp_get_rename_rename12(void);
+struct tst_test *ltp_get_rename_rename13(void);
+int ltp_run_rename_rename14(int argc, char **argv);
+struct tst_test *ltp_get_rename_rename15(void);
+int ltp_run_renameat2_renameat201(int argc, char **argv);
+int ltp_run_renameat2_renameat202(int argc, char **argv);
+int ltp_run_renameat_renameat01(int argc, char **argv);
+struct tst_test *ltp_get_request_key_request_key05(void);
+struct tst_test *ltp_get_rmdir_rmdir01(void);
+struct tst_test *ltp_get_rmdir_rmdir02(void);
+struct tst_test *ltp_get_rmdir_rmdir03(void);
+int ltp_run_rt_sigaction_rt_sigaction01(int argc, char **argv);
+int ltp_run_rt_sigaction_rt_sigaction02(int argc, char **argv);
+int ltp_run_rt_sigaction_rt_sigaction03(int argc, char **argv);
+int ltp_run_rt_sigprocmask_rt_sigprocmask01(int argc, char **argv);
+int ltp_run_rt_sigprocmask_rt_sigprocmask02(int argc, char **argv);
+struct tst_test *ltp_get_rt_sigqueueinfo_rt_sigqueueinfo01(void);
+struct tst_test *ltp_get_rt_sigqueueinfo_rt_sigqueueinfo02(void);
+struct tst_test *ltp_get_rt_sigsuspend_rt_sigsuspend01(void);
+struct tst_test *ltp_get_rt_tgsigqueueinfo_rt_tgsigqueueinfo01(void);
+struct tst_test *ltp_get_sbrk_sbrk01(void);
+struct tst_test *ltp_get_sbrk_sbrk02(void);
+struct tst_test *ltp_get_sbrk_sbrk03(void);
+struct tst_test *ltp_get_sched_get_priority_max_sched_get_priority_max02(void);
+struct tst_test *ltp_get_sched_get_priority_min_sched_get_priority_min02(void);
+struct tst_test *ltp_get_sched_getaffinity_sched_getaffinity01(void);
+struct tst_test *ltp_get_sched_getparam_sched_getparam01(void);
+struct tst_test *ltp_get_sched_getparam_sched_getparam03(void);
+struct tst_test *ltp_get_sched_getscheduler_sched_getscheduler01(void);
+struct tst_test *ltp_get_sched_getscheduler_sched_getscheduler02(void);
+struct tst_test *ltp_get_sched_rr_get_interval_sched_rr_get_interval01(void);
+struct tst_test *ltp_get_sched_rr_get_interval_sched_rr_get_interval02(void);
+struct tst_test *ltp_get_sched_rr_get_interval_sched_rr_get_interval03(void);
+struct tst_test *ltp_get_sched_setaffinity_sched_setaffinity01(void);
+struct tst_test *ltp_get_sched_setparam_sched_setparam01(void);
+struct tst_test *ltp_get_sched_setparam_sched_setparam02(void);
+struct tst_test *ltp_get_sched_setparam_sched_setparam03(void);
+struct tst_test *ltp_get_sched_setparam_sched_setparam04(void);
+struct tst_test *ltp_get_sched_setparam_sched_setparam05(void);
+struct tst_test *ltp_get_sched_setscheduler_sched_setscheduler01(void);
+struct tst_test *ltp_get_sched_setscheduler_sched_setscheduler02(void);
+struct tst_test *ltp_get_sched_setscheduler_sched_setscheduler03(void);
+int ltp_run_sched_yield_sched_yield01(int argc, char **argv);
+struct tst_test *ltp_get_semctl_semctl01(void);
+struct tst_test *ltp_get_semctl_semctl02(void);
+struct tst_test *ltp_get_semctl_semctl03(void);
+struct tst_test *ltp_get_semctl_semctl04(void);
+struct tst_test *ltp_get_semctl_semctl05(void);
+int ltp_run_semctl_semctl06(int argc, char **argv);
+struct tst_test *ltp_get_semctl_semctl07(void);
+struct tst_test *ltp_get_semctl_semctl08(void);
+struct tst_test *ltp_get_semctl_semctl09(void);
+struct tst_test *ltp_get_semget_semget01(void);
+struct tst_test *ltp_get_semget_semget02(void);
+struct tst_test *ltp_get_semget_semget05(void);
+struct tst_test *ltp_get_semop_semop01(void);
+struct tst_test *ltp_get_semop_semop02(void);
+struct tst_test *ltp_get_semop_semop03(void);
+struct tst_test *ltp_get_semop_semop04(void);
+int ltp_run_semop_semop05(int argc, char **argv);
+int ltp_run_send_send01(int argc, char **argv);
+struct tst_test *ltp_get_send_send02(void);
+struct tst_test *ltp_get_sendfile_sendfile02(void);
+struct tst_test *ltp_get_sendfile_sendfile03(void);
+struct tst_test *ltp_get_sendfile_sendfile04(void);
+struct tst_test *ltp_get_sendfile_sendfile05(void);
+struct tst_test *ltp_get_sendfile_sendfile06(void);
+struct tst_test *ltp_get_sendfile_sendfile07(void);
+struct tst_test *ltp_get_sendfile_sendfile08(void);
+struct tst_test *ltp_get_sendfile_sendfile09(void);
+int ltp_run_sendmsg_sendmsg01(int argc, char **argv);
+int ltp_run_sendmsg_sendmsg02(int argc, char **argv);
+struct tst_test *ltp_get_sendmsg_sendmsg03(void);
+int ltp_run_sendto_sendto01(int argc, char **argv);
+struct tst_test *ltp_get_sendto_sendto02(void);
+struct tst_test *ltp_get_set_mempolicy_set_mempolicy05(void);
+int ltp_run_set_robust_list_set_robust_list01(int argc, char **argv);
+struct tst_test *ltp_get_set_tid_address_set_tid_address01(void);
+struct tst_test *ltp_get_setdomainname_setdomainname01(void);
+struct tst_test *ltp_get_setdomainname_setdomainname02(void);
+struct tst_test *ltp_get_setdomainname_setdomainname03(void);
+struct tst_test *ltp_get_setegid_setegid01(void);
+struct tst_test *ltp_get_setegid_setegid02(void);
+struct tst_test *ltp_get_setitimer_setitimer01(void);
+struct tst_test *ltp_get_setitimer_setitimer02(void);
+struct tst_test *ltp_get_setpgid_setpgid01(void);
+struct tst_test *ltp_get_setpgid_setpgid02(void);
+struct tst_test *ltp_get_setpgid_setpgid03(void);
+int ltp_run_setpgid_setpgid03_child(int argc, char **argv);
+int ltp_run_setpgrp_setpgrp01(int argc, char **argv);
+struct tst_test *ltp_get_setpgrp_setpgrp02(void);
+struct tst_test *ltp_get_setpriority_setpriority01(void);
+struct tst_test *ltp_get_setpriority_setpriority02(void);
+int ltp_run_setrlimit_setrlimit01(int argc, char **argv);
+struct tst_test *ltp_get_setrlimit_setrlimit02(void);
+struct tst_test *ltp_get_setrlimit_setrlimit04(void);
+struct tst_test *ltp_get_setrlimit_setrlimit05(void);
+int ltp_run_setsid_setsid01(int argc, char **argv);
+struct tst_test *ltp_get_setsockopt_setsockopt01(void);
+struct tst_test *ltp_get_setsockopt_setsockopt02(void);
+struct tst_test *ltp_get_setsockopt_setsockopt04(void);
+struct tst_test *ltp_get_setsockopt_setsockopt05(void);
+struct tst_test *ltp_get_setsockopt_setsockopt07(void);
+struct tst_test *ltp_get_setsockopt_setsockopt10(void);
+struct tst_test *ltp_get_settimeofday_settimeofday01(void);
+struct tst_test *ltp_get_settimeofday_settimeofday02(void);
+struct tst_test *ltp_get_setxattr_setxattr01(void);
+struct tst_test *ltp_get_setxattr_setxattr02(void);
+struct tst_test *ltp_get_shmat_shmat01(void);
+struct tst_test *ltp_get_shmat_shmat02(void);
+struct tst_test *ltp_get_shmat_shmat03(void);
+struct tst_test *ltp_get_shmat_shmat04(void);
+struct tst_test *ltp_get_shmctl_shmctl01(void);
+struct tst_test *ltp_get_shmctl_shmctl02(void);
+struct tst_test *ltp_get_shmctl_shmctl03(void);
+struct tst_test *ltp_get_shmctl_shmctl04(void);
+struct tst_test *ltp_get_shmctl_shmctl05(void);
+struct tst_test *ltp_get_shmctl_shmctl06(void);
+struct tst_test *ltp_get_shmctl_shmctl07(void);
+struct tst_test *ltp_get_shmctl_shmctl08(void);
+struct tst_test *ltp_get_shmdt_shmdt01(void);
+struct tst_test *ltp_get_shmdt_shmdt02(void);
+struct tst_test *ltp_get_shmget_shmget02(void);
+struct tst_test *ltp_get_shmget_shmget03(void);
+struct tst_test *ltp_get_shmget_shmget04(void);
+struct tst_test *ltp_get_shmget_shmget05(void);
+struct tst_test *ltp_get_shmget_shmget06(void);
+struct tst_test *ltp_get_shutdown_shutdown01(void);
+struct tst_test *ltp_get_shutdown_shutdown02(void);
+int ltp_run_sigaction_sigaction01(int argc, char **argv);
+int ltp_run_sigaction_sigaction02(int argc, char **argv);
+int ltp_run_sigaltstack_sigaltstack01(int argc, char **argv);
+struct tst_test *ltp_get_sigaltstack_sigaltstack02(void);
+struct tst_test *ltp_get_sighold_sighold02(void);
+struct tst_test *ltp_get_signal_signal01(void);
+struct tst_test *ltp_get_signal_signal02(void);
+struct tst_test *ltp_get_signal_signal03(void);
+struct tst_test *ltp_get_signal_signal04(void);
+struct tst_test *ltp_get_signal_signal05(void);
+int ltp_run_signal_signal06(int argc, char **argv);
+int ltp_run_signalfd4_signalfd4_01(int argc, char **argv);
+int ltp_run_signalfd4_signalfd4_02(int argc, char **argv);
+struct tst_test *ltp_get_signalfd_signalfd01(void);
+struct tst_test *ltp_get_signalfd_signalfd02(void);
+int ltp_run_sigprocmask_sigprocmask01(int argc, char **argv);
+int ltp_run_sigrelse_sigrelse01(int argc, char **argv);
+struct tst_test *ltp_get_sigsuspend_sigsuspend01(void);
+struct tst_test *ltp_get_sigsuspend_sigsuspend02(void);
+struct tst_test *ltp_get_socket_socket01(void);
+struct tst_test *ltp_get_socket_socket02(void);
+struct tst_test *ltp_get_socketpair_socketpair01(void);
+struct tst_test *ltp_get_socketpair_socketpair02(void);
+int ltp_run_sockioctl_sockioctl01(int argc, char **argv);
+struct tst_test *ltp_get_splice_splice07(void);
+struct tst_test *ltp_get_splice_splice08(void);
+struct tst_test *ltp_get_splice_splice09(void);
+struct tst_test *ltp_get_stat_stat01(void);
+struct tst_test *ltp_get_stat_stat02(void);
+struct tst_test *ltp_get_stat_stat03(void);
+struct tst_test *ltp_get_stat_stat04(void);
+struct tst_test *ltp_get_statfs_statfs01(void);
+struct tst_test *ltp_get_statfs_statfs02(void);
+struct tst_test *ltp_get_statfs_statfs03(void);
+struct tst_test *ltp_get_statmount_statmount07(void);
+struct tst_test *ltp_get_statmount_statmount08(void);
+struct tst_test *ltp_get_statvfs_statvfs01(void);
+struct tst_test *ltp_get_statvfs_statvfs02(void);
+struct tst_test *ltp_get_statx_statx01(void);
+struct tst_test *ltp_get_statx_statx02(void);
+struct tst_test *ltp_get_statx_statx03(void);
+struct tst_test *ltp_get_statx_statx06(void);
+struct tst_test *ltp_get_statx_statx07(void);
+struct tst_test *ltp_get_statx_statx10(void);
+struct tst_test *ltp_get_statx_statx11(void);
+struct tst_test *ltp_get_statx_statx12(void);
+int ltp_run_string_string01(int argc, char **argv);
+struct tst_test *ltp_get_swapoff_swapoff01(void);
+struct tst_test *ltp_get_swapoff_swapoff02(void);
+struct tst_test *ltp_get_swapon_swapon01(void);
+struct tst_test *ltp_get_swapon_swapon02(void);
+struct tst_test *ltp_get_swapon_swapon03(void);
+struct tst_test *ltp_get_swapon_swapon04(void);
+struct tst_test *ltp_get_switch_endian_switch01(void);
+struct tst_test *ltp_get_symlink_symlink02(void);
+int ltp_run_symlink_symlink03(int argc, char **argv);
+struct tst_test *ltp_get_symlink_symlink04(void);
+int ltp_run_symlinkat_symlinkat01(int argc, char **argv);
+struct tst_test *ltp_get_sync_sync01(void);
+struct tst_test *ltp_get_syncfs_syncfs01(void);
+struct tst_test *ltp_get_syscall_syscall01(void);
+struct tst_test *ltp_get_syscall_syscall02(void);
+int ltp_run_sysconf_sysconf01(int argc, char **argv);
+struct tst_test *ltp_get_sysinfo_sysinfo01(void);
+struct tst_test *ltp_get_sysinfo_sysinfo02(void);
+struct tst_test *ltp_get_syslog_syslog11(void);
+struct tst_test *ltp_get_syslog_syslog12(void);
+struct tst_test *ltp_get_tgkill_tgkill01(void);
+struct tst_test *ltp_get_tgkill_tgkill02(void);
+struct tst_test *ltp_get_tgkill_tgkill03(void);
+struct tst_test *ltp_get_time_time01(void);
+struct tst_test *ltp_get_timer_create_timer_create02(void);
+struct tst_test *ltp_get_timer_delete_timer_delete01(void);
+struct tst_test *ltp_get_timer_delete_timer_delete02(void);
+struct tst_test *ltp_get_timer_getoverrun_timer_getoverrun01(void);
+struct tst_test *ltp_get_timer_gettime_timer_gettime01(void);
+struct tst_test *ltp_get_timer_settime_timer_settime01(void);
+struct tst_test *ltp_get_timer_settime_timer_settime02(void);
+struct tst_test *ltp_get_timer_settime_timer_settime03(void);
+struct tst_test *ltp_get_timerfd_timerfd01(void);
+struct tst_test *ltp_get_timerfd_timerfd02(void);
+struct tst_test *ltp_get_timerfd_timerfd_create01(void);
+struct tst_test *ltp_get_timerfd_timerfd_gettime01(void);
+struct tst_test *ltp_get_timerfd_timerfd_settime01(void);
+struct tst_test *ltp_get_timerfd_timerfd_settime02(void);
+struct tst_test *ltp_get_times_times01(void);
+struct tst_test *ltp_get_times_times03(void);
+struct tst_test *ltp_get_tkill_tkill01(void);
+struct tst_test *ltp_get_tkill_tkill02(void);
+struct tst_test *ltp_get_truncate_truncate02(void);
+struct tst_test *ltp_get_truncate_truncate03(void);
+struct tst_test *ltp_get_ulimit_ulimit01(void);
+struct tst_test *ltp_get_umask_umask01(void);
+int ltp_run_umount2_umount2_01(int argc, char **argv);
+struct tst_test *ltp_get_umount2_umount2_02(void);
+struct tst_test *ltp_get_umount_umount01(void);
+struct tst_test *ltp_get_umount_umount02(void);
+struct tst_test *ltp_get_umount_umount03(void);
+struct tst_test *ltp_get_uname_uname01(void);
+struct tst_test *ltp_get_uname_uname02(void);
+struct tst_test *ltp_get_uname_uname04(void);
+struct tst_test *ltp_get_unlink_unlink05(void);
+struct tst_test *ltp_get_unlink_unlink07(void);
+struct tst_test *ltp_get_unlink_unlink08(void);
+struct tst_test *ltp_get_unlinkat_unlinkat01(void);
+struct tst_test *ltp_get_unshare_unshare01(void);
+struct tst_test *ltp_get_unshare_unshare02(void);
+struct tst_test *ltp_get_ustat_ustat01(void);
+struct tst_test *ltp_get_ustat_ustat02(void);
+struct tst_test *ltp_get_utime_utime01(void);
+struct tst_test *ltp_get_utime_utime02(void);
+struct tst_test *ltp_get_utime_utime03(void);
+struct tst_test *ltp_get_utime_utime04(void);
+struct tst_test *ltp_get_utime_utime05(void);
+struct tst_test *ltp_get_utime_utime06(void);
+struct tst_test *ltp_get_utime_utime07(void);
+struct tst_test *ltp_get_utimes_utimes01(void);
+struct tst_test *ltp_get_vfork_vfork01(void);
+struct tst_test *ltp_get_vfork_vfork02(void);
+struct tst_test *ltp_get_vhangup_vhangup01(void);
+struct tst_test *ltp_get_vhangup_vhangup02(void);
+struct tst_test *ltp_get_wait4_wait401(void);
+struct tst_test *ltp_get_wait4_wait402(void);
+struct tst_test *ltp_get_wait4_wait403(void);
+struct tst_test *ltp_get_wait_wait01(void);
+struct tst_test *ltp_get_wait_wait02(void);
+struct tst_test *ltp_get_waitid_waitid01(void);
+struct tst_test *ltp_get_waitid_waitid02(void);
+struct tst_test *ltp_get_waitid_waitid03(void);
+struct tst_test *ltp_get_waitid_waitid04(void);
+struct tst_test *ltp_get_waitid_waitid05(void);
+struct tst_test *ltp_get_waitid_waitid06(void);
+struct tst_test *ltp_get_waitid_waitid07(void);
+struct tst_test *ltp_get_waitid_waitid08(void);
+struct tst_test *ltp_get_waitid_waitid09(void);
+struct tst_test *ltp_get_waitid_waitid10(void);
+struct tst_test *ltp_get_waitid_waitid11(void);
+struct tst_test *ltp_get_waitpid_waitpid01(void);
+struct tst_test *ltp_get_waitpid_waitpid03(void);
+struct tst_test *ltp_get_waitpid_waitpid04(void);
+struct tst_test *ltp_get_waitpid_waitpid06(void);
+struct tst_test *ltp_get_waitpid_waitpid07(void);
+struct tst_test *ltp_get_waitpid_waitpid08(void);
+struct tst_test *ltp_get_waitpid_waitpid09(void);
+struct tst_test *ltp_get_waitpid_waitpid10(void);
+struct tst_test *ltp_get_waitpid_waitpid11(void);
+struct tst_test *ltp_get_waitpid_waitpid12(void);
+struct tst_test *ltp_get_waitpid_waitpid13(void);
+struct tst_test *ltp_get_write_write01(void);
+struct tst_test *ltp_get_write_write02(void);
+struct tst_test *ltp_get_write_write03(void);
+struct tst_test *ltp_get_write_write04(void);
+struct tst_test *ltp_get_write_write05(void);
+struct tst_test *ltp_get_write_write06(void);
+struct tst_test *ltp_get_writev_writev01(void);
+int ltp_run_writev_writev02(int argc, char **argv);
+struct tst_test *ltp_get_writev_writev03(void);
+int ltp_run_writev_writev05(int argc, char **argv);
+int ltp_run_writev_writev06(int argc, char **argv);
+struct tst_test *ltp_get_writev_writev07(void);
+
+const ltp_entry_t ltp_tests[] = {
+  {"abort_abort01", ltp_get_abort_abort01, 0},
+  {"accept_accept01", ltp_get_accept_accept01, 0},
+  {"accept_accept03", ltp_get_accept_accept03, 0},
+  {"access_access01", ltp_get_access_access01, 0},
+  {"access_access02", ltp_get_access_access02, 0},
+  {"access_access03", ltp_get_access_access03, 0},
+  {"access_access04", ltp_get_access_access04, 0},
+  {"acct_acct01", ltp_get_acct_acct01, 0},
+  {"acct_acct02", ltp_get_acct_acct02, 0},
+  {"acct_acct02_helper", 0, ltp_run_acct_acct02_helper},
+  {"adjtimex_adjtimex01", ltp_get_adjtimex_adjtimex01, 0},
+  {"adjtimex_adjtimex02", ltp_get_adjtimex_adjtimex02, 0},
+  {"adjtimex_adjtimex03", ltp_get_adjtimex_adjtimex03, 0},
+  {"alarm_alarm02", ltp_get_alarm_alarm02, 0},
+  {"alarm_alarm03", ltp_get_alarm_alarm03, 0},
+  {"alarm_alarm05", ltp_get_alarm_alarm05, 0},
+  {"alarm_alarm06", ltp_get_alarm_alarm06, 0},
+  {"alarm_alarm07", ltp_get_alarm_alarm07, 0},
+  {"bind_bind01", ltp_get_bind_bind01, 0},
+  {"bind_bind02", ltp_get_bind_bind02, 0},
+  {"bind_bind03", ltp_get_bind_bind03, 0},
+  {"bind_bind04", ltp_get_bind_bind04, 0},
+  {"bind_bind05", ltp_get_bind_bind05, 0},
+  {"bpf_bpf_map01", ltp_get_bpf_bpf_map01, 0},
+  {"bpf_bpf_prog01", ltp_get_bpf_bpf_prog01, 0},
+  {"bpf_bpf_prog02", ltp_get_bpf_bpf_prog02, 0},
+  {"bpf_bpf_prog03", ltp_get_bpf_bpf_prog03, 0},
+  {"bpf_bpf_prog04", ltp_get_bpf_bpf_prog04, 0},
+  {"bpf_bpf_prog05", ltp_get_bpf_bpf_prog05, 0},
+  {"bpf_bpf_prog06", ltp_get_bpf_bpf_prog06, 0},
+  {"bpf_bpf_prog07", ltp_get_bpf_bpf_prog07, 0},
+  {"brk_brk01", ltp_get_brk_brk01, 0},
+  {"brk_brk02", ltp_get_brk_brk02, 0},
+  {"cachestat_cachestat01", ltp_get_cachestat_cachestat01, 0},
+  {"cachestat_cachestat02", ltp_get_cachestat_cachestat02, 0},
+  {"cachestat_cachestat03", ltp_get_cachestat_cachestat03, 0},
+  {"cachestat_cachestat04", ltp_get_cachestat_cachestat04, 0},
+  {"chdir_chdir01", ltp_get_chdir_chdir01, 0},
+  {"chdir_chdir02", ltp_get_chdir_chdir02, 0},
+  {"chdir_chdir04", ltp_get_chdir_chdir04, 0},
+  {"chmod_chmod01", ltp_get_chmod_chmod01, 0},
+  {"chmod_chmod03", ltp_get_chmod_chmod03, 0},
+  {"chmod_chmod05", ltp_get_chmod_chmod05, 0},
+  {"chmod_chmod06", ltp_get_chmod_chmod06, 0},
+  {"chmod_chmod07", ltp_get_chmod_chmod07, 0},
+  {"chmod_chmod08", ltp_get_chmod_chmod08, 0},
+  {"chmod_chmod09", ltp_get_chmod_chmod09, 0},
+  {"chroot_chroot01", ltp_get_chroot_chroot01, 0},
+  {"chroot_chroot02", ltp_get_chroot_chroot02, 0},
+  {"chroot_chroot03", ltp_get_chroot_chroot03, 0},
+  {"chroot_chroot04", ltp_get_chroot_chroot04, 0},
+  {"clock_getres_clock_getres01", ltp_get_clock_getres_clock_getres01, 0},
+  {"clock_gettime_clock_gettime01", ltp_get_clock_gettime_clock_gettime01, 0},
+  {"clock_gettime_clock_gettime02", ltp_get_clock_gettime_clock_gettime02, 0},
+  {"clock_gettime_clock_gettime04", ltp_get_clock_gettime_clock_gettime04, 0},
+  {"clock_gettime_leapsec01", ltp_get_clock_gettime_leapsec01, 0},
+  {"clock_nanosleep_clock_nanosleep01", ltp_get_clock_nanosleep_clock_nanosleep01, 0},
+  {"clock_nanosleep_clock_nanosleep02", ltp_get_clock_nanosleep_clock_nanosleep02, 0},
+  {"clock_nanosleep_clock_nanosleep04", ltp_get_clock_nanosleep_clock_nanosleep04, 0},
+  {"clock_settime_clock_settime01", ltp_get_clock_settime_clock_settime01, 0},
+  {"clock_settime_clock_settime02", ltp_get_clock_settime_clock_settime02, 0},
+  {"clock_settime_clock_settime03", ltp_get_clock_settime_clock_settime03, 0},
+  {"clock_settime_clock_settime04", ltp_get_clock_settime_clock_settime04, 0},
+  {"clone_clone01", ltp_get_clone_clone01, 0},
+  {"clone_clone02", 0, ltp_run_clone_clone02},
+  {"clone_clone03", ltp_get_clone_clone03, 0},
+  {"clone_clone04", ltp_get_clone_clone04, 0},
+  {"clone_clone05", ltp_get_clone_clone05, 0},
+  {"clone_clone06", ltp_get_clone_clone06, 0},
+  {"clone_clone07", ltp_get_clone_clone07, 0},
+  {"clone_clone10", ltp_get_clone_clone10, 0},
+  {"close_close01", ltp_get_close_close01, 0},
+  {"close_close02", ltp_get_close_close02, 0},
+  {"cma_process_vm01", ltp_get_cma_process_vm01, 0},
+  {"cma_process_vm_readv02", ltp_get_cma_process_vm_readv02, 0},
+  {"cma_process_vm_readv03", ltp_get_cma_process_vm_readv03, 0},
+  {"cma_process_vm_writev02", ltp_get_cma_process_vm_writev02, 0},
+  {"confstr_confstr01", ltp_get_confstr_confstr01, 0},
+  {"connect_connect01", ltp_get_connect_connect01, 0},
+  {"connect_connect02", ltp_get_connect_connect02, 0},
+  {"connect_connect03", ltp_get_connect_connect03, 0},
+  {"creat_creat01", ltp_get_creat_creat01, 0},
+  {"creat_creat03", ltp_get_creat_creat03, 0},
+  {"creat_creat04", ltp_get_creat_creat04, 0},
+  {"creat_creat05", ltp_get_creat_creat05, 0},
+  {"creat_creat06", ltp_get_creat_creat06, 0},
+  {"creat_creat07", ltp_get_creat_creat07, 0},
+  {"creat_creat07_child", 0, ltp_run_creat_creat07_child},
+  {"creat_creat08", ltp_get_creat_creat08, 0},
+  {"creat_creat09", ltp_get_creat_creat09, 0},
+  {"delete_module_delete_module01", ltp_get_delete_module_delete_module01, 0},
+  {"delete_module_delete_module02", ltp_get_delete_module_delete_module02, 0},
+  {"delete_module_delete_module03", ltp_get_delete_module_delete_module03, 0},
+  {"dup2_dup201", ltp_get_dup2_dup201, 0},
+  {"dup2_dup202", ltp_get_dup2_dup202, 0},
+  {"dup2_dup203", ltp_get_dup2_dup203, 0},
+  {"dup2_dup204", ltp_get_dup2_dup204, 0},
+  {"dup2_dup205", ltp_get_dup2_dup205, 0},
+  {"dup2_dup206", ltp_get_dup2_dup206, 0},
+  {"dup2_dup207", ltp_get_dup2_dup207, 0},
+  {"dup3_dup3_01", ltp_get_dup3_dup3_01, 0},
+  {"dup3_dup3_02", ltp_get_dup3_dup3_02, 0},
+  {"dup_dup01", ltp_get_dup_dup01, 0},
+  {"dup_dup02", ltp_get_dup_dup02, 0},
+  {"dup_dup03", ltp_get_dup_dup03, 0},
+  {"dup_dup04", ltp_get_dup_dup04, 0},
+  {"dup_dup05", ltp_get_dup_dup05, 0},
+  {"dup_dup06", ltp_get_dup_dup06, 0},
+  {"dup_dup07", ltp_get_dup_dup07, 0},
+  {"epoll_create1_epoll_create1_01", ltp_get_epoll_create1_epoll_create1_01, 0},
+  {"epoll_create1_epoll_create1_02", ltp_get_epoll_create1_epoll_create1_02, 0},
+  {"epoll_ctl_epoll_ctl01", ltp_get_epoll_ctl_epoll_ctl01, 0},
+  {"epoll_ctl_epoll_ctl02", ltp_get_epoll_ctl_epoll_ctl02, 0},
+  {"epoll_ctl_epoll_ctl03", ltp_get_epoll_ctl_epoll_ctl03, 0},
+  {"epoll_ctl_epoll_ctl04", ltp_get_epoll_ctl_epoll_ctl04, 0},
+  {"epoll_ctl_epoll_ctl05", ltp_get_epoll_ctl_epoll_ctl05, 0},
+  {"epoll_ctl_epoll_ctl06", ltp_get_epoll_ctl_epoll_ctl06, 0},
+  {"epoll_ctl_epoll_ctl07", ltp_get_epoll_ctl_epoll_ctl07, 0},
+  {"epoll_pwait_epoll_pwait01", ltp_get_epoll_pwait_epoll_pwait01, 0},
+  {"epoll_pwait_epoll_pwait02", ltp_get_epoll_pwait_epoll_pwait02, 0},
+  {"epoll_pwait_epoll_pwait03", ltp_get_epoll_pwait_epoll_pwait03, 0},
+  {"epoll_pwait_epoll_pwait04", ltp_get_epoll_pwait_epoll_pwait04, 0},
+  {"epoll_pwait_epoll_pwait05", ltp_get_epoll_pwait_epoll_pwait05, 0},
+  {"epoll_pwait_epoll_pwait06", ltp_get_epoll_pwait_epoll_pwait06, 0},
+  {"epoll_wait_epoll_wait01", ltp_get_epoll_wait_epoll_wait01, 0},
+  {"epoll_wait_epoll_wait02", ltp_get_epoll_wait_epoll_wait02, 0},
+  {"epoll_wait_epoll_wait03", ltp_get_epoll_wait_epoll_wait03, 0},
+  {"epoll_wait_epoll_wait04", ltp_get_epoll_wait_epoll_wait04, 0},
+  {"epoll_wait_epoll_wait05", ltp_get_epoll_wait_epoll_wait05, 0},
+  {"epoll_wait_epoll_wait06", ltp_get_epoll_wait_epoll_wait06, 0},
+  {"epoll_wait_epoll_wait07", ltp_get_epoll_wait_epoll_wait07, 0},
+  {"epoll_wait_epoll_wait08", ltp_get_epoll_wait_epoll_wait08, 0},
+  {"epoll_wait_epoll_wait09", ltp_get_epoll_wait_epoll_wait09, 0},
+  {"epoll_wait_epoll_wait10", ltp_get_epoll_wait_epoll_wait10, 0},
+  {"epoll_wait_epoll_wait11", ltp_get_epoll_wait_epoll_wait11, 0},
+  {"epoll_wait_epoll_wait12", ltp_get_epoll_wait_epoll_wait12, 0},
+  {"epoll_wait_epoll_wait13", ltp_get_epoll_wait_epoll_wait13, 0},
+  {"epoll_wait_epoll_wait14", ltp_get_epoll_wait_epoll_wait14, 0},
+  {"epoll_wait_epoll_wait15", ltp_get_epoll_wait_epoll_wait15, 0},
+  {"epoll_wait_epoll_wait16", ltp_get_epoll_wait_epoll_wait16, 0},
+  {"eventfd2_eventfd2_01", ltp_get_eventfd2_eventfd2_01, 0},
+  {"eventfd2_eventfd2_02", ltp_get_eventfd2_eventfd2_02, 0},
+  {"eventfd2_eventfd2_03", ltp_get_eventfd2_eventfd2_03, 0},
+  {"eventfd_eventfd01", ltp_get_eventfd_eventfd01, 0},
+  {"eventfd_eventfd02", ltp_get_eventfd_eventfd02, 0},
+  {"eventfd_eventfd03", ltp_get_eventfd_eventfd03, 0},
+  {"eventfd_eventfd04", ltp_get_eventfd_eventfd04, 0},
+  {"eventfd_eventfd05", ltp_get_eventfd_eventfd05, 0},
+  {"eventfd_eventfd06", ltp_get_eventfd_eventfd06, 0},
+  {"execl_execl01", ltp_get_execl_execl01, 0},
+  {"execl_execl01_child", 0, ltp_run_execl_execl01_child},
+  {"execle_execle01", ltp_get_execle_execle01, 0},
+  {"execle_execle01_child", 0, ltp_run_execle_execle01_child},
+  {"execlp_execlp01", ltp_get_execlp_execlp01, 0},
+  {"execlp_execlp01_child", 0, ltp_run_execlp_execlp01_child},
+  {"execv_execv01", ltp_get_execv_execv01, 0},
+  {"execv_execv01_child", 0, ltp_run_execv_execv01_child},
+  {"execve_execve01", ltp_get_execve_execve01, 0},
+  {"execve_execve01_child", 0, ltp_run_execve_execve01_child},
+  {"execve_execve03", ltp_get_execve_execve03, 0},
+  {"execve_execve06", ltp_get_execve_execve06, 0},
+  {"execve_execve06_child", 0, ltp_run_execve_execve06_child},
+  {"execve_execve_child", 0, ltp_run_execve_execve_child},
+  {"execveat_execveat_child", 0, ltp_run_execveat_execveat_child},
+  {"execveat_execveat_errno", 0, ltp_run_execveat_execveat_errno},
+  {"execvp_execvp01", ltp_get_execvp_execvp01, 0},
+  {"execvp_execvp01_child", 0, ltp_run_execvp_execvp01_child},
+  {"exit_exit01", 0, ltp_run_exit_exit01},
+  {"exit_exit02", ltp_get_exit_exit02, 0},
+  {"exit_group_exit_group01", ltp_get_exit_group_exit_group01, 0},
+  {"faccessat2_faccessat201", ltp_get_faccessat2_faccessat201, 0},
+  {"faccessat2_faccessat202", ltp_get_faccessat2_faccessat202, 0},
+  {"faccessat_faccessat01", ltp_get_faccessat_faccessat01, 0},
+  {"faccessat_faccessat02", ltp_get_faccessat_faccessat02, 0},
+  {"fadvise_posix_fadvise01", ltp_get_fadvise_posix_fadvise01, 0},
+  {"fadvise_posix_fadvise02", ltp_get_fadvise_posix_fadvise02, 0},
+  {"fadvise_posix_fadvise03", ltp_get_fadvise_posix_fadvise03, 0},
+  {"fadvise_posix_fadvise04", ltp_get_fadvise_posix_fadvise04, 0},
+  {"fallocate_fallocate01", ltp_get_fallocate_fallocate01, 0},
+  {"fallocate_fallocate02", ltp_get_fallocate_fallocate02, 0},
+  {"fallocate_fallocate03", ltp_get_fallocate_fallocate03, 0},
+  {"fallocate_fallocate04", ltp_get_fallocate_fallocate04, 0},
+  {"fallocate_fallocate05", ltp_get_fallocate_fallocate05, 0},
+  {"fanotify_fanotify01", ltp_get_fanotify_fanotify01, 0},
+  {"fanotify_fanotify02", ltp_get_fanotify_fanotify02, 0},
+  {"fanotify_fanotify04", ltp_get_fanotify_fanotify04, 0},
+  {"fanotify_fanotify05", ltp_get_fanotify_fanotify05, 0},
+  {"fanotify_fanotify06", ltp_get_fanotify_fanotify06, 0},
+  {"fanotify_fanotify07", ltp_get_fanotify_fanotify07, 0},
+  {"fanotify_fanotify08", ltp_get_fanotify_fanotify08, 0},
+  {"fanotify_fanotify09", ltp_get_fanotify_fanotify09, 0},
+  {"fanotify_fanotify10", ltp_get_fanotify_fanotify10, 0},
+  {"fanotify_fanotify11", ltp_get_fanotify_fanotify11, 0},
+  {"fanotify_fanotify12", ltp_get_fanotify_fanotify12, 0},
+  {"fanotify_fanotify14", ltp_get_fanotify_fanotify14, 0},
+  {"fanotify_fanotify18", ltp_get_fanotify_fanotify18, 0},
+  {"fanotify_fanotify19", ltp_get_fanotify_fanotify19, 0},
+  {"fanotify_fanotify20", ltp_get_fanotify_fanotify20, 0},
+  {"fanotify_fanotify21", ltp_get_fanotify_fanotify21, 0},
+  {"fanotify_fanotify23", ltp_get_fanotify_fanotify23, 0},
+  {"fanotify_fanotify25", ltp_get_fanotify_fanotify25, 0},
+  {"fanotify_fanotify_child", 0, ltp_run_fanotify_fanotify_child},
+  {"fchdir_fchdir01", ltp_get_fchdir_fchdir01, 0},
+  {"fchdir_fchdir02", ltp_get_fchdir_fchdir02, 0},
+  {"fchdir_fchdir03", ltp_get_fchdir_fchdir03, 0},
+  {"fchmod_fchmod01", ltp_get_fchmod_fchmod01, 0},
+  {"fchmod_fchmod02", ltp_get_fchmod_fchmod02, 0},
+  {"fchmod_fchmod03", ltp_get_fchmod_fchmod03, 0},
+  {"fchmod_fchmod04", ltp_get_fchmod_fchmod04, 0},
+  {"fchmod_fchmod05", ltp_get_fchmod_fchmod05, 0},
+  {"fchmod_fchmod06", ltp_get_fchmod_fchmod06, 0},
+  {"fchmodat2_fchmodat2_01", ltp_get_fchmodat2_fchmodat2_01, 0},
+  {"fchmodat2_fchmodat2_02", ltp_get_fchmodat2_fchmodat2_02, 0},
+  {"fchmodat_fchmodat01", ltp_get_fchmodat_fchmodat01, 0},
+  {"fchmodat_fchmodat02", ltp_get_fchmodat_fchmodat02, 0},
+  {"fchownat_fchownat01", ltp_get_fchownat_fchownat01, 0},
+  {"fchownat_fchownat02", ltp_get_fchownat_fchownat02, 0},
+  {"fchownat_fchownat03", ltp_get_fchownat_fchownat03, 0},
+  {"fcntl_fcntl01", 0, ltp_run_fcntl_fcntl01},
+  {"fcntl_fcntl02", ltp_get_fcntl_fcntl02, 0},
+  {"fcntl_fcntl03", ltp_get_fcntl_fcntl03, 0},
+  {"fcntl_fcntl04", ltp_get_fcntl_fcntl04, 0},
+  {"fcntl_fcntl05", ltp_get_fcntl_fcntl05, 0},
+  {"fcntl_fcntl07", 0, ltp_run_fcntl_fcntl07},
+  {"fcntl_fcntl08", ltp_get_fcntl_fcntl08, 0},
+  {"fcntl_fcntl09", 0, ltp_run_fcntl_fcntl09},
+  {"fcntl_fcntl10", 0, ltp_run_fcntl_fcntl10},
+  {"fcntl_fcntl11", 0, ltp_run_fcntl_fcntl11},
+  {"fcntl_fcntl12", ltp_get_fcntl_fcntl12, 0},
+  {"fcntl_fcntl13", ltp_get_fcntl_fcntl13, 0},
+  {"fcntl_fcntl14", ltp_get_fcntl_fcntl14, 0},
+  {"fcntl_fcntl15", ltp_get_fcntl_fcntl15, 0},
+  {"fcntl_fcntl16", 0, ltp_run_fcntl_fcntl16},
+  {"fcntl_fcntl17", 0, ltp_run_fcntl_fcntl17},
+  {"fcntl_fcntl18", 0, ltp_run_fcntl_fcntl18},
+  {"fcntl_fcntl19", 0, ltp_run_fcntl_fcntl19},
+  {"fcntl_fcntl20", 0, ltp_run_fcntl_fcntl20},
+  {"fcntl_fcntl21", 0, ltp_run_fcntl_fcntl21},
+  {"fcntl_fcntl22", 0, ltp_run_fcntl_fcntl22},
+  {"fcntl_fcntl23", 0, ltp_run_fcntl_fcntl23},
+  {"fcntl_fcntl24", 0, ltp_run_fcntl_fcntl24},
+  {"fcntl_fcntl25", 0, ltp_run_fcntl_fcntl25},
+  {"fcntl_fcntl26", 0, ltp_run_fcntl_fcntl26},
+  {"fcntl_fcntl27", ltp_get_fcntl_fcntl27, 0},
+  {"fcntl_fcntl29", ltp_get_fcntl_fcntl29, 0},
+  {"fcntl_fcntl30", ltp_get_fcntl_fcntl30, 0},
+  {"fcntl_fcntl32", 0, ltp_run_fcntl_fcntl32},
+  {"fcntl_fcntl33", ltp_get_fcntl_fcntl33, 0},
+  {"fcntl_fcntl34", ltp_get_fcntl_fcntl34, 0},
+  {"fcntl_fcntl35", ltp_get_fcntl_fcntl35, 0},
+  {"fcntl_fcntl36", ltp_get_fcntl_fcntl36, 0},
+  {"fcntl_fcntl37", ltp_get_fcntl_fcntl37, 0},
+  {"fcntl_fcntl38", ltp_get_fcntl_fcntl38, 0},
+  {"fcntl_fcntl39", ltp_get_fcntl_fcntl39, 0},
+  {"fcntl_fcntl40", ltp_get_fcntl_fcntl40, 0},
+  {"fdatasync_fdatasync01", 0, ltp_run_fdatasync_fdatasync01},
+  {"fdatasync_fdatasync02", 0, ltp_run_fdatasync_fdatasync02},
+  {"fdatasync_fdatasync03", ltp_get_fdatasync_fdatasync03, 0},
+  {"fgetxattr_fgetxattr01", ltp_get_fgetxattr_fgetxattr01, 0},
+  {"fgetxattr_fgetxattr02", ltp_get_fgetxattr_fgetxattr02, 0},
+  {"fgetxattr_fgetxattr03", ltp_get_fgetxattr_fgetxattr03, 0},
+  {"finit_module_finit_module01", ltp_get_finit_module_finit_module01, 0},
+  {"flistxattr_flistxattr01", ltp_get_flistxattr_flistxattr01, 0},
+  {"flistxattr_flistxattr02", ltp_get_flistxattr_flistxattr02, 0},
+  {"flistxattr_flistxattr03", ltp_get_flistxattr_flistxattr03, 0},
+  {"flock_flock01", ltp_get_flock_flock01, 0},
+  {"flock_flock02", ltp_get_flock_flock02, 0},
+  {"flock_flock03", ltp_get_flock_flock03, 0},
+  {"flock_flock04", ltp_get_flock_flock04, 0},
+  {"flock_flock06", ltp_get_flock_flock06, 0},
+  {"flock_flock07", ltp_get_flock_flock07, 0},
+  {"fmtmsg_fmtmsg01", 0, ltp_run_fmtmsg_fmtmsg01},
+  {"fork_fork01", ltp_get_fork_fork01, 0},
+  {"fork_fork03", ltp_get_fork_fork03, 0},
+  {"fork_fork04", ltp_get_fork_fork04, 0},
+  {"fork_fork05", ltp_get_fork_fork05, 0},
+  {"fork_fork07", ltp_get_fork_fork07, 0},
+  {"fork_fork08", ltp_get_fork_fork08, 0},
+  {"fork_fork09", ltp_get_fork_fork09, 0},
+  {"fork_fork10", ltp_get_fork_fork10, 0},
+  {"fork_fork13", ltp_get_fork_fork13, 0},
+  {"fork_fork14", ltp_get_fork_fork14, 0},
+  {"fork_fork_procs", ltp_get_fork_fork_procs, 0},
+  {"fpathconf_fpathconf01", ltp_get_fpathconf_fpathconf01, 0},
+  {"fremovexattr_fremovexattr01", ltp_get_fremovexattr_fremovexattr01, 0},
+  {"fremovexattr_fremovexattr02", ltp_get_fremovexattr_fremovexattr02, 0},
+  {"fsconfig_fsconfig01", ltp_get_fsconfig_fsconfig01, 0},
+  {"fsconfig_fsconfig02", ltp_get_fsconfig_fsconfig02, 0},
+  {"fsconfig_fsconfig03", ltp_get_fsconfig_fsconfig03, 0},
+  {"fsetxattr_fsetxattr01", ltp_get_fsetxattr_fsetxattr01, 0},
+  {"fsetxattr_fsetxattr02", ltp_get_fsetxattr_fsetxattr02, 0},
+  {"fsmount_fsmount01", ltp_get_fsmount_fsmount01, 0},
+  {"fsmount_fsmount02", ltp_get_fsmount_fsmount02, 0},
+  {"fsopen_fsopen01", ltp_get_fsopen_fsopen01, 0},
+  {"fsopen_fsopen02", ltp_get_fsopen_fsopen02, 0},
+  {"fspick_fspick01", ltp_get_fspick_fspick01, 0},
+  {"fspick_fspick02", ltp_get_fspick_fspick02, 0},
+  {"fstat_fstat02", ltp_get_fstat_fstat02, 0},
+  {"fstat_fstat03", ltp_get_fstat_fstat03, 0},
+  {"fstatat_fstatat01", 0, ltp_run_fstatat_fstatat01},
+  {"fstatfs_fstatfs01", ltp_get_fstatfs_fstatfs01, 0},
+  {"fstatfs_fstatfs02", ltp_get_fstatfs_fstatfs02, 0},
+  {"fsync_fsync01", ltp_get_fsync_fsync01, 0},
+  {"fsync_fsync02", ltp_get_fsync_fsync02, 0},
+  {"fsync_fsync03", ltp_get_fsync_fsync03, 0},
+  {"fsync_fsync04", ltp_get_fsync_fsync04, 0},
+  {"ftruncate_ftruncate01", ltp_get_ftruncate_ftruncate01, 0},
+  {"ftruncate_ftruncate03", ltp_get_ftruncate_ftruncate03, 0},
+  {"ftruncate_ftruncate04", ltp_get_ftruncate_ftruncate04, 0},
+  {"futex_futex_cmp_requeue01", ltp_get_futex_futex_cmp_requeue01, 0},
+  {"futex_futex_cmp_requeue02", ltp_get_futex_futex_cmp_requeue02, 0},
+  {"futex_futex_cmp_requeue03", ltp_get_futex_futex_cmp_requeue03, 0},
+  {"futex_futex_wait01", ltp_get_futex_futex_wait01, 0},
+  {"futex_futex_wait02", ltp_get_futex_futex_wait02, 0},
+  {"futex_futex_wait03", ltp_get_futex_futex_wait03, 0},
+  {"futex_futex_wait04", ltp_get_futex_futex_wait04, 0},
+  {"futex_futex_wait06", ltp_get_futex_futex_wait06, 0},
+  {"futex_futex_wait07", ltp_get_futex_futex_wait07, 0},
+  {"futex_futex_wait_bitset01", ltp_get_futex_futex_wait_bitset01, 0},
+  {"futex_futex_waitv01", ltp_get_futex_futex_waitv01, 0},
+  {"futex_futex_waitv02", ltp_get_futex_futex_waitv02, 0},
+  {"futex_futex_waitv03", ltp_get_futex_futex_waitv03, 0},
+  {"futex_futex_wake01", ltp_get_futex_futex_wake01, 0},
+  {"futex_futex_wake02", ltp_get_futex_futex_wake02, 0},
+  {"futex_futex_wake03", ltp_get_futex_futex_wake03, 0},
+  {"futex_futex_wake04", ltp_get_futex_futex_wake04, 0},
+  {"futex_futex_wake05", ltp_get_futex_futex_wake05, 0},
+  {"get_robust_list_get_robust_list01", 0, ltp_run_get_robust_list_get_robust_list01},
+  {"getcontext_getcontext01", ltp_get_getcontext_getcontext01, 0},
+  {"getcwd_getcwd01", ltp_get_getcwd_getcwd01, 0},
+  {"getcwd_getcwd02", ltp_get_getcwd_getcwd02, 0},
+  {"getcwd_getcwd03", ltp_get_getcwd_getcwd03, 0},
+  {"getcwd_getcwd04", ltp_get_getcwd_getcwd04, 0},
+  {"gethostbyname_r_gethostbyname_r01", ltp_get_gethostbyname_r_gethostbyname_r01, 0},
+  {"gethostid_gethostid01", ltp_get_gethostid_gethostid01, 0},
+  {"gethostname_gethostname01", ltp_get_gethostname_gethostname01, 0},
+  {"gethostname_gethostname02", ltp_get_gethostname_gethostname02, 0},
+  {"getitimer_getitimer01", ltp_get_getitimer_getitimer01, 0},
+  {"getitimer_getitimer02", ltp_get_getitimer_getitimer02, 0},
+  {"getpagesize_getpagesize01", ltp_get_getpagesize_getpagesize01, 0},
+  {"getpeername_getpeername01", ltp_get_getpeername_getpeername01, 0},
+  {"getpgid_getpgid01", ltp_get_getpgid_getpgid01, 0},
+  {"getpgid_getpgid02", ltp_get_getpgid_getpgid02, 0},
+  {"getpgrp_getpgrp01", ltp_get_getpgrp_getpgrp01, 0},
+  {"getpid_getpid01", ltp_get_getpid_getpid01, 0},
+  {"getppid_getppid01", ltp_get_getppid_getppid01, 0},
+  {"getppid_getppid02", ltp_get_getppid_getppid02, 0},
+  {"getpriority_getpriority01", ltp_get_getpriority_getpriority01, 0},
+  {"getpriority_getpriority02", ltp_get_getpriority_getpriority02, 0},
+  {"getrlimit_getrlimit01", ltp_get_getrlimit_getrlimit01, 0},
+  {"getrlimit_getrlimit02", ltp_get_getrlimit_getrlimit02, 0},
+  {"getrusage_getrusage01", ltp_get_getrusage_getrusage01, 0},
+  {"getrusage_getrusage02", ltp_get_getrusage_getrusage02, 0},
+  {"getrusage_getrusage03", ltp_get_getrusage_getrusage03, 0},
+  {"getrusage_getrusage03_child", 0, ltp_run_getrusage_getrusage03_child},
+  {"getrusage_getrusage04", 0, ltp_run_getrusage_getrusage04},
+  {"getsid_getsid01", ltp_get_getsid_getsid01, 0},
+  {"getsid_getsid02", ltp_get_getsid_getsid02, 0},
+  {"getsockname_getsockname01", ltp_get_getsockname_getsockname01, 0},
+  {"getsockopt_getsockopt01", ltp_get_getsockopt_getsockopt01, 0},
+  {"getsockopt_getsockopt02", ltp_get_getsockopt_getsockopt02, 0},
+  {"gettid_gettid01", ltp_get_gettid_gettid01, 0},
+  {"gettid_gettid02", ltp_get_gettid_gettid02, 0},
+  {"gettimeofday_gettimeofday01", ltp_get_gettimeofday_gettimeofday01, 0},
+  {"gettimeofday_gettimeofday02", ltp_get_gettimeofday_gettimeofday02, 0},
+  {"getxattr_getxattr01", ltp_get_getxattr_getxattr01, 0},
+  {"getxattr_getxattr02", ltp_get_getxattr_getxattr02, 0},
+  {"getxattr_getxattr03", ltp_get_getxattr_getxattr03, 0},
+  {"getxattr_getxattr04", ltp_get_getxattr_getxattr04, 0},
+  {"init_module_init_module01", ltp_get_init_module_init_module01, 0},
+  {"inotify_init_inotify_init1_01", ltp_get_inotify_init_inotify_init1_01, 0},
+  {"inotify_init_inotify_init1_02", ltp_get_inotify_init_inotify_init1_02, 0},
+  {"inotify_inotify05", ltp_get_inotify_inotify05, 0},
+  {"inotify_inotify06", ltp_get_inotify_inotify06, 0},
+  {"inotify_inotify07", ltp_get_inotify_inotify07, 0},
+  {"inotify_inotify08", ltp_get_inotify_inotify08, 0},
+  {"inotify_inotify09", ltp_get_inotify_inotify09, 0},
+  {"inotify_inotify12", ltp_get_inotify_inotify12, 0},
+  {"io_cancel_io_cancel02", ltp_get_io_cancel_io_cancel02, 0},
+  {"io_destroy_io_destroy01", ltp_get_io_destroy_io_destroy01, 0},
+  {"io_getevents_io_getevents02", ltp_get_io_getevents_io_getevents02, 0},
+  {"io_pgetevents_io_pgetevents01", ltp_get_io_pgetevents_io_pgetevents01, 0},
+  {"io_pgetevents_io_pgetevents02", ltp_get_io_pgetevents_io_pgetevents02, 0},
+  {"io_setup_io_setup01", ltp_get_io_setup_io_setup01, 0},
+  {"io_submit_io_submit01", ltp_get_io_submit_io_submit01, 0},
+  {"io_uring_io_uring01", ltp_get_io_uring_io_uring01, 0},
+  {"io_uring_io_uring02", ltp_get_io_uring_io_uring02, 0},
+  {"io_uring_io_uring03", ltp_get_io_uring_io_uring03, 0},
+  {"ioctl_ioctl01", ltp_get_ioctl_ioctl01, 0},
+  {"ioctl_ioctl04", ltp_get_ioctl_ioctl04, 0},
+  {"ioctl_ioctl05", ltp_get_ioctl_ioctl05, 0},
+  {"ioctl_ioctl06", ltp_get_ioctl_ioctl06, 0},
+  {"ioctl_ioctl08", ltp_get_ioctl_ioctl08, 0},
+  {"ioctl_ioctl_pidfd01", ltp_get_ioctl_ioctl_pidfd01, 0},
+  {"ioctl_ioctl_sg01", ltp_get_ioctl_ioctl_sg01, 0},
+  {"ioperm_ioperm01", ltp_get_ioperm_ioperm01, 0},
+  {"ioperm_ioperm02", ltp_get_ioperm_ioperm02, 0},
+  {"iopl_iopl01", ltp_get_iopl_iopl01, 0},
+  {"iopl_iopl02", ltp_get_iopl_iopl02, 0},
+  {"ioprio_ioprio_get01", ltp_get_ioprio_ioprio_get01, 0},
+  {"ioprio_ioprio_set01", ltp_get_ioprio_ioprio_set01, 0},
+  {"ioprio_ioprio_set02", ltp_get_ioprio_ioprio_set02, 0},
+  {"ioprio_ioprio_set03", ltp_get_ioprio_ioprio_set03, 0},
+  {"kcmp_kcmp01", ltp_get_kcmp_kcmp01, 0},
+  {"kcmp_kcmp02", ltp_get_kcmp_kcmp02, 0},
+  {"kill_kill02", 0, ltp_run_kill_kill02},
+  {"kill_kill03", ltp_get_kill_kill03, 0},
+  {"kill_kill05", ltp_get_kill_kill05, 0},
+  {"kill_kill06", ltp_get_kill_kill06, 0},
+  {"kill_kill08", ltp_get_kill_kill08, 0},
+  {"kill_kill10", 0, ltp_run_kill_kill10},
+  {"kill_kill11", ltp_get_kill_kill11, 0},
+  {"kill_kill12", 0, ltp_run_kill_kill12},
+  {"kill_kill13", ltp_get_kill_kill13, 0},
+  {"landlock_landlock_exec", 0, ltp_run_landlock_landlock_exec},
+  {"lchown_lchown01", ltp_get_lchown_lchown01, 0},
+  {"lgetxattr_lgetxattr01", ltp_get_lgetxattr_lgetxattr01, 0},
+  {"lgetxattr_lgetxattr02", ltp_get_lgetxattr_lgetxattr02, 0},
+  {"link_link02", ltp_get_link_link02, 0},
+  {"link_link04", ltp_get_link_link04, 0},
+  {"link_link05", ltp_get_link_link05, 0},
+  {"link_link08", ltp_get_link_link08, 0},
+  {"linkat_linkat01", 0, ltp_run_linkat_linkat01},
+  {"linkat_linkat02", 0, ltp_run_linkat_linkat02},
+  {"listen_listen01", 0, ltp_run_listen_listen01},
+  {"listmount_listmount03", ltp_get_listmount_listmount03, 0},
+  {"listmount_listmount04", ltp_get_listmount_listmount04, 0},
+  {"listxattr_listxattr01", ltp_get_listxattr_listxattr01, 0},
+  {"listxattr_listxattr02", ltp_get_listxattr_listxattr02, 0},
+  {"listxattr_listxattr03", ltp_get_listxattr_listxattr03, 0},
+  {"listxattr_listxattr04", ltp_get_listxattr_listxattr04, 0},
+  {"llistxattr_llistxattr01", ltp_get_llistxattr_llistxattr01, 0},
+  {"llistxattr_llistxattr02", ltp_get_llistxattr_llistxattr02, 0},
+  {"llistxattr_llistxattr03", ltp_get_llistxattr_llistxattr03, 0},
+  {"llseek_llseek01", ltp_get_llseek_llseek01, 0},
+  {"llseek_llseek02", ltp_get_llseek_llseek02, 0},
+  {"llseek_llseek03", ltp_get_llseek_llseek03, 0},
+  {"lremovexattr_lremovexattr01", ltp_get_lremovexattr_lremovexattr01, 0},
+  {"lseek_lseek01", ltp_get_lseek_lseek01, 0},
+  {"lseek_lseek02", ltp_get_lseek_lseek02, 0},
+  {"lseek_lseek07", ltp_get_lseek_lseek07, 0},
+  {"lseek_lseek11", ltp_get_lseek_lseek11, 0},
+  {"lsm_lsm_get_self_attr01", ltp_get_lsm_lsm_get_self_attr01, 0},
+  {"lsm_lsm_get_self_attr02", ltp_get_lsm_lsm_get_self_attr02, 0},
+  {"lsm_lsm_get_self_attr03", ltp_get_lsm_lsm_get_self_attr03, 0},
+  {"lsm_lsm_list_modules01", ltp_get_lsm_lsm_list_modules01, 0},
+  {"lsm_lsm_list_modules02", ltp_get_lsm_lsm_list_modules02, 0},
+  {"lsm_lsm_set_self_attr01", ltp_get_lsm_lsm_set_self_attr01, 0},
+  {"lstat_lstat01", ltp_get_lstat_lstat01, 0},
+  {"lstat_lstat02", ltp_get_lstat_lstat02, 0},
+  {"lstat_lstat03", ltp_get_lstat_lstat03, 0},
+  {"madvise_madvise01", ltp_get_madvise_madvise01, 0},
+  {"madvise_madvise02", ltp_get_madvise_madvise02, 0},
+  {"madvise_madvise03", ltp_get_madvise_madvise03, 0},
+  {"madvise_madvise05", ltp_get_madvise_madvise05, 0},
+  {"madvise_madvise06", ltp_get_madvise_madvise06, 0},
+  {"madvise_madvise07", ltp_get_madvise_madvise07, 0},
+  {"madvise_madvise08", ltp_get_madvise_madvise08, 0},
+  {"madvise_madvise09", ltp_get_madvise_madvise09, 0},
+  {"madvise_madvise10", ltp_get_madvise_madvise10, 0},
+  {"madvise_madvise11", ltp_get_madvise_madvise11, 0},
+  {"madvise_madvise12", ltp_get_madvise_madvise12, 0},
+  {"mallinfo_mallinfo01", ltp_get_mallinfo_mallinfo01, 0},
+  {"mallinfo_mallinfo02", ltp_get_mallinfo_mallinfo02, 0},
+  {"mallopt_mallopt01", ltp_get_mallopt_mallopt01, 0},
+  {"membarrier_membarrier01", ltp_get_membarrier_membarrier01, 0},
+  {"memcmp_memcmp01", ltp_get_memcmp_memcmp01, 0},
+  {"memcpy_memcpy01", ltp_get_memcpy_memcpy01, 0},
+  {"memfd_create_memfd_create01", ltp_get_memfd_create_memfd_create01, 0},
+  {"memfd_create_memfd_create02", ltp_get_memfd_create_memfd_create02, 0},
+  {"memfd_create_memfd_create03", ltp_get_memfd_create_memfd_create03, 0},
+  {"memfd_create_memfd_create04", ltp_get_memfd_create_memfd_create04, 0},
+  {"memset_memset01", ltp_get_memset_memset01, 0},
+  {"mincore_mincore01", 0, ltp_run_mincore_mincore01},
+  {"mincore_mincore02", ltp_get_mincore_mincore02, 0},
+  {"mincore_mincore03", ltp_get_mincore_mincore03, 0},
+  {"mincore_mincore04", ltp_get_mincore_mincore04, 0},
+  {"mkdir_mkdir02", ltp_get_mkdir_mkdir02, 0},
+  {"mkdir_mkdir03", ltp_get_mkdir_mkdir03, 0},
+  {"mkdir_mkdir04", ltp_get_mkdir_mkdir04, 0},
+  {"mkdir_mkdir05", ltp_get_mkdir_mkdir05, 0},
+  {"mkdir_mkdir09", ltp_get_mkdir_mkdir09, 0},
+  {"mkdirat_mkdirat01", 0, ltp_run_mkdirat_mkdirat01},
+  {"mkdirat_mkdirat02", ltp_get_mkdirat_mkdirat02, 0},
+  {"mknod_mknod01", ltp_get_mknod_mknod01, 0},
+  {"mknod_mknod02", ltp_get_mknod_mknod02, 0},
+  {"mknod_mknod03", ltp_get_mknod_mknod03, 0},
+  {"mknod_mknod04", ltp_get_mknod_mknod04, 0},
+  {"mknod_mknod05", ltp_get_mknod_mknod05, 0},
+  {"mknod_mknod06", ltp_get_mknod_mknod06, 0},
+  {"mknod_mknod07", ltp_get_mknod_mknod07, 0},
+  {"mknod_mknod08", ltp_get_mknod_mknod08, 0},
+  {"mknod_mknod09", ltp_get_mknod_mknod09, 0},
+  {"mknodat_mknodat01", 0, ltp_run_mknodat_mknodat01},
+  {"mknodat_mknodat02", 0, ltp_run_mknodat_mknodat02},
+  {"mlock2_mlock202", ltp_get_mlock2_mlock202, 0},
+  {"mlock_mlock01", ltp_get_mlock_mlock01, 0},
+  {"mlock_mlock02", ltp_get_mlock_mlock02, 0},
+  {"mlock_mlock03", ltp_get_mlock_mlock03, 0},
+  {"mlock_mlock04", ltp_get_mlock_mlock04, 0},
+  {"mlock_mlock05", ltp_get_mlock_mlock05, 0},
+  {"mlockall_mlockall01", 0, ltp_run_mlockall_mlockall01},
+  {"mlockall_mlockall02", 0, ltp_run_mlockall_mlockall02},
+  {"mlockall_mlockall03", 0, ltp_run_mlockall_mlockall03},
+  {"mmap_mmap01", ltp_get_mmap_mmap01, 0},
+  {"mmap_mmap02", ltp_get_mmap_mmap02, 0},
+  {"mmap_mmap03", ltp_get_mmap_mmap03, 0},
+  {"mmap_mmap04", ltp_get_mmap_mmap04, 0},
+  {"mmap_mmap05", ltp_get_mmap_mmap05, 0},
+  {"mmap_mmap06", ltp_get_mmap_mmap06, 0},
+  {"mmap_mmap08", ltp_get_mmap_mmap08, 0},
+  {"mmap_mmap09", ltp_get_mmap_mmap09, 0},
+  {"mmap_mmap10", ltp_get_mmap_mmap10, 0},
+  {"mmap_mmap11", 0, ltp_run_mmap_mmap11},
+  {"mmap_mmap12", ltp_get_mmap_mmap12, 0},
+  {"mmap_mmap13", ltp_get_mmap_mmap13, 0},
+  {"mmap_mmap14", ltp_get_mmap_mmap14, 0},
+  {"mmap_mmap15", ltp_get_mmap_mmap15, 0},
+  {"mmap_mmap16", ltp_get_mmap_mmap16, 0},
+  {"mmap_mmap17", ltp_get_mmap_mmap17, 0},
+  {"mmap_mmap18", ltp_get_mmap_mmap18, 0},
+  {"mmap_mmap19", ltp_get_mmap_mmap19, 0},
+  {"mmap_mmap20", ltp_get_mmap_mmap20, 0},
+  {"mmap_mmap21", ltp_get_mmap_mmap21, 0},
+  {"mmap_mmap22", ltp_get_mmap_mmap22, 0},
+  {"mmap_mmap23", ltp_get_mmap_mmap23, 0},
+  {"mmap_mmap24", ltp_get_mmap_mmap24, 0},
+  {"modify_ldt_modify_ldt01", ltp_get_modify_ldt_modify_ldt01, 0},
+  {"modify_ldt_modify_ldt02", ltp_get_modify_ldt_modify_ldt02, 0},
+  {"mount_mount01", ltp_get_mount_mount01, 0},
+  {"mount_mount02", ltp_get_mount_mount02, 0},
+  {"mount_mount03", ltp_get_mount_mount03, 0},
+  {"mount_mount03_suid_child", 0, ltp_run_mount_mount03_suid_child},
+  {"mount_mount04", ltp_get_mount_mount04, 0},
+  {"mount_mount05", ltp_get_mount_mount05, 0},
+  {"mount_mount06", ltp_get_mount_mount06, 0},
+  {"mount_mount07", ltp_get_mount_mount07, 0},
+  {"mount_mount08", ltp_get_mount_mount08, 0},
+  {"mount_setattr_mount_setattr01", ltp_get_mount_setattr_mount_setattr01, 0},
+  {"mount_setattr_mount_setattr02", ltp_get_mount_setattr_mount_setattr02, 0},
+  {"move_mount_move_mount01", ltp_get_move_mount_move_mount01, 0},
+  {"move_mount_move_mount02", ltp_get_move_mount_move_mount02, 0},
+  {"mprotect_mprotect01", 0, ltp_run_mprotect_mprotect01},
+  {"mprotect_mprotect02", 0, ltp_run_mprotect_mprotect02},
+  {"mprotect_mprotect03", 0, ltp_run_mprotect_mprotect03},
+  {"mprotect_mprotect04", 0, ltp_run_mprotect_mprotect04},
+  {"mprotect_mprotect05", ltp_get_mprotect_mprotect05, 0},
+  {"mq_notify_mq_notify02", ltp_get_mq_notify_mq_notify02, 0},
+  {"mq_notify_mq_notify03", ltp_get_mq_notify_mq_notify03, 0},
+  {"mq_open_mq_open01", ltp_get_mq_open_mq_open01, 0},
+  {"mq_unlink_mq_unlink01", ltp_get_mq_unlink_mq_unlink01, 0},
+  {"mremap_mremap01", ltp_get_mremap_mremap01, 0},
+  {"mremap_mremap02", ltp_get_mremap_mremap02, 0},
+  {"mremap_mremap03", ltp_get_mremap_mremap03, 0},
+  {"mremap_mremap04", ltp_get_mremap_mremap04, 0},
+  {"mremap_mremap05", ltp_get_mremap_mremap05, 0},
+  {"mremap_mremap06", ltp_get_mremap_mremap06, 0},
+  {"mremap_mremap08", ltp_get_mremap_mremap08, 0},
+  {"mremap_mremap09", ltp_get_mremap_mremap09, 0},
+  {"mseal_mseal01", ltp_get_mseal_mseal01, 0},
+  {"mseal_mseal02", ltp_get_mseal_mseal02, 0},
+  {"msgctl_msgctl01", ltp_get_msgctl_msgctl01, 0},
+  {"msgctl_msgctl02", ltp_get_msgctl_msgctl02, 0},
+  {"msgctl_msgctl03", ltp_get_msgctl_msgctl03, 0},
+  {"msgctl_msgctl04", ltp_get_msgctl_msgctl04, 0},
+  {"msgctl_msgctl05", ltp_get_msgctl_msgctl05, 0},
+  {"msgctl_msgctl06", ltp_get_msgctl_msgctl06, 0},
+  {"msgctl_msgctl12", ltp_get_msgctl_msgctl12, 0},
+  {"msgget_msgget01", ltp_get_msgget_msgget01, 0},
+  {"msgget_msgget02", ltp_get_msgget_msgget02, 0},
+  {"msgget_msgget03", ltp_get_msgget_msgget03, 0},
+  {"msgget_msgget04", ltp_get_msgget_msgget04, 0},
+  {"msgget_msgget05", ltp_get_msgget_msgget05, 0},
+  {"msgrcv_msgrcv01", ltp_get_msgrcv_msgrcv01, 0},
+  {"msgrcv_msgrcv02", ltp_get_msgrcv_msgrcv02, 0},
+  {"msgrcv_msgrcv03", ltp_get_msgrcv_msgrcv03, 0},
+  {"msgrcv_msgrcv05", ltp_get_msgrcv_msgrcv05, 0},
+  {"msgrcv_msgrcv06", ltp_get_msgrcv_msgrcv06, 0},
+  {"msgrcv_msgrcv07", ltp_get_msgrcv_msgrcv07, 0},
+  {"msgrcv_msgrcv08", ltp_get_msgrcv_msgrcv08, 0},
+  {"msgsnd_msgsnd01", ltp_get_msgsnd_msgsnd01, 0},
+  {"msgsnd_msgsnd02", ltp_get_msgsnd_msgsnd02, 0},
+  {"msgsnd_msgsnd05", ltp_get_msgsnd_msgsnd05, 0},
+  {"msgsnd_msgsnd06", ltp_get_msgsnd_msgsnd06, 0},
+  {"msync_msync01", 0, ltp_run_msync_msync01},
+  {"msync_msync02", 0, ltp_run_msync_msync02},
+  {"msync_msync03", 0, ltp_run_msync_msync03},
+  {"msync_msync04", ltp_get_msync_msync04, 0},
+  {"munlock_munlock01", ltp_get_munlock_munlock01, 0},
+  {"munlock_munlock02", ltp_get_munlock_munlock02, 0},
+  {"munlockall_munlockall01", ltp_get_munlockall_munlockall01, 0},
+  {"munmap_munmap01", ltp_get_munmap_munmap01, 0},
+  {"munmap_munmap03", ltp_get_munmap_munmap03, 0},
+  {"munmap_munmap04", ltp_get_munmap_munmap04, 0},
+  {"name_to_handle_at_name_to_handle_at01", ltp_get_name_to_handle_at_name_to_handle_at01, 0},
+  {"name_to_handle_at_name_to_handle_at02", ltp_get_name_to_handle_at_name_to_handle_at02, 0},
+  {"name_to_handle_at_name_to_handle_at03", ltp_get_name_to_handle_at_name_to_handle_at03, 0},
+  {"nanosleep_nanosleep01", ltp_get_nanosleep_nanosleep01, 0},
+  {"nanosleep_nanosleep02", ltp_get_nanosleep_nanosleep02, 0},
+  {"nanosleep_nanosleep04", ltp_get_nanosleep_nanosleep04, 0},
+  {"newuname_newuname01", ltp_get_newuname_newuname01, 0},
+  {"nice_nice01", ltp_get_nice_nice01, 0},
+  {"nice_nice02", ltp_get_nice_nice02, 0},
+  {"nice_nice03", ltp_get_nice_nice03, 0},
+  {"nice_nice04", ltp_get_nice_nice04, 0},
+  {"nice_nice05", ltp_get_nice_nice05, 0},
+  {"open_by_handle_at_open_by_handle_at01", ltp_get_open_by_handle_at_open_by_handle_at01, 0},
+  {"open_open01", ltp_get_open_open01, 0},
+  {"open_open02", ltp_get_open_open02, 0},
+  {"open_open03", ltp_get_open_open03, 0},
+  {"open_open04", ltp_get_open_open04, 0},
+  {"open_open06", ltp_get_open_open06, 0},
+  {"open_open07", ltp_get_open_open07, 0},
+  {"open_open08", ltp_get_open_open08, 0},
+  {"open_open09", ltp_get_open_open09, 0},
+  {"open_open10", ltp_get_open_open10, 0},
+  {"open_open11", ltp_get_open_open11, 0},
+  {"open_open12", ltp_get_open_open12, 0},
+  {"open_open12_child", 0, ltp_run_open_open12_child},
+  {"open_open14", ltp_get_open_open14, 0},
+  {"open_open15", ltp_get_open_open15, 0},
+  {"open_tree_open_tree01", ltp_get_open_tree_open_tree01, 0},
+  {"open_tree_open_tree02", ltp_get_open_tree_open_tree02, 0},
+  {"openat_openat01", ltp_get_openat_openat01, 0},
+  {"openat_openat02", ltp_get_openat_openat02, 0},
+  {"openat_openat02_child", 0, ltp_run_openat_openat02_child},
+  {"openat_openat03", 0, ltp_run_openat_openat03},
+  {"openat_openat04", ltp_get_openat_openat04, 0},
+  {"pathconf_pathconf01", ltp_get_pathconf_pathconf01, 0},
+  {"pathconf_pathconf02", ltp_get_pathconf_pathconf02, 0},
+  {"pause_pause01", ltp_get_pause_pause01, 0},
+  {"pause_pause02", ltp_get_pause_pause02, 0},
+  {"personality_personality01", ltp_get_personality_personality01, 0},
+  {"personality_personality02", ltp_get_personality_personality02, 0},
+  {"pidfd_getfd_pidfd_getfd01", ltp_get_pidfd_getfd_pidfd_getfd01, 0},
+  {"pidfd_getfd_pidfd_getfd02", ltp_get_pidfd_getfd_pidfd_getfd02, 0},
+  {"pidfd_open_pidfd_open01", ltp_get_pidfd_open_pidfd_open01, 0},
+  {"pidfd_open_pidfd_open02", ltp_get_pidfd_open_pidfd_open02, 0},
+  {"pidfd_open_pidfd_open03", ltp_get_pidfd_open_pidfd_open03, 0},
+  {"pidfd_open_pidfd_open04", ltp_get_pidfd_open_pidfd_open04, 0},
+  {"pidfd_send_signal_pidfd_send_signal01", ltp_get_pidfd_send_signal_pidfd_send_signal01, 0},
+  {"pidfd_send_signal_pidfd_send_signal02", ltp_get_pidfd_send_signal_pidfd_send_signal02, 0},
+  {"pidfd_send_signal_pidfd_send_signal03", ltp_get_pidfd_send_signal_pidfd_send_signal03, 0},
+  {"pipe2_pipe2_01", ltp_get_pipe2_pipe2_01, 0},
+  {"pipe2_pipe2_02", ltp_get_pipe2_pipe2_02, 0},
+  {"pipe2_pipe2_02_child", 0, ltp_run_pipe2_pipe2_02_child},
+  {"pipe2_pipe2_04", ltp_get_pipe2_pipe2_04, 0},
+  {"pipe_pipe01", ltp_get_pipe_pipe01, 0},
+  {"pipe_pipe02", ltp_get_pipe_pipe02, 0},
+  {"pipe_pipe03", ltp_get_pipe_pipe03, 0},
+  {"pipe_pipe04", 0, ltp_run_pipe_pipe04},
+  {"pipe_pipe05", 0, ltp_run_pipe_pipe05},
+  {"pipe_pipe06", ltp_get_pipe_pipe06, 0},
+  {"pipe_pipe07", ltp_get_pipe_pipe07, 0},
+  {"pipe_pipe08", ltp_get_pipe_pipe08, 0},
+  {"pipe_pipe09", 0, ltp_run_pipe_pipe09},
+  {"pipe_pipe10", ltp_get_pipe_pipe10, 0},
+  {"pipe_pipe11", ltp_get_pipe_pipe11, 0},
+  {"pipe_pipe12", ltp_get_pipe_pipe12, 0},
+  {"pipe_pipe13", ltp_get_pipe_pipe13, 0},
+  {"pipe_pipe14", ltp_get_pipe_pipe14, 0},
+  {"pipe_pipe15", ltp_get_pipe_pipe15, 0},
+  {"pivot_root_pivot_root01", ltp_get_pivot_root_pivot_root01, 0},
+  {"poll_poll01", ltp_get_poll_poll01, 0},
+  {"poll_poll02", ltp_get_poll_poll02, 0},
+  {"poll_poll03", ltp_get_poll_poll03, 0},
+  {"poll_poll04", ltp_get_poll_poll04, 0},
+  {"ppoll_ppoll01", ltp_get_ppoll_ppoll01, 0},
+  {"prctl_prctl01", ltp_get_prctl_prctl01, 0},
+  {"pread_pread01", ltp_get_pread_pread01, 0},
+  {"pread_pread02", ltp_get_pread_pread02, 0},
+  {"preadv2_preadv201", ltp_get_preadv2_preadv201, 0},
+  {"preadv2_preadv202", ltp_get_preadv2_preadv202, 0},
+  {"preadv2_preadv203", ltp_get_preadv2_preadv203, 0},
+  {"preadv_preadv01", ltp_get_preadv_preadv01, 0},
+  {"preadv_preadv02", ltp_get_preadv_preadv02, 0},
+  {"preadv_preadv03", ltp_get_preadv_preadv03, 0},
+  {"process_madvise_process_madvise01", ltp_get_process_madvise_process_madvise01, 0},
+  {"profil_profil01", 0, ltp_run_profil_profil01},
+  {"pselect_pselect01", ltp_get_pselect_pselect01, 0},
+  {"pselect_pselect02", ltp_get_pselect_pselect02, 0},
+  {"pselect_pselect03", ltp_get_pselect_pselect03, 0},
+  {"ptrace_ptrace01", ltp_get_ptrace_ptrace01, 0},
+  {"ptrace_ptrace02", ltp_get_ptrace_ptrace02, 0},
+  {"ptrace_ptrace03", ltp_get_ptrace_ptrace03, 0},
+  {"ptrace_ptrace04", 0, ltp_run_ptrace_ptrace04},
+  {"ptrace_ptrace05", ltp_get_ptrace_ptrace05, 0},
+  {"ptrace_ptrace06", ltp_get_ptrace_ptrace06, 0},
+  {"ptrace_ptrace07", ltp_get_ptrace_ptrace07, 0},
+  {"ptrace_ptrace08", ltp_get_ptrace_ptrace08, 0},
+  {"ptrace_ptrace10", ltp_get_ptrace_ptrace10, 0},
+  {"ptrace_ptrace11", ltp_get_ptrace_ptrace11, 0},
+  {"pwrite_pwrite01", ltp_get_pwrite_pwrite01, 0},
+  {"pwrite_pwrite02", ltp_get_pwrite_pwrite02, 0},
+  {"pwrite_pwrite03", ltp_get_pwrite_pwrite03, 0},
+  {"pwrite_pwrite04", ltp_get_pwrite_pwrite04, 0},
+  {"pwritev2_pwritev201", ltp_get_pwritev2_pwritev201, 0},
+  {"pwritev2_pwritev202", ltp_get_pwritev2_pwritev202, 0},
+  {"pwritev_pwritev01", ltp_get_pwritev_pwritev01, 0},
+  {"pwritev_pwritev02", ltp_get_pwritev_pwritev02, 0},
+  {"pwritev_pwritev03", ltp_get_pwritev_pwritev03, 0},
+  {"quotactl_quotactl01", ltp_get_quotactl_quotactl01, 0},
+  {"quotactl_quotactl02", ltp_get_quotactl_quotactl02, 0},
+  {"quotactl_quotactl03", ltp_get_quotactl_quotactl03, 0},
+  {"quotactl_quotactl04", ltp_get_quotactl_quotactl04, 0},
+  {"quotactl_quotactl05", ltp_get_quotactl_quotactl05, 0},
+  {"quotactl_quotactl06", ltp_get_quotactl_quotactl06, 0},
+  {"quotactl_quotactl07", ltp_get_quotactl_quotactl07, 0},
+  {"quotactl_quotactl08", ltp_get_quotactl_quotactl08, 0},
+  {"quotactl_quotactl09", ltp_get_quotactl_quotactl09, 0},
+  {"read_read01", ltp_get_read_read01, 0},
+  {"read_read02", ltp_get_read_read02, 0},
+  {"read_read03", ltp_get_read_read03, 0},
+  {"read_read04", ltp_get_read_read04, 0},
+  {"readahead_readahead01", ltp_get_readahead_readahead01, 0},
+  {"readahead_readahead02", ltp_get_readahead_readahead02, 0},
+  {"readdir_readdir01", ltp_get_readdir_readdir01, 0},
+  {"readlink_readlink01", ltp_get_readlink_readlink01, 0},
+  {"readlink_readlink03", ltp_get_readlink_readlink03, 0},
+  {"readlinkat_readlinkat01", ltp_get_readlinkat_readlinkat01, 0},
+  {"readlinkat_readlinkat02", ltp_get_readlinkat_readlinkat02, 0},
+  {"readv_readv01", ltp_get_readv_readv01, 0},
+  {"readv_readv02", ltp_get_readv_readv02, 0},
+  {"realpath_realpath01", ltp_get_realpath_realpath01, 0},
+  {"recv_recv01", 0, ltp_run_recv_recv01},
+  {"recvfrom_recvfrom01", 0, ltp_run_recvfrom_recvfrom01},
+  {"recvmsg_recvmsg01", ltp_get_recvmsg_recvmsg01, 0},
+  {"recvmsg_recvmsg02", ltp_get_recvmsg_recvmsg02, 0},
+  {"recvmsg_recvmsg03", ltp_get_recvmsg_recvmsg03, 0},
+  {"removexattr_removexattr01", 0, ltp_run_removexattr_removexattr01},
+  {"removexattr_removexattr02", 0, ltp_run_removexattr_removexattr02},
+  {"rename_rename01", ltp_get_rename_rename01, 0},
+  {"rename_rename03", ltp_get_rename_rename03, 0},
+  {"rename_rename04", ltp_get_rename_rename04, 0},
+  {"rename_rename05", ltp_get_rename_rename05, 0},
+  {"rename_rename06", ltp_get_rename_rename06, 0},
+  {"rename_rename07", ltp_get_rename_rename07, 0},
+  {"rename_rename08", ltp_get_rename_rename08, 0},
+  {"rename_rename09", ltp_get_rename_rename09, 0},
+  {"rename_rename10", ltp_get_rename_rename10, 0},
+  {"rename_rename11", 0, ltp_run_rename_rename11},
+  {"rename_rename12", ltp_get_rename_rename12, 0},
+  {"rename_rename13", ltp_get_rename_rename13, 0},
+  {"rename_rename14", 0, ltp_run_rename_rename14},
+  {"rename_rename15", ltp_get_rename_rename15, 0},
+  {"renameat2_renameat201", 0, ltp_run_renameat2_renameat201},
+  {"renameat2_renameat202", 0, ltp_run_renameat2_renameat202},
+  {"renameat_renameat01", 0, ltp_run_renameat_renameat01},
+  {"request_key_request_key05", ltp_get_request_key_request_key05, 0},
+  {"rmdir_rmdir01", ltp_get_rmdir_rmdir01, 0},
+  {"rmdir_rmdir02", ltp_get_rmdir_rmdir02, 0},
+  {"rmdir_rmdir03", ltp_get_rmdir_rmdir03, 0},
+  {"rt_sigaction_rt_sigaction01", 0, ltp_run_rt_sigaction_rt_sigaction01},
+  {"rt_sigaction_rt_sigaction02", 0, ltp_run_rt_sigaction_rt_sigaction02},
+  {"rt_sigaction_rt_sigaction03", 0, ltp_run_rt_sigaction_rt_sigaction03},
+  {"rt_sigprocmask_rt_sigprocmask01", 0, ltp_run_rt_sigprocmask_rt_sigprocmask01},
+  {"rt_sigprocmask_rt_sigprocmask02", 0, ltp_run_rt_sigprocmask_rt_sigprocmask02},
+  {"rt_sigqueueinfo_rt_sigqueueinfo01", ltp_get_rt_sigqueueinfo_rt_sigqueueinfo01, 0},
+  {"rt_sigqueueinfo_rt_sigqueueinfo02", ltp_get_rt_sigqueueinfo_rt_sigqueueinfo02, 0},
+  {"rt_sigsuspend_rt_sigsuspend01", ltp_get_rt_sigsuspend_rt_sigsuspend01, 0},
+  {"rt_tgsigqueueinfo_rt_tgsigqueueinfo01", ltp_get_rt_tgsigqueueinfo_rt_tgsigqueueinfo01, 0},
+  {"sbrk_sbrk01", ltp_get_sbrk_sbrk01, 0},
+  {"sbrk_sbrk02", ltp_get_sbrk_sbrk02, 0},
+  {"sbrk_sbrk03", ltp_get_sbrk_sbrk03, 0},
+  {"sched_get_priority_max_sched_get_priority_max02", ltp_get_sched_get_priority_max_sched_get_priority_max02, 0},
+  {"sched_get_priority_min_sched_get_priority_min02", ltp_get_sched_get_priority_min_sched_get_priority_min02, 0},
+  {"sched_getaffinity_sched_getaffinity01", ltp_get_sched_getaffinity_sched_getaffinity01, 0},
+  {"sched_getparam_sched_getparam01", ltp_get_sched_getparam_sched_getparam01, 0},
+  {"sched_getparam_sched_getparam03", ltp_get_sched_getparam_sched_getparam03, 0},
+  {"sched_getscheduler_sched_getscheduler01", ltp_get_sched_getscheduler_sched_getscheduler01, 0},
+  {"sched_getscheduler_sched_getscheduler02", ltp_get_sched_getscheduler_sched_getscheduler02, 0},
+  {"sched_rr_get_interval_sched_rr_get_interval01", ltp_get_sched_rr_get_interval_sched_rr_get_interval01, 0},
+  {"sched_rr_get_interval_sched_rr_get_interval02", ltp_get_sched_rr_get_interval_sched_rr_get_interval02, 0},
+  {"sched_rr_get_interval_sched_rr_get_interval03", ltp_get_sched_rr_get_interval_sched_rr_get_interval03, 0},
+  {"sched_setaffinity_sched_setaffinity01", ltp_get_sched_setaffinity_sched_setaffinity01, 0},
+  {"sched_setparam_sched_setparam01", ltp_get_sched_setparam_sched_setparam01, 0},
+  {"sched_setparam_sched_setparam02", ltp_get_sched_setparam_sched_setparam02, 0},
+  {"sched_setparam_sched_setparam03", ltp_get_sched_setparam_sched_setparam03, 0},
+  {"sched_setparam_sched_setparam04", ltp_get_sched_setparam_sched_setparam04, 0},
+  {"sched_setparam_sched_setparam05", ltp_get_sched_setparam_sched_setparam05, 0},
+  {"sched_setscheduler_sched_setscheduler01", ltp_get_sched_setscheduler_sched_setscheduler01, 0},
+  {"sched_setscheduler_sched_setscheduler02", ltp_get_sched_setscheduler_sched_setscheduler02, 0},
+  {"sched_setscheduler_sched_setscheduler03", ltp_get_sched_setscheduler_sched_setscheduler03, 0},
+  {"sched_yield_sched_yield01", 0, ltp_run_sched_yield_sched_yield01},
+  {"semctl_semctl01", ltp_get_semctl_semctl01, 0},
+  {"semctl_semctl02", ltp_get_semctl_semctl02, 0},
+  {"semctl_semctl03", ltp_get_semctl_semctl03, 0},
+  {"semctl_semctl04", ltp_get_semctl_semctl04, 0},
+  {"semctl_semctl05", ltp_get_semctl_semctl05, 0},
+  {"semctl_semctl06", 0, ltp_run_semctl_semctl06},
+  {"semctl_semctl07", ltp_get_semctl_semctl07, 0},
+  {"semctl_semctl08", ltp_get_semctl_semctl08, 0},
+  {"semctl_semctl09", ltp_get_semctl_semctl09, 0},
+  {"semget_semget01", ltp_get_semget_semget01, 0},
+  {"semget_semget02", ltp_get_semget_semget02, 0},
+  {"semget_semget05", ltp_get_semget_semget05, 0},
+  {"semop_semop01", ltp_get_semop_semop01, 0},
+  {"semop_semop02", ltp_get_semop_semop02, 0},
+  {"semop_semop03", ltp_get_semop_semop03, 0},
+  {"semop_semop04", ltp_get_semop_semop04, 0},
+  {"semop_semop05", 0, ltp_run_semop_semop05},
+  {"send_send01", 0, ltp_run_send_send01},
+  {"send_send02", ltp_get_send_send02, 0},
+  {"sendfile_sendfile02", ltp_get_sendfile_sendfile02, 0},
+  {"sendfile_sendfile03", ltp_get_sendfile_sendfile03, 0},
+  {"sendfile_sendfile04", ltp_get_sendfile_sendfile04, 0},
+  {"sendfile_sendfile05", ltp_get_sendfile_sendfile05, 0},
+  {"sendfile_sendfile06", ltp_get_sendfile_sendfile06, 0},
+  {"sendfile_sendfile07", ltp_get_sendfile_sendfile07, 0},
+  {"sendfile_sendfile08", ltp_get_sendfile_sendfile08, 0},
+  {"sendfile_sendfile09", ltp_get_sendfile_sendfile09, 0},
+  {"sendmsg_sendmsg01", 0, ltp_run_sendmsg_sendmsg01},
+  {"sendmsg_sendmsg02", 0, ltp_run_sendmsg_sendmsg02},
+  {"sendmsg_sendmsg03", ltp_get_sendmsg_sendmsg03, 0},
+  {"sendto_sendto01", 0, ltp_run_sendto_sendto01},
+  {"sendto_sendto02", ltp_get_sendto_sendto02, 0},
+  {"set_mempolicy_set_mempolicy05", ltp_get_set_mempolicy_set_mempolicy05, 0},
+  {"set_robust_list_set_robust_list01", 0, ltp_run_set_robust_list_set_robust_list01},
+  {"set_tid_address_set_tid_address01", ltp_get_set_tid_address_set_tid_address01, 0},
+  {"setdomainname_setdomainname01", ltp_get_setdomainname_setdomainname01, 0},
+  {"setdomainname_setdomainname02", ltp_get_setdomainname_setdomainname02, 0},
+  {"setdomainname_setdomainname03", ltp_get_setdomainname_setdomainname03, 0},
+  {"setegid_setegid01", ltp_get_setegid_setegid01, 0},
+  {"setegid_setegid02", ltp_get_setegid_setegid02, 0},
+  {"setitimer_setitimer01", ltp_get_setitimer_setitimer01, 0},
+  {"setitimer_setitimer02", ltp_get_setitimer_setitimer02, 0},
+  {"setpgid_setpgid01", ltp_get_setpgid_setpgid01, 0},
+  {"setpgid_setpgid02", ltp_get_setpgid_setpgid02, 0},
+  {"setpgid_setpgid03", ltp_get_setpgid_setpgid03, 0},
+  {"setpgid_setpgid03_child", 0, ltp_run_setpgid_setpgid03_child},
+  {"setpgrp_setpgrp01", 0, ltp_run_setpgrp_setpgrp01},
+  {"setpgrp_setpgrp02", ltp_get_setpgrp_setpgrp02, 0},
+  {"setpriority_setpriority01", ltp_get_setpriority_setpriority01, 0},
+  {"setpriority_setpriority02", ltp_get_setpriority_setpriority02, 0},
+  {"setrlimit_setrlimit01", 0, ltp_run_setrlimit_setrlimit01},
+  {"setrlimit_setrlimit02", ltp_get_setrlimit_setrlimit02, 0},
+  {"setrlimit_setrlimit04", ltp_get_setrlimit_setrlimit04, 0},
+  {"setrlimit_setrlimit05", ltp_get_setrlimit_setrlimit05, 0},
+  {"setsid_setsid01", 0, ltp_run_setsid_setsid01},
+  {"setsockopt_setsockopt01", ltp_get_setsockopt_setsockopt01, 0},
+  {"setsockopt_setsockopt02", ltp_get_setsockopt_setsockopt02, 0},
+  {"setsockopt_setsockopt04", ltp_get_setsockopt_setsockopt04, 0},
+  {"setsockopt_setsockopt05", ltp_get_setsockopt_setsockopt05, 0},
+  {"setsockopt_setsockopt07", ltp_get_setsockopt_setsockopt07, 0},
+  {"setsockopt_setsockopt10", ltp_get_setsockopt_setsockopt10, 0},
+  {"settimeofday_settimeofday01", ltp_get_settimeofday_settimeofday01, 0},
+  {"settimeofday_settimeofday02", ltp_get_settimeofday_settimeofday02, 0},
+  {"setxattr_setxattr01", ltp_get_setxattr_setxattr01, 0},
+  {"setxattr_setxattr02", ltp_get_setxattr_setxattr02, 0},
+  {"shmat_shmat01", ltp_get_shmat_shmat01, 0},
+  {"shmat_shmat02", ltp_get_shmat_shmat02, 0},
+  {"shmat_shmat03", ltp_get_shmat_shmat03, 0},
+  {"shmat_shmat04", ltp_get_shmat_shmat04, 0},
+  {"shmctl_shmctl01", ltp_get_shmctl_shmctl01, 0},
+  {"shmctl_shmctl02", ltp_get_shmctl_shmctl02, 0},
+  {"shmctl_shmctl03", ltp_get_shmctl_shmctl03, 0},
+  {"shmctl_shmctl04", ltp_get_shmctl_shmctl04, 0},
+  {"shmctl_shmctl05", ltp_get_shmctl_shmctl05, 0},
+  {"shmctl_shmctl06", ltp_get_shmctl_shmctl06, 0},
+  {"shmctl_shmctl07", ltp_get_shmctl_shmctl07, 0},
+  {"shmctl_shmctl08", ltp_get_shmctl_shmctl08, 0},
+  {"shmdt_shmdt01", ltp_get_shmdt_shmdt01, 0},
+  {"shmdt_shmdt02", ltp_get_shmdt_shmdt02, 0},
+  {"shmget_shmget02", ltp_get_shmget_shmget02, 0},
+  {"shmget_shmget03", ltp_get_shmget_shmget03, 0},
+  {"shmget_shmget04", ltp_get_shmget_shmget04, 0},
+  {"shmget_shmget05", ltp_get_shmget_shmget05, 0},
+  {"shmget_shmget06", ltp_get_shmget_shmget06, 0},
+  {"shutdown_shutdown01", ltp_get_shutdown_shutdown01, 0},
+  {"shutdown_shutdown02", ltp_get_shutdown_shutdown02, 0},
+  {"sigaction_sigaction01", 0, ltp_run_sigaction_sigaction01},
+  {"sigaction_sigaction02", 0, ltp_run_sigaction_sigaction02},
+  {"sigaltstack_sigaltstack01", 0, ltp_run_sigaltstack_sigaltstack01},
+  {"sigaltstack_sigaltstack02", ltp_get_sigaltstack_sigaltstack02, 0},
+  {"sighold_sighold02", ltp_get_sighold_sighold02, 0},
+  {"signal_signal01", ltp_get_signal_signal01, 0},
+  {"signal_signal02", ltp_get_signal_signal02, 0},
+  {"signal_signal03", ltp_get_signal_signal03, 0},
+  {"signal_signal04", ltp_get_signal_signal04, 0},
+  {"signal_signal05", ltp_get_signal_signal05, 0},
+  {"signal_signal06", 0, ltp_run_signal_signal06},
+  {"signalfd4_signalfd4_01", 0, ltp_run_signalfd4_signalfd4_01},
+  {"signalfd4_signalfd4_02", 0, ltp_run_signalfd4_signalfd4_02},
+  {"signalfd_signalfd01", ltp_get_signalfd_signalfd01, 0},
+  {"signalfd_signalfd02", ltp_get_signalfd_signalfd02, 0},
+  {"sigprocmask_sigprocmask01", 0, ltp_run_sigprocmask_sigprocmask01},
+  {"sigrelse_sigrelse01", 0, ltp_run_sigrelse_sigrelse01},
+  {"sigsuspend_sigsuspend01", ltp_get_sigsuspend_sigsuspend01, 0},
+  {"sigsuspend_sigsuspend02", ltp_get_sigsuspend_sigsuspend02, 0},
+  {"socket_socket01", ltp_get_socket_socket01, 0},
+  {"socket_socket02", ltp_get_socket_socket02, 0},
+  {"socketpair_socketpair01", ltp_get_socketpair_socketpair01, 0},
+  {"socketpair_socketpair02", ltp_get_socketpair_socketpair02, 0},
+  {"sockioctl_sockioctl01", 0, ltp_run_sockioctl_sockioctl01},
+  {"splice_splice07", ltp_get_splice_splice07, 0},
+  {"splice_splice08", ltp_get_splice_splice08, 0},
+  {"splice_splice09", ltp_get_splice_splice09, 0},
+  {"stat_stat01", ltp_get_stat_stat01, 0},
+  {"stat_stat02", ltp_get_stat_stat02, 0},
+  {"stat_stat03", ltp_get_stat_stat03, 0},
+  {"stat_stat04", ltp_get_stat_stat04, 0},
+  {"statfs_statfs01", ltp_get_statfs_statfs01, 0},
+  {"statfs_statfs02", ltp_get_statfs_statfs02, 0},
+  {"statfs_statfs03", ltp_get_statfs_statfs03, 0},
+  {"statmount_statmount07", ltp_get_statmount_statmount07, 0},
+  {"statmount_statmount08", ltp_get_statmount_statmount08, 0},
+  {"statvfs_statvfs01", ltp_get_statvfs_statvfs01, 0},
+  {"statvfs_statvfs02", ltp_get_statvfs_statvfs02, 0},
+  {"statx_statx01", ltp_get_statx_statx01, 0},
+  {"statx_statx02", ltp_get_statx_statx02, 0},
+  {"statx_statx03", ltp_get_statx_statx03, 0},
+  {"statx_statx06", ltp_get_statx_statx06, 0},
+  {"statx_statx07", ltp_get_statx_statx07, 0},
+  {"statx_statx10", ltp_get_statx_statx10, 0},
+  {"statx_statx11", ltp_get_statx_statx11, 0},
+  {"statx_statx12", ltp_get_statx_statx12, 0},
+  {"string_string01", 0, ltp_run_string_string01},
+  {"swapoff_swapoff01", ltp_get_swapoff_swapoff01, 0},
+  {"swapoff_swapoff02", ltp_get_swapoff_swapoff02, 0},
+  {"swapon_swapon01", ltp_get_swapon_swapon01, 0},
+  {"swapon_swapon02", ltp_get_swapon_swapon02, 0},
+  {"swapon_swapon03", ltp_get_swapon_swapon03, 0},
+  {"swapon_swapon04", ltp_get_swapon_swapon04, 0},
+  {"switch_endian_switch01", ltp_get_switch_endian_switch01, 0},
+  {"symlink_symlink02", ltp_get_symlink_symlink02, 0},
+  {"symlink_symlink03", 0, ltp_run_symlink_symlink03},
+  {"symlink_symlink04", ltp_get_symlink_symlink04, 0},
+  {"symlinkat_symlinkat01", 0, ltp_run_symlinkat_symlinkat01},
+  {"sync_sync01", ltp_get_sync_sync01, 0},
+  {"syncfs_syncfs01", ltp_get_syncfs_syncfs01, 0},
+  {"syscall_syscall01", ltp_get_syscall_syscall01, 0},
+  {"syscall_syscall02", ltp_get_syscall_syscall02, 0},
+  {"sysconf_sysconf01", 0, ltp_run_sysconf_sysconf01},
+  {"sysinfo_sysinfo01", ltp_get_sysinfo_sysinfo01, 0},
+  {"sysinfo_sysinfo02", ltp_get_sysinfo_sysinfo02, 0},
+  {"syslog_syslog11", ltp_get_syslog_syslog11, 0},
+  {"syslog_syslog12", ltp_get_syslog_syslog12, 0},
+  {"tgkill_tgkill01", ltp_get_tgkill_tgkill01, 0},
+  {"tgkill_tgkill02", ltp_get_tgkill_tgkill02, 0},
+  {"tgkill_tgkill03", ltp_get_tgkill_tgkill03, 0},
+  {"time_time01", ltp_get_time_time01, 0},
+  {"timer_create_timer_create02", ltp_get_timer_create_timer_create02, 0},
+  {"timer_delete_timer_delete01", ltp_get_timer_delete_timer_delete01, 0},
+  {"timer_delete_timer_delete02", ltp_get_timer_delete_timer_delete02, 0},
+  {"timer_getoverrun_timer_getoverrun01", ltp_get_timer_getoverrun_timer_getoverrun01, 0},
+  {"timer_gettime_timer_gettime01", ltp_get_timer_gettime_timer_gettime01, 0},
+  {"timer_settime_timer_settime01", ltp_get_timer_settime_timer_settime01, 0},
+  {"timer_settime_timer_settime02", ltp_get_timer_settime_timer_settime02, 0},
+  {"timer_settime_timer_settime03", ltp_get_timer_settime_timer_settime03, 0},
+  {"timerfd_timerfd01", ltp_get_timerfd_timerfd01, 0},
+  {"timerfd_timerfd02", ltp_get_timerfd_timerfd02, 0},
+  {"timerfd_timerfd_create01", ltp_get_timerfd_timerfd_create01, 0},
+  {"timerfd_timerfd_gettime01", ltp_get_timerfd_timerfd_gettime01, 0},
+  {"timerfd_timerfd_settime01", ltp_get_timerfd_timerfd_settime01, 0},
+  {"timerfd_timerfd_settime02", ltp_get_timerfd_timerfd_settime02, 0},
+  {"times_times01", ltp_get_times_times01, 0},
+  {"times_times03", ltp_get_times_times03, 0},
+  {"tkill_tkill01", ltp_get_tkill_tkill01, 0},
+  {"tkill_tkill02", ltp_get_tkill_tkill02, 0},
+  {"truncate_truncate02", ltp_get_truncate_truncate02, 0},
+  {"truncate_truncate03", ltp_get_truncate_truncate03, 0},
+  {"ulimit_ulimit01", ltp_get_ulimit_ulimit01, 0},
+  {"umask_umask01", ltp_get_umask_umask01, 0},
+  {"umount2_umount2_01", 0, ltp_run_umount2_umount2_01},
+  {"umount2_umount2_02", ltp_get_umount2_umount2_02, 0},
+  {"umount_umount01", ltp_get_umount_umount01, 0},
+  {"umount_umount02", ltp_get_umount_umount02, 0},
+  {"umount_umount03", ltp_get_umount_umount03, 0},
+  {"uname_uname01", ltp_get_uname_uname01, 0},
+  {"uname_uname02", ltp_get_uname_uname02, 0},
+  {"uname_uname04", ltp_get_uname_uname04, 0},
+  {"unlink_unlink05", ltp_get_unlink_unlink05, 0},
+  {"unlink_unlink07", ltp_get_unlink_unlink07, 0},
+  {"unlink_unlink08", ltp_get_unlink_unlink08, 0},
+  {"unlinkat_unlinkat01", ltp_get_unlinkat_unlinkat01, 0},
+  {"unshare_unshare01", ltp_get_unshare_unshare01, 0},
+  {"unshare_unshare02", ltp_get_unshare_unshare02, 0},
+  {"ustat_ustat01", ltp_get_ustat_ustat01, 0},
+  {"ustat_ustat02", ltp_get_ustat_ustat02, 0},
+  {"utime_utime01", ltp_get_utime_utime01, 0},
+  {"utime_utime02", ltp_get_utime_utime02, 0},
+  {"utime_utime03", ltp_get_utime_utime03, 0},
+  {"utime_utime04", ltp_get_utime_utime04, 0},
+  {"utime_utime05", ltp_get_utime_utime05, 0},
+  {"utime_utime06", ltp_get_utime_utime06, 0},
+  {"utime_utime07", ltp_get_utime_utime07, 0},
+  {"utimes_utimes01", ltp_get_utimes_utimes01, 0},
+  {"vfork_vfork01", ltp_get_vfork_vfork01, 0},
+  {"vfork_vfork02", ltp_get_vfork_vfork02, 0},
+  {"vhangup_vhangup01", ltp_get_vhangup_vhangup01, 0},
+  {"vhangup_vhangup02", ltp_get_vhangup_vhangup02, 0},
+  {"wait4_wait401", ltp_get_wait4_wait401, 0},
+  {"wait4_wait402", ltp_get_wait4_wait402, 0},
+  {"wait4_wait403", ltp_get_wait4_wait403, 0},
+  {"wait_wait01", ltp_get_wait_wait01, 0},
+  {"wait_wait02", ltp_get_wait_wait02, 0},
+  {"waitid_waitid01", ltp_get_waitid_waitid01, 0},
+  {"waitid_waitid02", ltp_get_waitid_waitid02, 0},
+  {"waitid_waitid03", ltp_get_waitid_waitid03, 0},
+  {"waitid_waitid04", ltp_get_waitid_waitid04, 0},
+  {"waitid_waitid05", ltp_get_waitid_waitid05, 0},
+  {"waitid_waitid06", ltp_get_waitid_waitid06, 0},
+  {"waitid_waitid07", ltp_get_waitid_waitid07, 0},
+  {"waitid_waitid08", ltp_get_waitid_waitid08, 0},
+  {"waitid_waitid09", ltp_get_waitid_waitid09, 0},
+  {"waitid_waitid10", ltp_get_waitid_waitid10, 0},
+  {"waitid_waitid11", ltp_get_waitid_waitid11, 0},
+  {"waitpid_waitpid01", ltp_get_waitpid_waitpid01, 0},
+  {"waitpid_waitpid03", ltp_get_waitpid_waitpid03, 0},
+  {"waitpid_waitpid04", ltp_get_waitpid_waitpid04, 0},
+  {"waitpid_waitpid06", ltp_get_waitpid_waitpid06, 0},
+  {"waitpid_waitpid07", ltp_get_waitpid_waitpid07, 0},
+  {"waitpid_waitpid08", ltp_get_waitpid_waitpid08, 0},
+  {"waitpid_waitpid09", ltp_get_waitpid_waitpid09, 0},
+  {"waitpid_waitpid10", ltp_get_waitpid_waitpid10, 0},
+  {"waitpid_waitpid11", ltp_get_waitpid_waitpid11, 0},
+  {"waitpid_waitpid12", ltp_get_waitpid_waitpid12, 0},
+  {"waitpid_waitpid13", ltp_get_waitpid_waitpid13, 0},
+  {"write_write01", ltp_get_write_write01, 0},
+  {"write_write02", ltp_get_write_write02, 0},
+  {"write_write03", ltp_get_write_write03, 0},
+  {"write_write04", ltp_get_write_write04, 0},
+  {"write_write05", ltp_get_write_write05, 0},
+  {"write_write06", ltp_get_write_write06, 0},
+  {"writev_writev01", ltp_get_writev_writev01, 0},
+  {"writev_writev02", 0, ltp_run_writev_writev02},
+  {"writev_writev03", ltp_get_writev_writev03, 0},
+  {"writev_writev05", 0, ltp_run_writev_writev05},
+  {"writev_writev06", 0, ltp_run_writev_writev06},
+  {"writev_writev07", ltp_get_writev_writev07, 0},
+};
+const int ltp_test_count = 1030;

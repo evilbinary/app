@@ -1,0 +1,371 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * Copyright (c) 2017 Cyril Hrubis <chrubis@suse.cz>
+ */
+
+#ifndef LAPI_KEYCTL_H__
+#define LAPI_KEYCTL_H__
+
+#include "config.h"
+
+#ifdef HAVE_LINUX_KEYCTL_H
+# include <linux/keyctl.h>
+#endif /* HAVE_LINUX_KEYCTL_H */
+
+#include <stdarg.h>
+#include <stdint.h>
+#include "lapi/syscalls.h"
+
+typedef int32_t key_serial_t;
+
+static inline key_serial_t add_key(const char *type,
+				   const char *description,
+				   const void *payload,
+				   size_t plen,
+				   key_serial_t ringid)
+{
+	return tst_syscall(__NR_add_key,
+		type, description, payload, plen, ringid);
+}
+
+static inline key_serial_t request_key(const char *type,
+				       const char *description,
+				       const char *callout_info,
+				       key_serial_t destringid)
+{
+	return tst_syscall(__NR_request_key,
+		type, description, callout_info, destringid);
+}
+
+static inline long keyctl(int cmd, ...)
+{
+	va_list va;
+	unsigned long arg2, arg3, arg4, arg5;
+
+	va_start(va, cmd);
+	arg2 = va_arg(va, unsigned long);
+	arg3 = va_arg(va, unsigned long);
+	arg4 = va_arg(va, unsigned long);
+	arg5 = va_arg(va, unsigned long);
+	va_end(va);
+
+	return tst_syscall(__NR_keyctl, cmd, arg2, arg3, arg4, arg5);
+}
+
+static inline key_serial_t keyctl_join_session_keyring(const char *name) {
+	return keyctl(KEYCTL_JOIN_SESSION_KEYRING, name);
+}
+
+#ifndef HAVE_STRUCT_KEYCTL_DH_PARAMS
+struct keyctl_dh_params {
+	union {
+		int32_t priv;
+		int32_t private;
+	};
+	int32_t prime;
+	int32_t base;
+};
+#endif
+
+#ifndef HAVE_STRUCT_KEYCTL_KDF_PARAMS
+struct keyctl_kdf_params {
+	char *hashname;
+	char *otherinfo;
+	uint32_t otherinfolen;
+	uint32_t __spare[8];
+};
+#endif
+
+#ifndef HAVE_STRUCT_KEYCTL_PKEY_QUERY
+struct keyctl_pkey_query {
+	uint32_t	supported_ops;
+	uint32_t	key_size;
+	uint16_t	max_data_size;
+	uint16_t	max_sig_size;
+	uint16_t	max_enc_size;
+	uint16_t	max_dec_size;
+	uint32_t	__spare[10];
+};
+#endif
+
+#ifndef HAVE_STRUCT_KEYCTL_PKEY_PARAMS
+struct keyctl_pkey_params {
+	int32_t		key_id;
+	uint32_t	in_len;
+	union {
+		uint32_t	out_len;
+		uint32_t	in2_len;
+	};
+	uint32_t	__spare[7];
+};
+#endif
+
+/* special process keyring shortcut IDs */
+#ifndef KEY_SPEC_THREAD_KEYRING
+# define KEY_SPEC_THREAD_KEYRING -1
+#endif
+
+#ifndef KEY_SPEC_PROCESS_KEYRING
+# define KEY_SPEC_PROCESS_KEYRING -2
+#endif
+
+#ifndef KEY_SPEC_SESSION_KEYRING
+# define KEY_SPEC_SESSION_KEYRING -3
+#endif
+
+#ifndef KEY_SPEC_USER_KEYRING
+# define KEY_SPEC_USER_KEYRING -4
+#endif
+
+
+#ifndef KEY_SPEC_USER_SESSION_KEYRING
+# define KEY_SPEC_USER_SESSION_KEYRING -5
+#endif
+
+/* request-key default keyrings */
+#ifndef KEY_REQKEY_DEFL_THREAD_KEYRING
+# define KEY_REQKEY_DEFL_THREAD_KEYRING 1
+#endif
+
+#ifndef KEY_REQKEY_DEFL_SESSION_KEYRING
+# define KEY_REQKEY_DEFL_SESSION_KEYRING 3
+#endif
+
+#ifndef KEY_REQKEY_DEFL_DEFAULT
+# define KEY_REQKEY_DEFL_DEFAULT	0
+#endif
+
+/* keyctl commands */
+#ifndef KEYCTL_GET_KEYRING_ID
+# define KEYCTL_GET_KEYRING_ID 0
+#endif
+
+#ifndef KEYCTL_JOIN_SESSION_KEYRING
+# define KEYCTL_JOIN_SESSION_KEYRING 1
+#endif
+
+#ifndef KEYCTL_UPDATE
+# define KEYCTL_UPDATE 2
+#endif
+
+#ifndef KEYCTL_REVOKE
+# define KEYCTL_REVOKE 3
+#endif
+
+#ifndef KEYCTL_SETPERM
+# define KEYCTL_SETPERM 5
+#endif
+
+#ifndef KEYCTL_DESCRIBE
+# define KEYCTL_DESCRIBE 6
+#endif
+
+#ifndef KEYCTL_CLEAR
+# define KEYCTL_CLEAR 7
+#endif
+
+#ifndef KEYCTL_LINK
+# define KEYCTL_LINK 8
+#endif
+
+#ifndef KEYCTL_UNLINK
+# define KEYCTL_UNLINK 9
+#endif
+
+#ifndef KEYCTL_SEARCH
+# define KEYCTL_SEARCH 10
+#endif
+
+#ifndef KEYCTL_READ
+# define KEYCTL_READ 11
+#endif
+
+#ifndef KEYCTL_SET_REQKEY_KEYRING
+# define KEYCTL_SET_REQKEY_KEYRING 14
+#endif
+
+#ifndef KEYCTL_SET_TIMEOUT
+# define KEYCTL_SET_TIMEOUT 15
+#endif
+
+#ifndef KEYCTL_ASSUME_AUTHORITY
+# define KEYCTL_ASSUME_AUTHORITY 16
+#endif
+
+#ifndef KEYCTL_GET_SECURITY
+# define KEYCTL_GET_SECURITY 17
+#endif
+
+#ifndef KEYCTL_INVALIDATE
+# define KEYCTL_INVALIDATE 21
+#endif
+
+#ifndef KEYCTL_GET_PERSISTENT
+# define KEYCTL_GET_PERSISTENT 22
+#endif
+
+#ifndef KEYCTL_DH_COMPUTE
+# define KEYCTL_DH_COMPUTE 23
+#endif
+
+#ifndef KEYCTL_WATCH_KEY
+# define KEYCTL_WATCH_KEY 32
+#endif
+
+#ifndef KEYCTL_RESTRICT_KEYRING
+# define KEYCTL_RESTRICT_KEYRING 29
+#endif
+
+#ifndef KEYCTL_MOVE
+# define KEYCTL_MOVE 30
+#endif
+
+#ifndef KEYCTL_MOVE_EXCL
+# define KEYCTL_MOVE_EXCL 0x00000001 /* do not displace from the to-keyring */
+#endif
+
+#ifndef KEYCTL_PKEY_QUERY
+# define KEYCTL_PKEY_QUERY 24
+#endif
+
+#ifndef KEYCTL_PKEY_ENCRYPT
+# define KEYCTL_PKEY_ENCRYPT 25
+#endif
+
+#ifndef KEYCTL_PKEY_DECRYPT
+# define KEYCTL_PKEY_DECRYPT 26
+#endif
+
+#ifndef KEYCTL_PKEY_SIGN
+# define KEYCTL_PKEY_SIGN 27
+#endif
+
+#ifndef KEYCTL_PKEY_VERIFY
+# define KEYCTL_PKEY_VERIFY 28
+#endif
+
+#ifndef KEYCTL_SUPPORTS_ENCRYPT
+# define KEYCTL_SUPPORTS_ENCRYPT 0x01
+# define KEYCTL_SUPPORTS_DECRYPT 0x02
+# define KEYCTL_SUPPORTS_SIGN    0x04
+# define KEYCTL_SUPPORTS_VERIFY  0x08
+#endif
+
+/* key permissions */
+#ifndef KEY_POS_VIEW
+# define KEY_POS_VIEW    0x01000000
+# define KEY_POS_READ    0x02000000
+# define KEY_POS_WRITE   0x04000000
+# define KEY_POS_SEARCH  0x08000000
+# define KEY_POS_LINK    0x10000000
+# define KEY_POS_SETATTR 0x20000000
+# define KEY_POS_ALL     0x3f000000
+
+# define KEY_USR_VIEW    0x00010000
+# define KEY_USR_READ    0x00020000
+# define KEY_USR_WRITE   0x00040000
+# define KEY_USR_SEARCH  0x00080000
+# define KEY_USR_LINK    0x00100000
+# define KEY_USR_SETATTR 0x00200000
+# define KEY_USR_ALL     0x003f0000
+
+# define KEY_GRP_VIEW    0x00000100
+# define KEY_GRP_READ    0x00000200
+# define KEY_GRP_WRITE   0x00000400
+# define KEY_GRP_SEARCH  0x00000800
+# define KEY_GRP_LINK    0x00001000
+# define KEY_GRP_SETATTR 0x00002000
+# define KEY_GRP_ALL     0x00003f00
+
+# define KEY_OTH_VIEW    0x00000001
+# define KEY_OTH_READ    0x00000002
+# define KEY_OTH_WRITE   0x00000004
+# define KEY_OTH_SEARCH  0x00000008
+# define KEY_OTH_LINK    0x00000010
+# define KEY_OTH_SETATTR 0x00000020
+# define KEY_OTH_ALL     0x0000003f
+#endif /* !KEY_POS_VIEW */
+
+static inline long safe_keyctl(const char *file, const int lineno,
+	int cmd, unsigned long arg2, unsigned long arg3,
+	unsigned long arg4, unsigned long arg5)
+{
+	long rval;
+	int failure = 0;
+
+	rval = keyctl(cmd, arg2, arg3, arg4, arg5);
+	if (rval == -1) {
+		tst_brk_(file, lineno,
+			(errno == EOPNOTSUPP ? TCONF : TBROK) | TERRNO,
+			"keyctl(%d, %lu, %lu, %lu, %lu)",
+			cmd, arg2, arg3, arg4, arg5);
+	}
+
+	switch (cmd) {
+	case KEYCTL_GET_KEYRING_ID:
+	case KEYCTL_JOIN_SESSION_KEYRING:
+	case KEYCTL_DESCRIBE:
+	case KEYCTL_SEARCH:
+	case KEYCTL_READ:
+	case KEYCTL_SET_REQKEY_KEYRING:
+	case KEYCTL_GET_SECURITY:
+	case KEYCTL_GET_PERSISTENT:
+	case KEYCTL_DH_COMPUTE:
+	case KEYCTL_PKEY_QUERY:
+	case KEYCTL_PKEY_ENCRYPT:
+	case KEYCTL_PKEY_DECRYPT:
+	case KEYCTL_PKEY_SIGN:
+	case KEYCTL_PKEY_VERIFY:
+		if (rval < 0)
+			failure = 1;
+		break;
+	case KEYCTL_ASSUME_AUTHORITY:
+		if ((!arg2 && rval) || (arg2 && rval < 0))
+			failure = 1;
+		break;
+	default:
+		if (rval)
+			failure = 1;
+		break;
+	}
+
+	if (failure) {
+		tst_brk_(file, lineno, TBROK,
+			"keyctl(%d, %lu, %lu, %lu, %lu) returned %ld",
+			cmd, arg2, arg3, arg4, arg5, rval);
+	}
+
+	return rval;
+}
+
+#define SAFE_KEYCTL(cmd, arg2, arg3, arg4, arg5) \
+	safe_keyctl(__FILE__, __LINE__, \
+	     (cmd), (arg2), (arg3), (arg4), (arg5))
+
+static inline key_serial_t safe_add_key(const char *file, const int lineno,
+			  const char *type, const char *desc,
+			  const void *payload, size_t size,
+			  key_serial_t keyring)
+{
+
+	int rval;
+
+	rval = add_key(type, desc, payload, size, keyring);
+
+	if (rval == -1) {
+		tst_brk_(file, lineno, TBROK | TERRNO,
+			 "add_key(%s, '%s', %p, %ld, %d) failed",
+			 type, desc, payload, size, keyring);
+	} else if (rval < -1) {
+		tst_brk_(file, lineno, TBROK | TERRNO,
+			 "Invalid add_key(%s, '%s', %p, %ld, %d) return value %d",
+			 type, desc, payload, size, keyring, rval);
+	}
+
+	return rval;
+}
+
+#define SAFE_ADD_KEY(type, desc, payload, size, keyring) \
+	safe_add_key(__FILE__, __LINE__, \
+                            (type), (desc), (payload), (size), (keyring))
+#endif	/* LAPI_KEYCTL_H__ */

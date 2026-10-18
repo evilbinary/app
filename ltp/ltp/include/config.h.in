@@ -1,0 +1,788 @@
+/* include/config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* Define to 1 if you have the <aio.h> header file. */
+#undef HAVE_AIO_H
+
+/* Define to 1 if you have the <asm/ldt.h> header file. */
+#undef HAVE_ASM_LDT_H
+
+/* Define to 1 if you have the <asm/prctl.h> header file. */
+#undef HAVE_ASM_PRCTL_H
+
+/* Define to 1 if you have the __atomic_* compiler builtins */
+#undef HAVE_ATOMIC_MEMORY_MODEL
+
+/* Define to 1 if you have the 'cachestat' function. */
+#undef HAVE_CACHESTAT
+
+/* Define to 1 if you have __clear_cache */
+#undef HAVE_CLEAR_CACHE
+
+/* Define to 1 if you have the 'clnttcp_create' function. */
+#undef HAVE_CLNTTCP_CREATE
+
+/* Define to 1 if you have the 'clone3' function. */
+#undef HAVE_CLONE3
+
+/* Define to 1 if you have the 'close_range' function. */
+#undef HAVE_CLOSE_RANGE
+
+/* Define to 1 if you have the 'copy_file_range' function. */
+#undef HAVE_COPY_FILE_RANGE
+
+/* Define to 1 if you have the <cpuid.h> header file. */
+#undef HAVE_CPUID_H
+
+/* Define to 1 if you have the declaration of 'IFLA_NET_NS_PID', and to 0 if
+   you don't. */
+#undef HAVE_DECL_IFLA_NET_NS_PID
+
+/* Define to 1 if you have the declaration of 'IORING_OP_READ', and to 0 if
+   you don't. */
+#undef HAVE_DECL_IORING_OP_READ
+
+/* Define to 1 if you have the declaration of 'IORING_OP_WRITE', and to 0 if
+   you don't. */
+#undef HAVE_DECL_IORING_OP_WRITE
+
+/* Define to 1 if you have the declaration of 'LANDLOCK_RULE_NET_PORT', and to
+   0 if you don't. */
+#undef HAVE_DECL_LANDLOCK_RULE_NET_PORT
+
+/* Define to 1 if you have the declaration of 'LANDLOCK_RULE_PATH_BENEATH',
+   and to 0 if you don't. */
+#undef HAVE_DECL_LANDLOCK_RULE_PATH_BENEATH
+
+/* Define to 1 if you have the declaration of 'MADV_MERGEABLE', and to 0 if
+   you don't. */
+#undef HAVE_DECL_MADV_MERGEABLE
+
+/* Define to 1 if you have the declaration of 'NFTA_CHAIN_ID', and to 0 if you
+   don't. */
+#undef HAVE_DECL_NFTA_CHAIN_ID
+
+/* Define to 1 if you have the declaration of 'NFTA_VERDICT_CHAIN_ID', and to
+   0 if you don't. */
+#undef HAVE_DECL_NFTA_VERDICT_CHAIN_ID
+
+/* Define to 1 if you have the declaration of 'PR_CAPBSET_DROP', and to 0 if
+   you don't. */
+#undef HAVE_DECL_PR_CAPBSET_DROP
+
+/* Define to 1 if you have the declaration of 'PR_CAPBSET_READ', and to 0 if
+   you don't. */
+#undef HAVE_DECL_PR_CAPBSET_READ
+
+/* Define to 1 if you have the declaration of 'SEM_STAT_ANY', and to 0 if you
+   don't. */
+#undef HAVE_DECL_SEM_STAT_ANY
+
+/* Define to 1 if you have the declaration of 'TCA_PEDIT_KEYS_EX', and to 0 if
+   you don't. */
+#undef HAVE_DECL_TCA_PEDIT_KEYS_EX
+
+/* Define to 1 if you have the declaration of 'TCA_PEDIT_KEY_EX', and to 0 if
+   you don't. */
+#undef HAVE_DECL_TCA_PEDIT_KEY_EX
+
+/* Define to 1 if you have the declaration of 'TCA_PEDIT_KEY_EX_CMD', and to 0
+   if you don't. */
+#undef HAVE_DECL_TCA_PEDIT_KEY_EX_CMD
+
+/* Define to 1 if you have the declaration of 'TCA_PEDIT_KEY_EX_HTYPE', and to
+   0 if you don't. */
+#undef HAVE_DECL_TCA_PEDIT_KEY_EX_HTYPE
+
+/* Define to 1 if you have the declaration of 'TCA_PEDIT_PARMS_EX', and to 0
+   if you don't. */
+#undef HAVE_DECL_TCA_PEDIT_PARMS_EX
+
+/* Define to 1 if you have the <emmintrin.h> header file. */
+#undef HAVE_EMMINTRIN_H
+
+/* Define to 1 if the system has the type 'enum kcmp_type'. */
+#undef HAVE_ENUM_KCMP_TYPE
+
+/* Define to 1 if the system has the type 'enum pedit_cmd'. */
+#undef HAVE_ENUM_PEDIT_CMD
+
+/* Define to 1 if the system has the type 'enum pedit_header_type'. */
+#undef HAVE_ENUM_PEDIT_HEADER_TYPE
+
+/* Define to 1 if you have the 'epoll_pwait' function. */
+#undef HAVE_EPOLL_PWAIT
+
+/* Define to 1 if you have the 'epoll_pwait2' function. */
+#undef HAVE_EPOLL_PWAIT2
+
+/* Define to 1 if you have the 'execveat' function. */
+#undef HAVE_EXECVEAT
+
+/* Define to 1 if you have the 'faccessat2' function. */
+#undef HAVE_FACCESSAT2
+
+/* Define to 1 if you have the 'fallocate' function. */
+#undef HAVE_FALLOCATE
+
+/* Define to 1 if you have the 'file_getattr' function. */
+#undef HAVE_FILE_GETATTR
+
+/* Define to 1 if you have the 'file_setattr' function. */
+#undef HAVE_FILE_SETATTR
+
+/* Define to 1 if you have the 'fsconfig' function. */
+#undef HAVE_FSCONFIG
+
+/* Define to 1 if you have the 'fsmount' function. */
+#undef HAVE_FSMOUNT
+
+/* Define to 1 if you have the 'fsopen' function. */
+#undef HAVE_FSOPEN
+
+/* Define to 1 if you have the 'fspick' function. */
+#undef HAVE_FSPICK
+
+/* Define to 1 if you have the 'fstatat' function. */
+#undef HAVE_FSTATAT
+
+/* Define to 1 if you have the <fts.h> header file. */
+#undef HAVE_FTS_H
+
+/* Define to 1 if you have the 'getauxval' function. */
+#undef HAVE_GETAUXVAL
+
+/* Define to 1 if you have the 'getcontext' function. */
+#undef HAVE_GETCONTEXT
+
+/* Define to 1 if you have the 'getcpu' function. */
+#undef HAVE_GETCPU
+
+/* Define to 1 if you have the 'getdents' function. */
+#undef HAVE_GETDENTS
+
+/* Define to 1 if you have the 'getdents64' function. */
+#undef HAVE_GETDENTS64
+
+/* Define to 1 if you have the <ifaddrs.h> header file. */
+#undef HAVE_IFADDRS_H
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the 'io_pgetevents' function. */
+#undef HAVE_IO_PGETEVENTS
+
+/* Define to 1 if you have `io_set_eventfd' function. */
+#undef HAVE_IO_SET_EVENTFD
+
+/* Define to 1 if you have the 'io_uring_enter' function. */
+#undef HAVE_IO_URING_ENTER
+
+/* Define to 1 if you have the 'io_uring_register' function. */
+#undef HAVE_IO_URING_REGISTER
+
+/* Define to 1 if you have the 'io_uring_setup' function. */
+#undef HAVE_IO_URING_SETUP
+
+/* Define to 1 if you have the 'kcmp' function. */
+#undef HAVE_KCMP
+
+/* Define to 1 if you have libacl and it's headers installed */
+#undef HAVE_LIBACL
+
+/* Define to 1 if you have libaio and it's headers installed. */
+#undef HAVE_LIBAIO
+
+/* Define to 1 if you have the <libaio.h> header file. */
+#undef HAVE_LIBAIO_H
+
+/* Define to 1 if you have libcap-2 installed. */
+#undef HAVE_LIBCAP
+
+/* Define whether libcrypto and openssl headers are installed */
+#undef HAVE_LIBCRYPTO
+
+/* Define to 1 if you have libmnl library and headers */
+#undef HAVE_LIBMNL
+
+/* Define to 1 if you have both SELinux libraries and headers. */
+#undef HAVE_LIBSELINUX_DEVEL
+
+/* Define to 1 if you have the <linux/blkdev.h> header file. */
+#undef HAVE_LINUX_BLKDEV_H
+
+/* Define to 1 if you have the <linux/can.h> header file. */
+#undef HAVE_LINUX_CAN_H
+
+/* Define to 1 if you have the <linux/cgroupstats.h> header file. */
+#undef HAVE_LINUX_CGROUPSTATS_H
+
+/* Define to 1 if you have the <linux/close_range.h> header file. */
+#undef HAVE_LINUX_CLOSE_RANGE_H
+
+/* Define to 1 if you have the <linux/cryptouser.h> header file. */
+#undef HAVE_LINUX_CRYPTOUSER_H
+
+/* Define to 1 if you have the <linux/dccp.h> header file. */
+#undef HAVE_LINUX_DCCP_H
+
+/* Define to 1 if you have the <linux/fsverity.h> header file. */
+#undef HAVE_LINUX_FSVERITY_H
+
+/* Define to 1 if you have the <linux/fs.h> header file. */
+#undef HAVE_LINUX_FS_H
+
+/* Define to 1 if you have the <linux/futex.h> header file. */
+#undef HAVE_LINUX_FUTEX_H
+
+/* Define to 1 if you have the <linux/genetlink.h> header file. */
+#undef HAVE_LINUX_GENETLINK_H
+
+/* Define to 1 if you have the <linux/genhd.h> header file. */
+#undef HAVE_LINUX_GENHD_H
+
+/* Define to 1 if you have the <linux/if_alg.h> header file. */
+#undef HAVE_LINUX_IF_ALG_H
+
+/* Define to 1 if you have the <linux/if_ether.h> header file. */
+#undef HAVE_LINUX_IF_ETHER_H
+
+/* Define to 1 if you have the <linux/if_packet.h> header file. */
+#undef HAVE_LINUX_IF_PACKET_H
+
+/* Define to 1 if you have the <linux/ioprio.h> header file. */
+#undef HAVE_LINUX_IOPRIO_H
+
+/* Define to 1 if you have the <linux/io_uring.h> header file. */
+#undef HAVE_LINUX_IO_URING_H
+
+/* Define to 1 if you have the <linux/keyctl.h> header file. */
+#undef HAVE_LINUX_KEYCTL_H
+
+/* Define to 1 if you have the <linux/landlock.h> header file. */
+#undef HAVE_LINUX_LANDLOCK_H
+
+/* Define to 1 if you have the <linux/lsm.h> header file. */
+#undef HAVE_LINUX_LSM_H
+
+/* Define to 1 if you have the <linux/mempolicy.h> header file. */
+#undef HAVE_LINUX_MEMPOLICY_H
+
+/* Define to 1 if you have the <linux/module.h> header file. */
+#undef HAVE_LINUX_MODULE_H
+
+/* Define to 1 if you have the <linux/mount.h> header file. */
+#undef HAVE_LINUX_MOUNT_H
+
+/* Define to 1 if you have the <linux/netlink.h> header file. */
+#undef HAVE_LINUX_NETLINK_H
+
+/* Define to 1 if you have the <linux/seccomp.h> header file. */
+#undef HAVE_LINUX_SECCOMP_H
+
+/* Define to 1 if you have the <linux/securebits.h> header file. */
+#undef HAVE_LINUX_SECUREBITS_H
+
+/* Define to 1 if you have the <linux/taskstats.h> header file. */
+#undef HAVE_LINUX_TASKSTATS_H
+
+/* Define to 1 if you have the <linux/tls.h> header file. */
+#undef HAVE_LINUX_TLS_H
+
+/* Define to 1 if you have the <linux/tty.h> header file. */
+#undef HAVE_LINUX_TTY_H
+
+/* Define to 1 if you have the <linux/types.h> header file. */
+#undef HAVE_LINUX_TYPES_H
+
+/* Define to 1 if you have the <linux/userfaultfd.h> header file. */
+#undef HAVE_LINUX_USERFAULTFD_H
+
+/* Define to 1 if you have the <linux/vm_sockets.h> header file. */
+#undef HAVE_LINUX_VM_SOCKETS_H
+
+/* Define to 1 if you have the 'mallinfo' function. */
+#undef HAVE_MALLINFO
+
+/* Define to 1 if you have the 'mallinfo2' function. */
+#undef HAVE_MALLINFO2
+
+/* Define to 1 if you have the 'mallopt' function. */
+#undef HAVE_MALLOPT
+
+/* Define to 1 if you have the 'mkdtemp' function. */
+#undef HAVE_MKDTEMP
+
+/* Define to 1 if you have the 'modify_ldt' function. */
+#undef HAVE_MODIFY_LDT
+
+/* Define to 1 if you have the 'mount_setattr' function. */
+#undef HAVE_MOUNT_SETATTR
+
+/* Define to 1 if you have the 'move_mount' function. */
+#undef HAVE_MOVE_MOUNT
+
+/* Define to 1 if you have the 'name_to_handle_at' function. */
+#undef HAVE_NAME_TO_HANDLE_AT
+
+/* Define to 1 if you have the <netinet/sctp.h> header file. */
+#undef HAVE_NETINET_SCTP_H
+
+/* Define to 1 if you have the <numaif.h> header file. */
+#undef HAVE_NUMAIF_H
+
+/* Define to 1 if you have the <numa.h> header file. */
+#undef HAVE_NUMA_H
+
+/* Define to 1 if you have libnuma and it's headers version >= 2 installed. */
+#undef HAVE_NUMA_V2
+
+/* Define to 1 if you have the 'openat' function. */
+#undef HAVE_OPENAT
+
+/* Define to 1 if you have the 'openat2' function. */
+#undef HAVE_OPENAT2
+
+/* Define to 1 if you have the <openssl/sha.h> header file. */
+#undef HAVE_OPENSSL_SHA_H
+
+/* Define to 1 if you have the 'open_tree' function. */
+#undef HAVE_OPEN_TREE
+
+/* Define to 1 if you have the 'open_tree_attr' function. */
+#undef HAVE_OPEN_TREE_ATTR
+
+/* Define to 1 if you have the 'pidfd_getfd' function. */
+#undef HAVE_PIDFD_GETFD
+
+/* Define to 1 if you have the 'pidfd_open' function. */
+#undef HAVE_PIDFD_OPEN
+
+/* Define to 1 if you have the 'pidfd_send_signal' function. */
+#undef HAVE_PIDFD_SEND_SIGNAL
+
+/* Define to 1 if you have the 'pkey_mprotect' function. */
+#undef HAVE_PKEY_MPROTECT
+
+/* Define to 1 if you have the 'preadv' function. */
+#undef HAVE_PREADV
+
+/* Define to 1 if you have the 'preadv2' function. */
+#undef HAVE_PREADV2
+
+/* Define to 1 if you have the 'profil' function. */
+#undef HAVE_PROFIL
+
+/* Define to 1 if you have the <pthread.h> header file. */
+#undef HAVE_PTHREAD_H
+
+/* Define to 1 if you have the 'pwritev' function. */
+#undef HAVE_PWRITEV
+
+/* Define to 1 if you have the 'pwritev2' function. */
+#undef HAVE_PWRITEV2
+
+/* Define to 1 if you have the 'quotactl_fd' function. */
+#undef HAVE_QUOTACTL_FD
+
+/* Define to 1 if you have the 'rand_r' function. */
+#undef HAVE_RAND_R
+
+/* Define to 1 if you have the 'recvmmsg' function. */
+#undef HAVE_RECVMMSG
+
+/* Define to 1 if you have the 'renameat2' function. */
+#undef HAVE_RENAMEAT2
+
+/* Define to 1 if you have the 'sched_getattr' function. */
+#undef HAVE_SCHED_GETATTR
+
+/* Define to 1 if you have the 'sched_getcpu' function. */
+#undef HAVE_SCHED_GETCPU
+
+/* Define to 1 if you have the 'sched_setattr' function. */
+#undef HAVE_SCHED_SETATTR
+
+/* Define to 1 if you have the <selinux/selinux.h> header file. */
+#undef HAVE_SELINUX_SELINUX_H
+
+/* Define to 1 if you have the 'sendmmsg' function. */
+#undef HAVE_SENDMMSG
+
+/* Define to 1 if you have the 'sethostid' function. */
+#undef HAVE_SETHOSTID
+
+/* Define to 1 if you have the 'setns' function. */
+#undef HAVE_SETNS
+
+/* Define to 1 if you have the 'sigpending' function. */
+#undef HAVE_SIGPENDING
+
+/* Define to 1 if you have the 'splice' function. */
+#undef HAVE_SPLICE
+
+/* Define to 1 if you have the 'statx' function. */
+#undef HAVE_STATX
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the 'stime' function. */
+#undef HAVE_STIME
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if the system has the type 'struct acct_v3'. */
+#undef HAVE_STRUCT_ACCT_V3
+
+/* Define to 1 if the system has the type 'struct af_alg_iv'. */
+#undef HAVE_STRUCT_AF_ALG_IV
+
+/* Define to 1 if the system has the type 'struct cachestat'. */
+#undef HAVE_STRUCT_CACHESTAT
+
+/* Define to 1 if the system has the type 'struct cachestat_range'. */
+#undef HAVE_STRUCT_CACHESTAT_RANGE
+
+/* Define to 1 if the system has the type 'struct clone_args'. */
+#undef HAVE_STRUCT_CLONE_ARGS
+
+/* Define to 1 if the system has the type 'struct fanotify_event_info_error'.
+   */
+#undef HAVE_STRUCT_FANOTIFY_EVENT_INFO_ERROR
+
+/* Define to 1 if the system has the type 'struct fanotify_event_info_fid'. */
+#undef HAVE_STRUCT_FANOTIFY_EVENT_INFO_FID
+
+/* Define to 1 if 'fsid.__val' is a member of 'struct
+   fanotify_event_info_fid'. */
+#undef HAVE_STRUCT_FANOTIFY_EVENT_INFO_FID_FSID___VAL
+
+/* Define to 1 if the system has the type 'struct fanotify_event_info_header'.
+   */
+#undef HAVE_STRUCT_FANOTIFY_EVENT_INFO_HEADER
+
+/* Define to 1 if the system has the type 'struct fanotify_event_info_pidfd'.
+   */
+#undef HAVE_STRUCT_FANOTIFY_EVENT_INFO_PIDFD
+
+/* Define to 1 if the system has the type 'struct fanotify_event_info_range'.
+   */
+#undef HAVE_STRUCT_FANOTIFY_EVENT_INFO_RANGE
+
+/* Define to 1 if the system has the type 'struct file_attr'. */
+#undef HAVE_STRUCT_FILE_ATTR
+
+/* Define to 1 if the system has the type 'struct file_clone_range'. */
+#undef HAVE_STRUCT_FILE_CLONE_RANGE
+
+/* Define to 1 if the system has the type 'struct file_dedupe_range'. */
+#undef HAVE_STRUCT_FILE_DEDUPE_RANGE
+
+/* Define to 1 if the system has the type 'struct file_handle'. */
+#undef HAVE_STRUCT_FILE_HANDLE
+
+/* Define to 1 if the system has the type 'struct fsverity_enable_arg'. */
+#undef HAVE_STRUCT_FSVERITY_ENABLE_ARG
+
+/* Define to 1 if the system has the type 'struct fsxattr'. */
+#undef HAVE_STRUCT_FSXATTR
+
+/* Define to 1 if the system has the type 'struct fs_quota_statv'. */
+#undef HAVE_STRUCT_FS_QUOTA_STATV
+
+/* Define to 1 if the system has the type 'struct futex_waitv'. */
+#undef HAVE_STRUCT_FUTEX_WAITV
+
+/* Define to 1 if the system has the type 'struct if_nextdqblk'. */
+#undef HAVE_STRUCT_IF_NEXTDQBLK
+
+/* Define to 1 if 'aio_rw_flags' is a member of 'struct iocb'. */
+#undef HAVE_STRUCT_IOCB_AIO_RW_FLAGS
+
+/* Define to 1 if the system has the type 'struct iovec'. */
+#undef HAVE_STRUCT_IOVEC
+
+/* Define to 1 if the system has the type 'struct io_uring_clone_buffers'. */
+#undef HAVE_STRUCT_IO_URING_CLONE_BUFFERS
+
+/* Define to 1 if the system has the type 'struct ipc64_perm'. */
+#undef HAVE_STRUCT_IPC64_PERM
+
+/* Define to 1 if the system has the type 'struct keyctl_dh_params'. */
+#undef HAVE_STRUCT_KEYCTL_DH_PARAMS
+
+/* Define to 1 if the system has the type 'struct keyctl_kdf_params'. */
+#undef HAVE_STRUCT_KEYCTL_KDF_PARAMS
+
+/* Define to 1 if the system has the type 'struct keyctl_pkey_params'. */
+#undef HAVE_STRUCT_KEYCTL_PKEY_PARAMS
+
+/* Define to 1 if the system has the type 'struct keyctl_pkey_query'. */
+#undef HAVE_STRUCT_KEYCTL_PKEY_QUERY
+
+/* Define to 1 if the system has the type 'struct landlock_net_port_attr'. */
+#undef HAVE_STRUCT_LANDLOCK_NET_PORT_ATTR
+
+/* Define to 1 if the system has the type 'struct landlock_path_beneath_attr'.
+   */
+#undef HAVE_STRUCT_LANDLOCK_PATH_BENEATH_ATTR
+
+/* Define to 1 if the system has the type 'struct logical_block_metadata_cap'.
+   */
+#undef HAVE_STRUCT_LOGICAL_BLOCK_METADATA_CAP
+
+/* Define to 1 if the system has the type 'struct loop_config'. */
+#undef HAVE_STRUCT_LOOP_CONFIG
+
+/* Define to 1 if the system has the type 'struct lsm_ctx'. */
+#undef HAVE_STRUCT_LSM_CTX
+
+/* Define to 1 if the system has the type 'struct mmsghdr'. */
+#undef HAVE_STRUCT_MMSGHDR
+
+/* Define to 1 if 'mnt_ns_fd' is a member of 'struct mnt_id_req'. */
+#undef HAVE_STRUCT_MNT_ID_REQ_MNT_NS_FD
+
+/* Define to 1 if the system has the type 'struct modify_ldt_ldt_s'. */
+#undef HAVE_STRUCT_MODIFY_LDT_LDT_S
+
+/* Define to 1 if the system has the type 'struct mount_attr'. */
+#undef HAVE_STRUCT_MOUNT_ATTR
+
+/* Define to 1 if the system has the type 'struct msqid64_ds'. */
+#undef HAVE_STRUCT_MSQID64_DS
+
+/* Define to 1 if 'aux_head' is a member of 'struct perf_event_mmap_page'. */
+#undef HAVE_STRUCT_PERF_EVENT_MMAP_PAGE_AUX_HEAD
+
+/* Define to 1 if the system has the type 'struct pidfd_info'. */
+#undef HAVE_STRUCT_PIDFD_INFO
+
+/* Define to 1 if the system has the type 'struct prctl_mm_map'. */
+#undef HAVE_STRUCT_PRCTL_MM_MAP
+
+/* Define to 1 if the system has the type 'struct procmap_query'. */
+#undef HAVE_STRUCT_PROCMAP_QUERY
+
+/* Define to 1 if the system has the type 'struct rlimit64'. */
+#undef HAVE_STRUCT_RLIMIT64
+
+/* Define to 1 if the system has the type 'struct sched_attr'. */
+#undef HAVE_STRUCT_SCHED_ATTR
+
+/* Define to 1 if the system has the type 'struct semid64_ds'. */
+#undef HAVE_STRUCT_SEMID64_DS
+
+/* Define to 1 if the system has the type 'struct shmid64_ds'. */
+#undef HAVE_STRUCT_SHMID64_DS
+
+/* Define to 1 if 'sa_sigaction' is a member of 'struct sigaction'. */
+#undef HAVE_STRUCT_SIGACTION_SA_SIGACTION
+
+/* Define to 1 if the system has the type 'struct sockaddr_alg'. */
+#undef HAVE_STRUCT_SOCKADDR_ALG
+
+/* Define to 1 if the system has the type 'struct sockaddr_vm'. */
+#undef HAVE_STRUCT_SOCKADDR_VM
+
+/* Define to 1 if the system has the type 'struct statmount'. */
+#undef HAVE_STRUCT_STATMOUNT
+
+/* Define to 1 if 'mnt_ns_id' is a member of 'struct statmount'. */
+#undef HAVE_STRUCT_STATMOUNT_MNT_NS_ID
+
+/* Define to 1 if the system has the type 'struct statx'. */
+#undef HAVE_STRUCT_STATX
+
+/* Define to 1 if 'stx_dio_mem_align' is a member of 'struct statx'. */
+#undef HAVE_STRUCT_STATX_STX_DIO_MEM_ALIGN
+
+/* Define to 1 if 'stx_mnt_id' is a member of 'struct statx'. */
+#undef HAVE_STRUCT_STATX_STX_MNT_ID
+
+/* Define to 1 if the system has the type 'struct statx_timestamp'. */
+#undef HAVE_STRUCT_STATX_TIMESTAMP
+
+/* Define to 1 if 'freepages_count' is a member of 'struct taskstats'. */
+#undef HAVE_STRUCT_TASKSTATS_FREEPAGES_COUNT
+
+/* Define to 1 if 'nvcsw' is a member of 'struct taskstats'. */
+#undef HAVE_STRUCT_TASKSTATS_NVCSW
+
+/* Define to 1 if 'read_bytes' is a member of 'struct taskstats'. */
+#undef HAVE_STRUCT_TASKSTATS_READ_BYTES
+
+/* Define to 1 if the system has the type 'struct termio'. */
+#undef HAVE_STRUCT_TERMIO
+
+/* Define to 1 if the system has the type 'struct tpacket_req3'. */
+#undef HAVE_STRUCT_TPACKET_REQ3
+
+/* Define to 1 if the system has the type 'struct uffdio_move'. */
+#undef HAVE_STRUCT_UFFDIO_MOVE
+
+/* Define to 1 if the system has the type 'struct uffdio_poison'. */
+#undef HAVE_STRUCT_UFFDIO_POISON
+
+/* Define to 1 if the system has the type 'struct uffdio_writeprotect'. */
+#undef HAVE_STRUCT_UFFDIO_WRITEPROTECT
+
+/* Define to 1 if the system has the type 'struct user_desc'. */
+#undef HAVE_STRUCT_USER_DESC
+
+/* Define to 1 if 'domainname' is a member of 'struct utsname'. */
+#undef HAVE_STRUCT_UTSNAME_DOMAINNAME
+
+/* Define to 1 if the system has the type 'struct xt_entry_match'. */
+#undef HAVE_STRUCT_XT_ENTRY_MATCH
+
+/* Define to 1 if the system has the type 'struct xt_entry_target'. */
+#undef HAVE_STRUCT_XT_ENTRY_TARGET
+
+/* Define to 1 if the system has the type 'struct __kernel_itimerspec'. */
+#undef HAVE_STRUCT___KERNEL_ITIMERSPEC
+
+/* Define to 1 if the system has the type 'struct __kernel_old_itimerspec'. */
+#undef HAVE_STRUCT___KERNEL_OLD_ITIMERSPEC
+
+/* Define to 1 if the system has the type 'struct __kernel_old_itimerval'. */
+#undef HAVE_STRUCT___KERNEL_OLD_ITIMERVAL
+
+/* Define to 1 if the system has the type 'struct __kernel_old_timespec'. */
+#undef HAVE_STRUCT___KERNEL_OLD_TIMESPEC
+
+/* Define to 1 if the system has the type 'struct __kernel_old_timeval'. */
+#undef HAVE_STRUCT___KERNEL_OLD_TIMEVAL
+
+/* Define to 1 if the system has the type 'struct __kernel_timespec'. */
+#undef HAVE_STRUCT___KERNEL_TIMESPEC
+
+/* Define to 1 if you have the 'syncfs' function. */
+#undef HAVE_SYNCFS
+
+/* Define to 1 if you have __sync_add_and_fetch */
+#undef HAVE_SYNC_ADD_AND_FETCH
+
+/* Define to 1 if you have the 'sync_file_range' function. */
+#undef HAVE_SYNC_FILE_RANGE
+
+/* Define to 1 if you have the <sys/acl.h> header file. */
+#undef HAVE_SYS_ACL_H
+
+/* Define to 1 if you have the <sys/capability.h> header file. */
+#undef HAVE_SYS_CAPABILITY_H
+
+/* Define to 1 if you have the <sys/epoll.h> header file. */
+#undef HAVE_SYS_EPOLL_H
+
+/* Define to 1 if you have the <sys/fanotify.h> header file. */
+#undef HAVE_SYS_FANOTIFY_H
+
+/* Define to 1 if you have the <sys/inotify.h> header file. */
+#undef HAVE_SYS_INOTIFY_H
+
+/* Define to 1 if you have the <sys/pidfd.h> header file. */
+#undef HAVE_SYS_PIDFD_H
+
+/* Define to 1 if you have the <sys/prctl.h> header file. */
+#undef HAVE_SYS_PRCTL_H
+
+/* Define to 1 if you have the <sys/random.h> header file. */
+#undef HAVE_SYS_RANDOM_H
+
+/* Define to 1 if you have the <sys/shm.h> header file. */
+#undef HAVE_SYS_SHM_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/timerfd.h> header file. */
+#undef HAVE_SYS_TIMERFD_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <sys/ustat.h> header file. */
+#undef HAVE_SYS_USTAT_H
+
+/* Define to 1 if you have the <sys/utsname.h> header file. */
+#undef HAVE_SYS_UTSNAME_H
+
+/* Define to 1 if you have the <sys/xattr.h> header file. */
+#undef HAVE_SYS_XATTR_H
+
+/* Define to 1 if you have the 'tee' function. */
+#undef HAVE_TEE
+
+/* Define to 1 if you have the 'timerfd_create' function. */
+#undef HAVE_TIMERFD_CREATE
+
+/* Define to 1 if you have the 'timerfd_gettime' function. */
+#undef HAVE_TIMERFD_GETTIME
+
+/* Define to 1 if you have the 'timerfd_settime' function. */
+#undef HAVE_TIMERFD_SETTIME
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the 'unshare' function. */
+#undef HAVE_UNSHARE
+
+/* Define to 1 if you have the 'ustat' function. */
+#undef HAVE_USTAT
+
+/* Define to 1 if you have utimensat(2) */
+#undef HAVE_UTIMENSAT
+
+/* Define to 1 if you have the 'vmsplice' function. */
+#undef HAVE_VMSPLICE
+
+/* Define to 1 if you have the 'xdr_char' function. */
+#undef HAVE_XDR_CHAR
+
+/* Define to 1 if you have the <xfs/xqm.h> header file. */
+#undef HAVE_XFS_XQM_H
+
+/* Error message when no NUMA support */
+#undef NUMA_ERROR_MSG
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Define to 1 if all of the C89 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
+#undef STDC_HEADERS
+
+/* Version number of package */
+#undef VERSION
