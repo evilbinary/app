@@ -46,6 +46,14 @@ add_files(
 )
 add_cflags('-DHAVE_SIGNAL_H')
 
+target("test-swap")
+set_type("cli")
+add_deps("cmocka")
+add_files(
+   'test-swap.c'
+)
+add_cflags('-DHAVE_SIGNAL_H')
+
 target("test-uncompress")
 set_type("cli")
 add_deps("cmocka","zlib")
