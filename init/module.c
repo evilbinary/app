@@ -220,6 +220,13 @@ void modules_init(void) {
   REGISTER_MODULE(loader);
 #endif
 
+/* 【页交换 backing】必须排在 fatfs 之后（文件形式要 /mnt/* 已挂好、分区形式
+ * 要 partition 已枚举出 sdaN）、sysconf 之前——sysconf 的 init 就会触发
+ * sysconf_apply，之后注册的回调不会再被执行。见 duck/modules/swap/swap.c。 */
+#ifdef SWAP_MODULE
+  REGISTER_MODULE(swap);
+#endif
+
 /* 【系统配置】必须排在 fatfs/fat 之后：它们把 SD 卡挂到 "/"，sysconf 才能读到
  * /conf/system.conf；同时要在 xwin/用户态应用开始画之前。
  * 见 duck/modules/sysconf/sysconf.c。 */
