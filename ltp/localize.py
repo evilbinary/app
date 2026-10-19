@@ -56,11 +56,14 @@ def main():
             subprocess.check_call([OBJCOPY, "--keep-global-symbols=" + kf, src, dst])
             n += 1
         os.remove(kf)
-        # 同步到 build objs 目录（链接器实际取用的路径）
+        # 同步到 build objs 目录（链接器实际取用的路径）。
+        # mtime 拨早 1 秒：ymake 只在 obj 严格早于 src 时才认为"有修改"并
+        # 重新链接最终二进制（否则 wrapper .c 变化后 ltp 不会 relink）。
         bdst = os.path.join(out_build_dir, fid + ".o")
         if not os.path.exists(bdst) or os.path.getmtime(bdst) < os.path.getmtime(dst):
             import shutil
             shutil.copy2(dst, bdst)
+            os.utime(bdst, (os.path.getmtime(dst) - 1, os.path.getmtime(dst) - 1))
     total = len([x for x in os.listdir(OBJS_OUT) if x.endswith(".o")])
     print("localized %d objs, total %d" % (n, total))
     return 0
