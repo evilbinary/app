@@ -30,6 +30,12 @@ target("ls")
 set_type("cli")
 add_files("ls.c") 
 
+# rm：删除文件。内核不替用户决定删什么（清理 /tmp 里的陈旧锁文件之类），
+# 由用户在 shell 里执行 rm。
+target("rm")
+set_type("cli")
+add_files("rm.c")
+
 target("shell")
 set_type("cli")
 add_files("shell.c") 
