@@ -167,6 +167,88 @@ int run_exec(char* cmd, char** argv, int background) {
   return pid;
 }
 
+/* 命令名 → 可执行文件路径：带斜杠原样用（./yes、/mnt/sda2/bin/yes），
+ * 否则先试 /bin/名字、再试 /名字。返回 0 找到、-1 没找到。 */
+static int shell_resolve_path(const char* name, char* out, int cap) {
+  if (strchr(name, '/') != NULL) {
+    snprintf(out, cap, "%s", name);
+    return access(out, 0);
+  }
+  snprintf(out, cap, "/bin/%s", name);
+  if (access(out, 0) == 0) {
+    return 0;
+  }
+  snprintf(out, cap, "/%s", name);
+  return access(out, 0);
+}
+
+/* 前台执行并返回【命令退出码】。sh -c / system() / popen() 判成败看的是
+ * 退出码（WEXITSTATUS），不是子进程 pid：旧实现把 do_exec 的返回值（pid）
+ * 直接当 main 的返回值 ⇒ 跑完 xkbcomp 的 sh 以 pid=11 退出，Xorg 的
+ * pclose 收到 11 判 "Error compiling keymap"，实际 keymap 早就编译好了。
+ * 子进程被信号打死时按 shell 惯例返回 128+信号号。 */
+static int shell_run_status(const char* path, char** argv) {
+  int pid = fork();
+  if (pid == 0) {
+    execv((char*)path, argv);
+    exit(127);
+  }
+  if (pid < 0) {
+    return 127;
+  }
+  int status = 0;
+  if (waitpid(pid, &status, 0) < 0) {
+    return 127;
+  }
+  if (WIFEXITED(status)) {
+    return WEXITSTATUS(status);
+  }
+  if (WIFSIGNALED(status)) {
+    return 128 + WTERMSIG(status);
+  }
+  return 1;
+}
+
+/* `sh -c "cmd"`：执行一条命令并把它的退出码作为 shell 的退出码。
+ * 行尾 `&` 仍按后台跑（此时无可等待，返回 0）。 */
+static int shell_exec_c(char* cmd) {
+  char path[SHELL_LINE_MAX];
+  char* argv[64];
+  memset(path, 0, sizeof(path));
+  memset(argv, 0, sizeof(argv));
+  int n = shell_split_args(cmd, argv, 64);
+  if (n <= 0 || argv[0] == NULL) {
+    return 0;
+  }
+  int background = 0;
+  {
+    char* last = argv[n - 1];
+    int len = (int)strlen(last);
+    if (len > 0 && last[len - 1] == '&') {
+      background = 1;
+      last[len - 1] = '\0';
+      if (last[0] == '\0') {
+        argv[n - 1] = NULL;
+        n--;
+      }
+    }
+  }
+  if (n <= 0 || argv[0] == NULL) {
+    return 0;
+  }
+  if (shell_resolve_path(argv[0], path, sizeof(path)) != 0) {
+    /* 与常见 shell 一致：找不到命令返回 127 */
+    printf("%s: not found\n", argv[0]);
+    fflush(stdout);
+    return 127;
+  }
+  if (background) {
+    run_exec(path, argv, 1);
+    return 0;
+  }
+  return shell_run_status(path, argv);
+}
+
 /* 后台任务退出后收成僵尸。WNOHANG 没有僵尸就立刻返回，不挡输入。 */
 static void shell_reap(void) {
   int status = 0;
@@ -237,19 +319,7 @@ int do_exec(char* cmd) {
   }
   /* 带斜杠的按路径打开（./yes、/mnt/sda2/bin/yes）。
    * 没有斜杠才去 /bin、/ 里找，避免 /bin/./yes。 */
-  if (strchr(cmd_argv[0], '/') != NULL) {
-    strncpy(cmd_buf, cmd_argv[0], sizeof(cmd_buf) - 1);
-    cmd_buf[sizeof(cmd_buf) - 1] = '\0';
-    ret = access(cmd_buf, 0);
-  } else {
-    /* 名字长度不再有 128 的隐含上限：用 snprintf 截断保护 */
-    snprintf(cmd_buf, sizeof(cmd_buf), "/bin/%s", cmd_argv[0]);
-    ret = access(cmd_buf, 0);
-    if (ret < 0) {
-      snprintf(cmd_buf, sizeof(cmd_buf), "/%s", cmd_argv[0]);
-      ret = access(cmd_buf, 0);
-    }
-  }
+  ret = shell_resolve_path(cmd_argv[0], cmd_buf, sizeof(cmd_buf));
   int pid = 0;
   if (ret == 0) {
     pid = run_exec(cmd_buf, cmd_argv, background);
@@ -304,9 +374,10 @@ void shell_loop() {
 int main(int argc, char* argv[]) {
   setenv("PATH", "/bin:/app/", 1);
 
-  /* `sh -c "cmd"`：供 system()/popen 等使用，执行完即退出 */
+  /* `sh -c "cmd"`：供 system()/popen 等使用，执行完即退出。
+   * 退出码必须是命令自身的退出码（调用方 pclose/WEXITSTATUS 判成败）。 */
   if (argc >= 3 && strcmp(argv[1], "-c") == 0) {
-    return do_exec(argv[2]);
+    return shell_exec_c(argv[2]);
   }
 
   const char* home = getenv("HOME");
