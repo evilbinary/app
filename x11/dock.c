@@ -19,7 +19,6 @@
  *
  * 用法：dock           （直连 /tmp/.X11-unix/X0）
  ********************************************************************/
-#include <fcntl.h>
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,94 +55,13 @@ static struct launcher launch[] = {
 #define N_LAUNCH ((int)(sizeof(launch) / sizeof(launch[0])))
 #define ICON_RUN (N_LAUNCH) /* 运行中窗口按钮用的图标下标 */
 
-struct bitmap {
-  int w, h;
-  uint8_t* px; /* w*h*4 字节 BGRX */
-};
-
 static x11_t c;
 static uint32_t dock, gc, font;
 static uint32_t atom_client_list, atom_active;
 static uint32_t runs[MAX_RUN];
 static int nruns;
 static int dock_w; /* 胶囊（也是窗口）宽度 */
-static struct bitmap icons[N_LAUNCH + 1];
-
-static uint16_t le16(const uint8_t* p) { return (uint16_t)(p[0] | (p[1] << 8)); }
-static uint32_t le32(const uint8_t* p) {
-  return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
-         ((uint32_t)p[3] << 24);
-}
-
-/* 读 24/32bpp 未压缩 BMP 成 BGRX 像素（和屏帧字节序一致） */
-static int load_bmp(const char* file, struct bitmap* bm) {
-  static uint8_t buf[256 * 1024];
-  const char* dirs[2] = {"/res/", "res/"};
-  char path[64];
-  int fd = -1;
-  int i, y;
-  long total = 0;
-  uint32_t off, stride;
-  int w, h, bpp, topdown;
-  uint8_t* px;
-
-  for (i = 0; i < 2 && fd < 0; i++) {
-    snprintf(path, sizeof(path), "%s%s", dirs[i], file);
-    fd = open(path, O_RDONLY);
-  }
-  if (fd < 0) {
-    return -1;
-  }
-  while (total < (long)sizeof(buf)) {
-    ssize_t n = read(fd, buf + total, sizeof(buf) - (size_t)total);
-    if (n <= 0) {
-      break;
-    }
-    total += n;
-  }
-  close(fd);
-  if (total < 54 || buf[0] != 'B' || buf[1] != 'M' || le32(buf + 30) != 0) {
-    return -1;
-  }
-  off = le32(buf + 10);
-  w = (int)le32(buf + 18);
-  h = (int)le32(buf + 22);
-  bpp = (int)le16(buf + 28);
-  if ((bpp != 24 && bpp != 32) || w <= 0 || w > 256 || h == 0) {
-    return -1;
-  }
-  topdown = (h < 0);
-  if (topdown) {
-    h = -h;
-  }
-  if (h > 256) {
-    return -1;
-  }
-  stride = ((uint32_t)w * (uint32_t)(bpp / 8) + 3u) & ~3u;
-  if ((long)off + (long)stride * h > total) {
-    return -1;
-  }
-  px = (uint8_t*)malloc((size_t)w * (size_t)h * 4u);
-  if (px == NULL) {
-    return -1;
-  }
-  for (y = 0; y < h; y++) {
-    int sy = topdown ? y : (h - 1 - y);
-    const uint8_t* s = buf + off + (uint32_t)sy * stride;
-    uint8_t* d = px + (size_t)y * (size_t)w * 4u;
-    int x;
-    for (x = 0; x < w; x++, d += 4, s += bpp / 8) {
-      d[0] = s[0]; /* BMP 的 BGR(A) 就是屏帧的 BGRX 顺序 */
-      d[1] = s[1];
-      d[2] = s[2];
-      d[3] = 0;
-    }
-  }
-  bm->w = w;
-  bm->h = h;
-  bm->px = px;
-  return 0;
-}
+static x11_image_t icons[N_LAUNCH + 1]; /* 0..N_LAUNCH-1 启动器，末尾运行窗口 */
 
 static void spawn(const char* path) {
   pid_t p = fork();
@@ -200,7 +118,7 @@ static void button(int idx) {
   int x = PAD + idx * STEP;
   int y = (DOCK_H - ICON) / 2;
   int running = (idx >= N_LAUNCH);
-  const struct bitmap* bm = running ? &icons[ICON_RUN] : &icons[idx];
+  const x11_image_t* bm = running ? &icons[ICON_RUN] : &icons[idx];
 
   if (running) { /* 运行中的窗口在图标下方加一条高亮 */
     x11_set_gc(&c, gc, 0x0C, RUN_ON, RUN_ON);
@@ -339,11 +257,11 @@ int main(int argc, char* argv[]) {
   atom_active = x11_intern_atom(&c, X11_NET_ACTIVE_WINDOW);
 
   for (i = 0; i < N_LAUNCH; i++) {
-    if (load_bmp(launch[i].icon, &icons[i]) == 0) {
+    if (x11_load_bmp(launch[i].icon, &icons[i]) == 0) {
       loaded++;
     }
   }
-  if (load_bmp("dock-win.bmp", &icons[ICON_RUN]) == 0) {
+  if (x11_load_bmp("dock-win.bmp", &icons[ICON_RUN]) == 0) {
     loaded++;
   }
 

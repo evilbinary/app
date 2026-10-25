@@ -83,6 +83,15 @@ int x11_set_gc_font(x11_t* c, uint32_t gc, uint32_t font);
 int x11_put_image(x11_t* c, uint32_t drawable, uint32_t gc, int dst_x, int dst_y,
                   int w, int rows, const uint8_t* bgrx);
 
+/* 一张图（BGRX 像素，可直接 x11_put_image） */
+typedef struct {
+  int w, h;
+  uint8_t* px;
+} x11_image_t;
+
+/* 读 24/32bpp 未压缩 BMP（依次在 /res/、res/ 下找）；成功返回 0 */
+int x11_load_bmp(const char* name, x11_image_t* img);
+
 /* 请求 */
 int x11_fill_rect(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
                   int w, int h);

@@ -4,6 +4,7 @@
 #include "x11.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -329,6 +330,83 @@ int x11_fill_rect(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
   put16(q + 16, (uint16_t)w);
   put16(q + 18, (uint16_t)h);
   return write_all(c->fd, q, sizeof(q));
+}
+
+/* 读 24/32bpp 未压缩 BMP 成 BGRX 像素（与屏帧字节序一致，可直接上传）。
+ * 资源都装在镜像的 /res 下，所以先试绝对路径，再试相对当前目录。 */
+int x11_load_bmp(const char* name, x11_image_t* img) {
+  static uint8_t buf[256 * 1024];
+  const char* dirs[2] = {"/res/", "res/"};
+  char path[64];
+  int fd = -1;
+  int i, y;
+  long total = 0;
+  uint32_t off, stride;
+  int w, h, bpp, topdown;
+  uint8_t* px;
+
+  if (img == NULL) {
+    return -1;
+  }
+  img->w = 0;
+  img->h = 0;
+  img->px = NULL;
+  for (i = 0; i < 2 && fd < 0; i++) {
+    snprintf(path, sizeof(path), "%s%s", dirs[i], name);
+    fd = open(path, O_RDONLY);
+  }
+  if (fd < 0) {
+    return -1;
+  }
+  while (total < (long)sizeof(buf)) {
+    ssize_t n = read(fd, buf + total, sizeof(buf) - (size_t)total);
+    if (n <= 0) {
+      break;
+    }
+    total += n;
+  }
+  close(fd);
+  if (total < 54 || buf[0] != 'B' || buf[1] != 'M' || le32(buf + 30) != 0) {
+    return -1;
+  }
+  off = le32(buf + 10);
+  w = (int)le32(buf + 18);
+  h = (int)le32(buf + 22);
+  bpp = (int)le16(buf + 28);
+  if ((bpp != 24 && bpp != 32) || w <= 0 || w > 512 || h == 0) {
+    return -1;
+  }
+  topdown = (h < 0);
+  if (topdown) {
+    h = -h;
+  }
+  if (h > 512) {
+    return -1;
+  }
+  stride = ((uint32_t)w * (uint32_t)(bpp / 8) + 3u) & ~3u;
+  if ((long)off + (long)stride * h > total) {
+    return -1;
+  }
+  px = (uint8_t*)malloc((size_t)w * (size_t)h * 4u);
+  if (px == NULL) {
+    return -1;
+  }
+  for (y = 0; y < h; y++) {
+    int sy = topdown ? y : (h - 1 - y);
+    const uint8_t* s = buf + off + (uint32_t)sy * stride;
+    uint8_t* d = px + (size_t)y * (size_t)w * 4u;
+    int x;
+    for (x = 0; x < w; x++, d += 4, s += bpp / 8) {
+      d[0] = s[0]; /* BMP 的 BGR(A) 就是屏帧的 BGRX 顺序 */
+      d[1] = s[1];
+      d[2] = s[2];
+      d[3] = 0;
+    }
+  }
+  img->w = w;
+  img->h = h;
+  img->px = px;
+  return 0;
 }
 
 int x11_clear(x11_t* c, uint32_t drawable) {

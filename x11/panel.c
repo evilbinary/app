@@ -5,9 +5,11 @@
  * 自己做曝光重绘：
  *
  *   ┌───────────────────────────────────────────────┐
- *   │ Menu   xclock   xeyes   Terminal        HH:MM │
+ *   │ Menu   xclock   xeyes   Terminal  wifi bat vol HH:MM │
  *   └───────────────────────────────────────────────┘
  *
+ * 右上角是状态区：Wi-Fi / 电池 / 音量图标（/res/bar-*.bmp，由
+ * tools/gen_dock_icons.py 生成）+ 时钟。
  * 点 "Menu" 弹一个 override-redirect 小窗（抓指针，点外面即关闭），
  * 点条目 fork+exec 起程序。时钟每 30 秒刷一次。
  *
@@ -34,6 +36,9 @@
 #define ITEM_H 24
 #define POP_PAD 4
 #define CLOCK_TICK 30
+#define SICON 18   /* 右上角状态图标边长 */
+#define SGAP 8     /* 状态图标之间的间距 */
+#define N_STATUS 3
 
 struct menu_item {
   const char* label;
@@ -51,6 +56,10 @@ static x11_t c;
 static uint32_t bar, bar_gc, font, popup, popup_gc;
 static int popup_open;
 static int pop_w, pop_h;
+/* 状态区图标，从右到左：音量 / 电池 / Wi-Fi */
+static const char* status_files[N_STATUS] = {"bar-wifi.bmp", "bar-battery.bmp",
+                                             "bar-volume.bmp"};
+static x11_image_t status_icons[N_STATUS];
 
 static void spawn(const char* path) {
   pid_t p = fork();
@@ -81,12 +90,26 @@ static void draw_clock(void) {
   draw_text(bar, right, 17, buf);
 }
 
+/* 右上角状态区：时钟左边依次是 音量 / 电池 / Wi-Fi（从右往左排） */
+static void draw_status(void) {
+  int x = c.w - 10 - 5 * 6; /* 时钟占 5 个字符，fixed 字体宽 6px */
+  int i;
+  for (i = N_STATUS - 1; i >= 0; i--) {
+    x -= SGAP + SICON;
+    if (status_icons[i].px != NULL) {
+      x11_put_image(&c, bar, bar_gc, x, (BAR_H - status_icons[i].h) / 2,
+                    status_icons[i].w, status_icons[i].h, status_icons[i].px);
+    }
+  }
+}
+
 static void draw_bar(void) {
   x11_set_gc(&c, bar_gc, 0x0C, BAR_BG, BAR_BG);
   x11_fill_rect(&c, bar, bar_gc, 0, 0, c.w, BAR_H);
   x11_set_gc(&c, bar_gc, 0x0C, BAR_FG, BAR_BG);
   draw_text(bar, 10, 17, "Menu");
   draw_text(bar, 70, 17, "|");
+  draw_status();
   draw_clock();
 }
 
@@ -178,6 +201,15 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   x11_set_gc_font(&c, bar_gc, font);
+  {
+    int i, n = 0;
+    for (i = 0; i < N_STATUS; i++) {
+      if (x11_load_bmp(status_files[i], &status_icons[i]) == 0) {
+        n++;
+      }
+    }
+    printf("panel: %d/%d 个状态图标已加载\n", n, N_STATUS);
+  }
   x11_map_window(&c, bar);
   printf("panel: %dx%d bar\n", c.w, BAR_H);
 
