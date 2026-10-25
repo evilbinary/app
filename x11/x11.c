@@ -702,7 +702,9 @@ int x11_query_children(x11_t* c, uint32_t win, uint32_t* out, int max) {
   if (write_all(c->fd, q, sizeof(q)) < 0) {
     return 0;
   }
-  if (read_reply(c, rep) < 0) {
+  /* 用 raw：数据区（子窗口 id 列表）由本函数自己读，
+   * read_reply 会先按 length 跳过一次，造成二次读取永久阻塞。 */
+  if (read_reply_raw(c, rep) < 0) {
     return 0;
   }
   n = (int)le16(rep + 16);
@@ -790,7 +792,7 @@ int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out,
   if (write_all(c->fd, q, sizeof(q)) < 0) {
     return 0;
   }
-  if (read_reply(c, rep) < 0) {
+  if (read_reply_raw(c, rep) < 0) { /* 同上：value 由本函数自己读 */
     return 0;
   }
   if (rep[1] != 32 || le32(rep + 16) == 0) {
@@ -829,7 +831,7 @@ int x11_get_property_str(x11_t* c, uint32_t win, uint32_t prop, char* out,
   if (write_all(c->fd, q, sizeof(q)) < 0) {
     return 0;
   }
-  if (read_reply(c, rep) < 0) {
+  if (read_reply_raw(c, rep) < 0) { /* 同上：字符串由本函数自己读 */
     return 0;
   }
   if (rep[1] != 8) {

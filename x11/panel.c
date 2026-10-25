@@ -132,8 +132,7 @@ static void popup_open_at(int x) {
   x11_map_window(&c, popup);
   x11_grab_pointer(&c, popup, X11_EV_BUTTON_PRESS);
   popup_open = 1;
-  draw_popup();
-  x11_clear(&c, popup);
+  draw_popup(); /* 别跟 ClearArea：会把菜单项擦掉 */
 }
 
 static void on_button(const uint8_t* ev) {

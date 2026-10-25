@@ -52,6 +52,7 @@ static uint32_t dock, gc, font;
 static uint32_t atom_client_list, atom_active;
 static uint32_t runs[MAX_RUN];
 static int nruns;
+static int g_start; /* 图标组第一个方块的 x（居中算出） */
 
 static void spawn(const char* path) {
   pid_t p = fork();
@@ -65,26 +66,45 @@ static void text(uint32_t win, int x, int y, const char* s) {
   x11_image_text8(&c, win, gc, x, y, s, (int)strlen(s));
 }
 
-/* 正方形按钮 + 居中字母 */
+/* 正方形按钮 + 居中字母；x 由 g_start 决定（整组居中） */
 static void button(int idx, uint32_t color, const char* label, int running) {
-  int x = PAD + idx * STEP;
+  int x = g_start + idx * STEP;
   int y = (DOCK_H - ICON) / 2;
   x11_set_gc(&c, gc, 0x0C, color, color);
   x11_fill_rect(&c, dock, gc, x, y, ICON, ICON);
   if (running) { /* 运行中的窗口加一条底部高亮 */
     x11_set_gc(&c, gc, 0x0C, RUN_ON, RUN_ON);
-    x11_fill_rect(&c, dock, gc, x, DOCK_H - 5, ICON, 3);
+    x11_fill_rect(&c, dock, gc, x, DOCK_H - 6, ICON, 3);
   }
   x11_set_gc(&c, gc, 0x0C, DOCK_FG, color);
   x11_image_text8(&c, dock, gc, x + ICON / 2 - 3, y + ICON / 2 + 6, label, 1);
 }
 
+/* 给图标组画一个圆角底衬（没有弧线原语，用三段矩形近似圆角） */
+static void pill(int x0, int x1) {
+  int y0 = 6;
+  int h = DOCK_H - 12;
+  x11_set_gc(&c, gc, 0x0C, DOCK_BG2, DOCK_BG2);
+  x11_fill_rect(&c, dock, gc, x0 + 4, y0, x1 - x0 - 8, h);
+  x11_fill_rect(&c, dock, gc, x0 + 2, y0 + 2, x1 - x0 - 4, h - 4);
+  x11_fill_rect(&c, dock, gc, x0, y0 + 4, x1 - x0, h - 8);
+}
+
 static void draw(void) {
   int i;
+  int count = N_LAUNCH + nruns;
+  int total = (count > 0) ? count * ICON + (count - 1) * PAD : 0;
+
+  /* 整条 dock 清成底色，再按"图标组居中"算出起始 x（macOS 风格） */
   x11_set_gc(&c, gc, 0x0C, DOCK_BG, DOCK_BG);
   x11_fill_rect(&c, dock, gc, 0, 0, 2000, DOCK_H);
-  x11_set_gc(&c, gc, 0x0C, DOCK_BG2, DOCK_BG2);
-  x11_fill_rect(&c, dock, gc, 0, 0, 2000, 1);
+  g_start = (c.w - total) / 2;
+  if (g_start < PAD) {
+    g_start = PAD;
+  }
+  if (count > 0) {
+    pill(g_start - 8, g_start + total + 8);
+  }
 
   for (i = 0; i < N_LAUNCH; i++) {
     button(i, launch[i].color, launch[i].letter, 0);
@@ -92,7 +112,9 @@ static void draw(void) {
   for (i = 0; i < nruns; i++) {
     button(N_LAUNCH + i, RUN_OFF, "W", 1);
   }
-  x11_clear(&c, dock);
+  /* 注意：这里【不能】再 ClearArea —— 它按窗口背景重绘整块，会把刚画好的
+   * 图标全部擦掉（dock 一开始就是"看不见"的元凶）。只有需要"按背景还原"
+   * 时才该用 ClearArea（wall 清根窗口就是那种场景）。 */
 }
 
 /* 读 _NET_CLIENT_LIST，变化则返回 1 */
@@ -143,12 +165,13 @@ static void activate(uint32_t win) {
 
 static void on_button(const uint8_t* ev) {
   int x = (int16_t)(ev[24] | (ev[25] << 8));
+  int rel = x - g_start;
   int idx;
-  if (x < PAD) {
+  if (rel < 0) {
     return;
   }
-  idx = (x - PAD) / STEP;
-  if ((x - PAD) % STEP > ICON) { /* 点在间隙里 */
+  idx = rel / STEP;
+  if (rel % STEP > ICON) { /* 点在间隙里 */
     return;
   }
   if (idx < N_LAUNCH) {
@@ -169,11 +192,9 @@ int main(int argc, char* argv[]) {
   (void)argc;
   (void)argv;
 
-  printf("dock: connecting\n");
   if (x11_connect(&c, NULL) < 0) {
     return 1;
   }
-  printf("dock: connected %dx%d depth %d\n", c.w, c.h, (int)c.root_depth);
   gc = x11_id(&c);
   font = x11_id(&c);
   if (x11_open_font(&c, font, "fixed") < 0) {
@@ -182,7 +203,6 @@ int main(int argc, char* argv[]) {
   }
   x11_create_gc(&c, gc, c.root);
   x11_set_gc_font(&c, gc, font);
-  printf("dock: gc/font ok\n");
   atom_client_list = x11_intern_atom(&c, X11_NET_CLIENT_LIST);
   atom_active = x11_intern_atom(&c, X11_NET_ACTIVE_WINDOW);
 
@@ -192,13 +212,12 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "dock: 建窗口失败\n");
     return 1;
   }
-  printf("dock: win=%u atoms=%u/%u\n", dock, atom_client_list, atom_active);
   x11_map_window(&c, dock);
   x11_raise(&c, dock);
-  printf("dock: mapped runs=%d\n", refresh_runs());
+  refresh_runs();
   draw();
-  printf("dock: drawn\n");
-  printf("dock: %dx%d 底部 dock\n", c.w, DOCK_H);
+  printf("dock: %dx%d 底部 dock（%d 个启动器 + %d 个运行窗口）\n", c.w, DOCK_H,
+         N_LAUNCH, nruns);
 
   for (;;) {
     struct pollfd pfd;
