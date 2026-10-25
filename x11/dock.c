@@ -1,17 +1,26 @@
 /*******************************************************************
  * dock — 自研底部 dock（应用启动器 + 运行中窗口按钮）。
  *
- * 屏幕底部一条 override-redirect 窗口，画两段：
- *   左边  固定启动器：终端 / 时钟 / xeyes（彩色方块 + 字母）
- *   右边  运行中的窗口：读根窗口 _NET_CLIENT_LIST，每个窗口一个按钮，
- *         标题取该窗口的 WM_NAME；点一下发 _NET_ACTIVE_WINDOW 给根窗口，
- *         由 wm 负责 raise + SetInputFocus
+ * 视觉要点（macOS 风格）：
+ *   1. 窗口只有"图标组"那么大的一条居中胶囊，不再用整条不透明底栏把
+ *      桌面壁纸盖住；窗口背景设成 ParentRelative，胶囊圆角以外的地方
+ *      直接透出根窗口的壁纸（ClearArea 在这里是"还原壁纸"的正确用法，
+ *      画完再清才会擦掉内容）。
+ *   2. 按钮用图标：启动时读 /res/dock-*.bmp（tools/gen_dock_icons.py
+ *      生成，图标底色与胶囊同色 ⇒ 看起来像无底框的图标）；读不到就退回
+ *      彩色方块 + 字母，保证没有资源时也能用。
  *
- * 每 800ms 轮询一次 _NET_CLIENT_LIST，变了就重画（窗口开关能立刻反映）。
- * 图像资源：没有图标文件，方块+字母用 X 核心字体 "fixed" 画，零依赖。
+ * 交互：
+ *   左边  固定启动器：终端 / 时钟 / xeyes
+ *   右边  运行中的窗口：读根窗口 _NET_CLIENT_LIST，每个窗口一个按钮，
+ *         点一下发 _NET_ACTIVE_WINDOW 给根窗口，由 wm 负责 raise + 焦点
+ *
+ * 每 800ms 轮询一次 _NET_CLIENT_LIST，变了就重画（窗口数量变化时同时
+ * 调整胶囊宽度并保持居中）。
  *
  * 用法：dock           （直连 /tmp/.X11-unix/X0）
  ********************************************************************/
+#include <fcntl.h>
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,36 +32,119 @@
 #include "x11.h"
 
 #define DOCK_H 56
-#define ICON 40
+#define ICON 36
 #define PAD 8
 #define STEP (ICON + PAD)
 #define MAX_RUN 12
+#define PARENT_RELATIVE 1u /* 背景 pixmap 值：跟随父窗口背景 */
 
-#define DOCK_BG X11_RGB(0x24, 0x2a, 0x33)
 #define DOCK_BG2 X11_RGB(0x2e, 0x34, 0x40)
 #define DOCK_FG X11_RGB(0xec, 0xef, 0xf4)
 #define RUN_ON X11_RGB(0x5e, 0x81, 0xac)
-#define RUN_OFF X11_RGB(0x43, 0x4c, 0x5e)
 
 struct launcher {
-  const char* letter;
+  const char* letter; /* 图标缺失时的回退字母 */
   const char* exec;
-  uint32_t color;
+  const char* icon;
+  uint32_t color; /* 回退色块颜色 */
 };
 
 static struct launcher launch[] = {
-    {"T", "/usr/bin/lxterminal", X11_RGB(0xa3, 0xbe, 0x8c)},
-    {"C", "/usr/bin/xclock", X11_RGB(0x88, 0xc0, 0xd0)},
-    {"E", "/usr/bin/xeyes", X11_RGB(0xeb, 0xcb, 0x8b)},
+    {"T", "/usr/bin/lxterminal", "dock-term.bmp", X11_RGB(0xa3, 0xbe, 0x8c)},
+    {"C", "/usr/bin/xclock", "dock-clock.bmp", X11_RGB(0x88, 0xc0, 0xd0)},
+    {"E", "/usr/bin/xeyes", "dock-eyes.bmp", X11_RGB(0xeb, 0xcb, 0x8b)},
 };
 #define N_LAUNCH ((int)(sizeof(launch) / sizeof(launch[0])))
+#define ICON_RUN (N_LAUNCH) /* 运行中窗口按钮用的图标下标 */
+
+struct bitmap {
+  int w, h;
+  uint8_t* px; /* w*h*4 字节 BGRX */
+};
 
 static x11_t c;
 static uint32_t dock, gc, font;
 static uint32_t atom_client_list, atom_active;
 static uint32_t runs[MAX_RUN];
 static int nruns;
-static int g_start; /* 图标组第一个方块的 x（居中算出） */
+static int dock_w; /* 胶囊（也是窗口）宽度 */
+static struct bitmap icons[N_LAUNCH + 1];
+
+static uint16_t le16(const uint8_t* p) { return (uint16_t)(p[0] | (p[1] << 8)); }
+static uint32_t le32(const uint8_t* p) {
+  return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
+         ((uint32_t)p[3] << 24);
+}
+
+/* 读 24/32bpp 未压缩 BMP 成 BGRX 像素（和屏帧字节序一致） */
+static int load_bmp(const char* file, struct bitmap* bm) {
+  static uint8_t buf[256 * 1024];
+  const char* dirs[2] = {"/res/", "res/"};
+  char path[64];
+  int fd = -1;
+  int i, y;
+  long total = 0;
+  uint32_t off, stride;
+  int w, h, bpp, topdown;
+  uint8_t* px;
+
+  for (i = 0; i < 2 && fd < 0; i++) {
+    snprintf(path, sizeof(path), "%s%s", dirs[i], file);
+    fd = open(path, O_RDONLY);
+  }
+  if (fd < 0) {
+    return -1;
+  }
+  while (total < (long)sizeof(buf)) {
+    ssize_t n = read(fd, buf + total, sizeof(buf) - (size_t)total);
+    if (n <= 0) {
+      break;
+    }
+    total += n;
+  }
+  close(fd);
+  if (total < 54 || buf[0] != 'B' || buf[1] != 'M' || le32(buf + 30) != 0) {
+    return -1;
+  }
+  off = le32(buf + 10);
+  w = (int)le32(buf + 18);
+  h = (int)le32(buf + 22);
+  bpp = (int)le16(buf + 28);
+  if ((bpp != 24 && bpp != 32) || w <= 0 || w > 256 || h == 0) {
+    return -1;
+  }
+  topdown = (h < 0);
+  if (topdown) {
+    h = -h;
+  }
+  if (h > 256) {
+    return -1;
+  }
+  stride = ((uint32_t)w * (uint32_t)(bpp / 8) + 3u) & ~3u;
+  if ((long)off + (long)stride * h > total) {
+    return -1;
+  }
+  px = (uint8_t*)malloc((size_t)w * (size_t)h * 4u);
+  if (px == NULL) {
+    return -1;
+  }
+  for (y = 0; y < h; y++) {
+    int sy = topdown ? y : (h - 1 - y);
+    const uint8_t* s = buf + off + (uint32_t)sy * stride;
+    uint8_t* d = px + (size_t)y * (size_t)w * 4u;
+    int x;
+    for (x = 0; x < w; x++, d += 4, s += bpp / 8) {
+      d[0] = s[0]; /* BMP 的 BGR(A) 就是屏帧的 BGRX 顺序 */
+      d[1] = s[1];
+      d[2] = s[2];
+      d[3] = 0;
+    }
+  }
+  bm->w = w;
+  bm->h = h;
+  bm->px = px;
+  return 0;
+}
 
 static void spawn(const char* path) {
   pid_t p = fork();
@@ -62,25 +154,17 @@ static void spawn(const char* path) {
   }
 }
 
-static void text(uint32_t win, int x, int y, const char* s) {
-  x11_image_text8(&c, win, gc, x, y, s, (int)strlen(s));
-}
-
-/* 正方形按钮 + 居中字母；x 由 g_start 决定（整组居中） */
-static void button(int idx, uint32_t color, const char* label, int running) {
-  int x = g_start + idx * STEP;
-  int y = (DOCK_H - ICON) / 2;
-  x11_set_gc(&c, gc, 0x0C, color, color);
-  x11_fill_rect(&c, dock, gc, x, y, ICON, ICON);
-  if (running) { /* 运行中的窗口加一条底部高亮 */
-    x11_set_gc(&c, gc, 0x0C, RUN_ON, RUN_ON);
-    x11_fill_rect(&c, dock, gc, x, DOCK_H - 6, ICON, 3);
+/* 胶囊宽度：图标组 + 两侧留白（窗口就只占这么大，不盖住桌面背景） */
+static int calc_w(int count) {
+  int w;
+  if (count <= 0) {
+    return 2 * PAD;
   }
-  x11_set_gc(&c, gc, 0x0C, DOCK_FG, color);
-  x11_image_text8(&c, dock, gc, x + ICON / 2 - 3, y + ICON / 2 + 6, label, 1);
+  w = count * ICON + (count - 1) * PAD + 2 * PAD;
+  return (w > c.w) ? c.w : w;
 }
 
-/* 给图标组画一个圆角底衬（没有弧线原语，用三段矩形近似圆角） */
+/* 胶囊底衬（没有弧线原语，用三段矩形近似圆角）；x0/x1 是窗口内坐标 */
 static void pill(int x0, int x1) {
   int y0 = 6;
   int h = DOCK_H - 12;
@@ -90,41 +174,67 @@ static void pill(int x0, int x1) {
   x11_fill_rect(&c, dock, gc, x0, y0 + 4, x1 - x0, h - 8);
 }
 
+/* 一个图标按钮（idx 从 0 开始，窗口内居中在它自己的格子里） */
+static void button(int idx) {
+  int x = PAD + idx * STEP;
+  int y = (DOCK_H - ICON) / 2;
+  int running = (idx >= N_LAUNCH);
+  const struct bitmap* bm = running ? &icons[ICON_RUN] : &icons[idx];
+
+  if (running) { /* 运行中的窗口在图标下方加一条高亮 */
+    x11_set_gc(&c, gc, 0x0C, RUN_ON, RUN_ON);
+    x11_fill_rect(&c, dock, gc, x + 4, DOCK_H - 9, ICON - 8, 3);
+  }
+  if (bm->px != NULL) {
+    x11_put_image(&c, dock, gc, x + (ICON - bm->w) / 2,
+                  y + (ICON - bm->h) / 2, bm->w, bm->h, bm->px);
+    return;
+  }
+  /* 图标文件缺失时的回退：彩色方块 + 字母 */
+  if (!running) {
+    x11_set_gc(&c, gc, 0x0C, launch[idx].color, launch[idx].color);
+    x11_fill_rect(&c, dock, gc, x, y, ICON, ICON);
+    x11_set_gc(&c, gc, 0x0C, DOCK_FG, launch[idx].color);
+    x11_image_text8(&c, dock, gc, x + ICON / 2 - 3, y + ICON / 2 + 6,
+                    launch[idx].letter, 1);
+  } else {
+    x11_set_gc(&c, gc, 0x0C, X11_RGB(0x43, 0x4c, 0x5e), X11_RGB(0x43, 0x4c, 0x5e));
+    x11_fill_rect(&c, dock, gc, x, y, ICON, ICON);
+    x11_set_gc(&c, gc, 0x0C, DOCK_FG, X11_RGB(0x43, 0x4c, 0x5e));
+    x11_image_text8(&c, dock, gc, x + ICON / 2 - 3, y + ICON / 2 + 6, "W", 1);
+  }
+}
+
 static void draw(void) {
   int i;
   int count = N_LAUNCH + nruns;
-  int total = (count > 0) ? count * ICON + (count - 1) * PAD : 0;
+  int w = calc_w(count);
 
-  /* 整条 dock 清成底色，再按"图标组居中"算出起始 x（macOS 风格） */
-  x11_set_gc(&c, gc, 0x0C, DOCK_BG, DOCK_BG);
-  x11_fill_rect(&c, dock, gc, 0, 0, 2000, DOCK_H);
-  g_start = (c.w - total) / 2;
-  if (g_start < PAD) {
-    g_start = PAD;
+  if (w != dock_w) { /* 运行窗口增删：胶囊变宽/变窄，始终居中 */
+    dock_w = w;
+    x11_configure(&c, dock, (c.w - w) / 2, c.h - DOCK_H, w, DOCK_H);
   }
-  if (count > 0) {
-    pill(g_start - 8, g_start + total + 8);
-  }
-
+  /* 背景是 ParentRelative：ClearArea 把整块还原成壁纸，
+   * 胶囊以外自然露出桌面背景（这里是"清在画之前"，不是画完再清）。 */
+  x11_clear(&c, dock);
+  pill(0, dock_w);
   for (i = 0; i < N_LAUNCH; i++) {
-    button(i, launch[i].color, launch[i].letter, 0);
+    button(i);
   }
   for (i = 0; i < nruns; i++) {
-    button(N_LAUNCH + i, RUN_OFF, "W", 1);
+    button(N_LAUNCH + i);
   }
-  /* 注意：这里【不能】再 ClearArea —— 它按窗口背景重绘整块，会把刚画好的
-   * 图标全部擦掉（dock 一开始就是"看不见"的元凶）。只有需要"按背景还原"
-   * 时才该用 ClearArea（wall 清根窗口就是那种场景）。 */
 }
 
 /* 读 _NET_CLIENT_LIST，变化则返回 1 */
 static int refresh_runs(void) {
   uint32_t list[MAX_RUN];
   int n = x11_get_property32(&c, c.root, atom_client_list, list, MAX_RUN);
-  int i, changed = (n != nruns);
+  int i, changed;
   if (n < 0) {
     n = 0;
   }
+  changed = (n != nruns);
   if (!changed) {
     for (i = 0; i < n; i++) {
       if (list[i] != runs[i]) {
@@ -165,7 +275,7 @@ static void activate(uint32_t win) {
 
 static void on_button(const uint8_t* ev) {
   int x = (int16_t)(ev[24] | (ev[25] << 8));
-  int rel = x - g_start;
+  int rel = x - PAD;
   int idx;
   if (rel < 0) {
     return;
@@ -187,6 +297,7 @@ static void on_button(const uint8_t* ev) {
 int main(int argc, char* argv[]) {
   uint8_t ev[32];
   int tick = 0;
+  int i, loaded = 0;
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
   (void)argc;
@@ -206,18 +317,31 @@ int main(int argc, char* argv[]) {
   atom_client_list = x11_intern_atom(&c, X11_NET_CLIENT_LIST);
   atom_active = x11_intern_atom(&c, X11_NET_ACTIVE_WINDOW);
 
-  dock = x11_create_window(&c, 0, c.h - DOCK_H, c.w, DOCK_H, DOCK_BG, 1,
-                           X11_EV_EXPOSURE | X11_EV_BUTTON_PRESS);
+  for (i = 0; i < N_LAUNCH; i++) {
+    if (load_bmp(launch[i].icon, &icons[i]) == 0) {
+      loaded++;
+    }
+  }
+  if (load_bmp("dock-win.bmp", &icons[ICON_RUN]) == 0) {
+    loaded++;
+  }
+
+  refresh_runs();
+  dock_w = calc_w(N_LAUNCH + nruns);
+  dock = x11_create_window(&c, (c.w - dock_w) / 2, c.h - DOCK_H, dock_w, DOCK_H,
+                           DOCK_BG2, 1, X11_EV_EXPOSURE | X11_EV_BUTTON_PRESS);
   if (dock == 0) {
     fprintf(stderr, "dock: 建窗口失败\n");
     return 1;
   }
+  /* 背景跟随父窗口（根窗口）⇒ 胶囊以外是壁纸，不再是一整条深色底栏 */
+  x11_set_window_bg_pixmap(&c, dock, PARENT_RELATIVE);
   x11_map_window(&c, dock);
   x11_raise(&c, dock);
-  refresh_runs();
   draw();
-  printf("dock: %dx%d 底部 dock（%d 个启动器 + %d 个运行窗口）\n", c.w, DOCK_H,
-         N_LAUNCH, nruns);
+  printf("dock: %dx%d 胶囊位于 (%d,%d)，%d 个启动器 + %d 个运行窗口，%d 个图标\n",
+         dock_w, DOCK_H, (c.w - dock_w) / 2, c.h - DOCK_H, N_LAUNCH, nruns,
+         loaded);
 
   for (;;) {
     struct pollfd pfd;

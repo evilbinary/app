@@ -366,6 +366,10 @@ int x11_set_window_bg(x11_t* c, uint32_t win, uint32_t pixel) {
   return x11_win_bg(c, win, pixel, CW_BACK_PIXEL);
 }
 
+int x11_set_window_bg_pixmap(x11_t* c, uint32_t win, uint32_t pixmap) {
+  return x11_win_bg(c, win, pixmap, CW_BACK_PIXMAP);
+}
+
 int x11_select_input(x11_t* c, uint32_t win, uint32_t event_mask) {
   return x11_win_bg(c, win, event_mask, CW_EVENT_MASK);
 }

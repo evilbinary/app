@@ -95,6 +95,9 @@ int x11_map_window(x11_t* c, uint32_t win);
 int x11_unmap_window(x11_t* c, uint32_t win);
 int x11_destroy_window(x11_t* c, uint32_t win);
 int x11_set_window_bg(x11_t* c, uint32_t win, uint32_t pixmap_or_pixel);
+/* 背景设成 pixmap；传 1(ParentRelative) 就是"跟着父窗口背景走"（窗口未绘制
+ * 的地方显示父窗口内容，例如根窗口的壁纸）。 */
+int x11_set_window_bg_pixmap(x11_t* c, uint32_t win, uint32_t pixmap);
 int x11_select_input(x11_t* c, uint32_t win, uint32_t event_mask);
 
 /* 文本（X 核心字体，Xorg 内置 "fixed" 可省掉字体文件） */
