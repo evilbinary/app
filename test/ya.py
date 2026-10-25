@@ -191,3 +191,10 @@ set_type("cli")
 add_files(
    'test-system.c'
 )
+
+# AF_UNIX 闭环测试（bind/listen/connect/poll|select/accept/read/write）
+target("test-unixsock")
+set_type("cli")
+add_files(
+   'test-unixsock.c'
+)
