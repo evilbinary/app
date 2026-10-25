@@ -61,6 +61,7 @@ typedef struct {
   uint32_t id_base;
   uint32_t id_mask;
   uint32_t next_id;
+  int shape_op; /* SHAPE 扩展的 major opcode（0 = 不可用） */
 } x11_t;
 
 /* 连接：path 传 NULL 用 /tmp/.X11-unix/X0；成功返回 0 */
@@ -125,6 +126,12 @@ int x11_get_attrs(x11_t* c, uint32_t win, int* map_state, int* override_redirect
                   uint32_t* all_event_masks);
 int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out, int max);
 int x11_get_property_str(x11_t* c, uint32_t win, uint32_t prop, char* out, int max);
+
+/* SHAPE 扩展（圆角/异形窗口）：probe 成功返回 0 并记下扩展 opcode；
+ * shape_rects 把窗口的 bounding 形状设为矩形并集（窗口内坐标，
+ * rects 是 n 组 {x,y,w,h}）。形状外的像素不显示、也不接收事件。 */
+int x11_shape_probe(x11_t* c);
+int x11_shape_rects(x11_t* c, uint32_t win, const int16_t* rects, int n);
 
 /* 属性 */
 uint32_t x11_intern_atom(x11_t* c, const char* name);

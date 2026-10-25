@@ -3,9 +3,8 @@
  *
  * 视觉要点（macOS 风格）：
  *   1. 窗口只有"图标组"那么大的一条居中胶囊，不再用整条不透明底栏把
- *      桌面壁纸盖住；窗口背景设成 ParentRelative，胶囊圆角以外的地方
- *      直接透出根窗口的壁纸（ClearArea 在这里是"还原壁纸"的正确用法，
- *      画完再清才会擦掉内容）。
+ *      桌面壁纸盖住；窗口再用 SHAPE 扩展裁成圆角矩形，四角不显示 ⇒
+ *      胶囊之外全是桌面背景，不会留下方角的色块。
  *   2. 按钮用图标：启动时读 /res/dock-*.bmp（tools/gen_dock_icons.py
  *      生成，图标底色与胶囊同色 ⇒ 看起来像无底框的图标）；读不到就退回
  *      彩色方块 + 字母，保证没有资源时也能用。
@@ -36,7 +35,7 @@
 #define PAD 8
 #define STEP (ICON + PAD)
 #define MAX_RUN 12
-#define PARENT_RELATIVE 1u /* 背景 pixmap 值：跟随父窗口背景 */
+#define CORNER 12 /* 胶囊圆角半径 */
 
 #define DOCK_BG2 X11_RGB(0x2e, 0x34, 0x40)
 #define DOCK_FG X11_RGB(0xec, 0xef, 0xf4)
@@ -164,14 +163,36 @@ static int calc_w(int count) {
   return (w > c.w) ? c.w : w;
 }
 
-/* 胶囊底衬（没有弧线原语，用三段矩形近似圆角）；x0/x1 是窗口内坐标 */
-static void pill(int x0, int x1) {
-  int y0 = 6;
-  int h = DOCK_H - 12;
-  x11_set_gc(&c, gc, 0x0C, DOCK_BG2, DOCK_BG2);
-  x11_fill_rect(&c, dock, gc, x0 + 4, y0, x1 - x0 - 8, h);
-  x11_fill_rect(&c, dock, gc, x0 + 2, y0 + 2, x1 - x0 - 4, h - 4);
-  x11_fill_rect(&c, dock, gc, x0, y0 + 4, x1 - x0, h - 8);
+/* 把 w×h 的圆角矩形拆成逐行矩形（ShapeBounding 用，最多 DOCK_H 组）。
+ * 逐行收边比"三段矩形"精确：横向也是整行宽度，不会有缺口。 */
+static int round_rects(int16_t* r, int w, int h, int rad) {
+  int y, n = 0;
+  for (y = 0; y < h && n < 64; y++) {
+    int dy = (y < h - 1 - y) ? y : (h - 1 - y); /* 到最近水平边的距离 */
+    int inset = 0;
+    if (dy < rad) {
+      int dz = rad - dy;
+      int inner = rad * rad - dz * dz;
+      int s = 0;
+      while ((s + 1) * (s + 1) <= inner) {
+        s++;
+      }
+      inset = rad - s;
+    }
+    r[n * 4 + 0] = (int16_t)inset;
+    r[n * 4 + 1] = (int16_t)y;
+    r[n * 4 + 2] = (int16_t)(w - 2 * inset);
+    r[n * 4 + 3] = 1;
+    n++;
+  }
+  return n;
+}
+
+/* 把窗口裁成圆角胶囊：矩形以外不显示（露出壁纸），也不接收点击 */
+static void apply_shape(void) {
+  int16_t r[4 * 64];
+  int n = round_rects(r, dock_w, DOCK_H, CORNER);
+  x11_shape_rects(&c, dock, r, n);
 }
 
 /* 一个图标按钮（idx 从 0 开始，窗口内居中在它自己的格子里） */
@@ -213,11 +234,11 @@ static void draw(void) {
   if (w != dock_w) { /* 运行窗口增删：胶囊变宽/变窄，始终居中 */
     dock_w = w;
     x11_configure(&c, dock, (c.w - w) / 2, c.h - DOCK_H, w, DOCK_H);
+    apply_shape(); /* 宽度变了，形状跟着重算 */
   }
-  /* 背景是 ParentRelative：ClearArea 把整块还原成壁纸，
-   * 胶囊以外自然露出桌面背景（这里是"清在画之前"，不是画完再清）。 */
-  x11_clear(&c, dock);
-  pill(0, dock_w);
+  /* 整窗铺胶囊底色：四角已被 SHAPE 裁掉，所以边缘不会露黑块 */
+  x11_set_gc(&c, gc, 0x0C, DOCK_BG2, DOCK_BG2);
+  x11_fill_rect(&c, dock, gc, 0, 0, dock_w, DOCK_H);
   for (i = 0; i < N_LAUNCH; i++) {
     button(i);
   }
@@ -334,14 +355,21 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "dock: 建窗口失败\n");
     return 1;
   }
-  /* 背景跟随父窗口（根窗口）⇒ 胶囊以外是壁纸，不再是一整条深色底栏 */
-  x11_set_window_bg_pixmap(&c, dock, PARENT_RELATIVE);
+  /* 把窗口裁成圆角胶囊：矩形以外的区域不显示（露出桌面壁纸），
+   * 所以窗口不必铺满屏宽，边缘也不会有黑色矩形块。 */
+  if (x11_shape_probe(&c) < 0) {
+    fprintf(stderr, "dock: 没有 SHAPE 扩展，胶囊退化成直角矩形\n");
+  }
+  apply_shape(); /* 先裁形状再 map，避免映射瞬间闪一下方角 */
+  if (x11_sync(&c) < 0) { /* 形状请求有错会在这里报出来（否则是静默方角） */
+    fprintf(stderr, "dock: 圆角形状请求被服务器拒绝\n");
+  }
   x11_map_window(&c, dock);
   x11_raise(&c, dock);
   draw();
-  printf("dock: %dx%d 胶囊位于 (%d,%d)，%d 个启动器 + %d 个运行窗口，%d 个图标\n",
+  printf("dock: %dx%d 胶囊位于 (%d,%d)，%d 个启动器 + %d 个运行窗口，%d 个图标%s\n",
          dock_w, DOCK_H, (c.w - dock_w) / 2, c.h - DOCK_H, N_LAUNCH, nruns,
-         loaded);
+         loaded, (c.shape_op > 0) ? "（圆角）" : "");
 
   for (;;) {
     struct pollfd pfd;

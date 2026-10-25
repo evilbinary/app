@@ -869,6 +869,65 @@ int x11_delete_property(x11_t* c, uint32_t win, uint32_t prop) {
   return write_all(c->fd, q, sizeof(q));
 }
 
+/* ---------------- SHAPE 扩展 ---------------- */
+
+/* QueryExtension("SHAPE")：成功返回 0 并把 major opcode 记到 c->shape_op */
+int x11_shape_probe(x11_t* c) {
+  static const char name[] = "SHAPE";
+  uint8_t q[16];
+  uint8_t rep[32];
+  memset(q, 0, sizeof(q));
+  c->shape_op = 0;
+  q[0] = 98; /* QueryExtension：头 8 字节 + 名字（补齐到 4 字节） */
+  put16(q + 2, 4);
+  put16(q + 4, (uint16_t)(sizeof(name) - 1));
+  memcpy(q + 8, name, sizeof(name) - 1);
+  if (write_all(c->fd, q, sizeof(q)) < 0) {
+    return -1;
+  }
+  if (read_reply_raw(c, rep) < 0) {
+    return -1;
+  }
+  if (rep[8] == 0) { /* present */
+    return -1;
+  }
+  c->shape_op = rep[9];
+  return 0;
+}
+
+/* ShapeRectangles(ShapeSet, ShapeBounding)：rects 是 n 组 {x,y,w,h}。
+ * 【协议坑】扩展请求的第二个字节是扩展内 opcode（minor），不是第一个
+ * 参数；写成 ShapeSet(0) 会被服务器当成"扩展内第 0 号请求"而报错
+ * （BadLength/BadRequest，形状静默不生效）。头部 16 字节：
+ *   opcode/minor=1/length | ShapeSet/Bounding/UnSorted/pad |
+ *   window | x-offset | y-offset
+ */
+int x11_shape_rects(x11_t* c, uint32_t win, const int16_t* rects, int n) {
+  uint8_t buf[16 + 8 * 64];
+  int i;
+  if (c->shape_op <= 0 || n <= 0 || n > 64) {
+    return -1;
+  }
+  memset(buf, 0, sizeof(buf));
+  buf[0] = (uint8_t)c->shape_op;
+  buf[1] = 1; /* ShapeRectangles */
+  put16(buf + 2, (uint16_t)((16 + 8 * n) / 4));
+  buf[4] = 0; /* operation = ShapeSet */
+  buf[5] = 0; /* destination-kind = ShapeBounding */
+  buf[6] = 0; /* ordering = UnSorted */
+  put32(buf + 8, win);
+  put16(buf + 12, 0); /* x-offset */
+  put16(buf + 14, 0); /* y-offset */
+  for (i = 0; i < n; i++) {
+    uint8_t* r = buf + 16 + i * 8;
+    put16(r, (uint16_t)rects[i * 4 + 0]);
+    put16(r + 2, (uint16_t)rects[i * 4 + 1]);
+    put16(r + 4, (uint16_t)rects[i * 4 + 2]);
+    put16(r + 6, (uint16_t)rects[i * 4 + 3]);
+  }
+  return write_all(c->fd, buf, 16 + 8 * n);
+}
+
 int x11_next_event(x11_t* c, uint8_t* ev) {
   ssize_t r = read(c->fd, ev, 32);
   if (r == 32) {
