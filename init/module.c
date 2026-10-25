@@ -135,6 +135,8 @@ void modules_init(void) {
   REGISTER_MODULE(gpio);
 #else
   REGISTER_MODULE(mouse);
+  /* /dev/input/event0：Xorg 的 evdev 驱动直接读它（不依赖 sysfs/udev） */
+  REGISTER_MODULE(input);
   REGISTER_MODULE(usb);
   REGISTER_MODULE(gpu);
   REGISTER_MODULE(sdhci);
