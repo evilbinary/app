@@ -33,7 +33,7 @@
 #define EV_DESTROY_NOTIFY 17
 #define EV_MAP_REQUEST 20
 #define EV_CONFIGURE_REQUEST 23
-#define EV_MOTION_NOTIFY 6
+#define EV_MOTION_NOTIFY X11_MOTION_NOTIFY
 
 #define TITLE_BG X11_RGB(0x3b, 0x42, 0x52)
 #define TITLE_FG X11_RGB(0xec, 0xef, 0xf4)
@@ -174,6 +174,12 @@ static void manage(uint32_t win) {
   }
   x11_add_to_save_set(&c, win);
   x11_reparent(&c, win, frame, BORDER, TITLE_H);
+  /* 【点内容区也要抬升/聚焦】frame 是客户端窗口的父窗口，点在客户端区域内
+   * 的按键只会送给客户端自己（frame 收不到），于是"点一下别的窗口把它抬到
+   * 前面"就失效——openbox 这类 WM 的核心手感。这里给客户端窗口补选
+   * ButtonPress：event-mask 是【按客户端】记的，只影响本进程收到的事件，
+   * 不会抢走客户端自己的按键。 */
+  x11_select_input(&c, win, X11_EV_BUTTON_PRESS);
   idx = ncls;
   cls[ncls].win = win;
   cls[ncls].frame = frame;
@@ -221,19 +227,29 @@ static void close_client(int idx) {
 }
 
 static void on_button(const uint8_t* ev) {
-  uint32_t frame = x11_ev_u32(ev, 12);
+  uint32_t win = x11_ev_u32(ev, 12); /* 事件窗口：frame 或（内容区的）客户端窗口 */
+  uint32_t frame;
+  int button = ev[1]; /* 1=左 2=中 3=右 4/5=滚轮 */
   int ex = (int16_t)(ev[24] | (ev[25] << 8));
   int ey = (int16_t)(ev[26] | (ev[27] << 8));
   int rx = (int16_t)(ev[20] | (ev[21] << 8));
   int ry = (int16_t)(ev[22] | (ev[23] << 8));
-  int idx = find_frame(frame);
+  int idx = find_frame(win);
   int fx = 0, fy = 0, fw = 0;
 
   if (idx < 0) {
+    idx = find_win(win); /* 点在客户端内容区：先抬升/聚焦，不做拖动 */
+  }
+  if (idx < 0) {
     return;
   }
+  frame = cls[idx].frame;
   x11_raise(&c, frame);
   x11_set_focus(&c, cls[idx].win);
+  /* 只有左键参与拖动/关闭。右键留给后续的窗口菜单，滚轮忽略。 */
+  if (button != 1 || win != frame) {
+    return;
+  }
   x11_get_geometry(&c, frame, &fx, &fy, &fw, NULL);
   if (ey >= 0 && ey < TITLE_H) {
     if (ex >= fw - TITLE_H) {
@@ -350,6 +366,13 @@ int main(int argc, char* argv[]) {
   (void)argv;
   if (x11_connect(&c, NULL) < 0) {
     return 1;
+  }
+  /* 根窗口先挂上箭头光标：frame 是之后创建的，会继承这个 cursor。
+   * 不设的话在精简镜像里就是"隐形光标"（X 的默认光标取不到核心字体）。 */
+  if (x11_install_arrow_cursor(&c) < 0) {
+    fprintf(stderr, "wm: 设置光标失败（屏幕上看不到指针）\n");
+  } else {
+    printf("wm: 光标已挂到根窗口 0x%x\n", c.root);
   }
   gc = x11_id(&c);
   font = x11_id(&c);

@@ -668,6 +668,183 @@ int x11_change_attrs(x11_t* c, uint32_t win, uint32_t value_mask, uint32_t value
   return write_all(c->fd, q, sizeof(q));
 }
 
+/* ---------------- 光标 ----------------
+ * 屏幕上的光标位图由谁提供？两条路：
+ *   1. server 自己的默认根光标：dix/main.c:230 调 CreateRootCursor()，
+ *      打开核心字体 "cursor" 并用它的 0 号字形造光标（dix/cursor.c:491）。
+ *      注意取不到字体时 server 是 FatalError 起不来，不是"隐形光标"。
+ *   2. 客户端自己 CreateCursor 一个 Cursor 资源，用
+ *      ChangeWindowAttributes(CWCursor) 挂到窗口上（子窗口继承父窗口的）。
+ * openbox 走的就是第 2 条（主题光标），所以它一起来指针就有了；我们这套
+ * 精简桌面没有任何客户端设过光标，屏幕上看不到指针。
+ *
+ * 这里不依赖字体/主题：两个 depth=1 的 Pixmap 画箭头 + CreateCursor(93)。 */
+/* 24x24 实心箭头（经典 left_ptr 轮廓，4x 超采样光栅化）：
+ *   source（画 fore=黑）= 形状的 1 像素边界
+ *   mask（决定不透明区域）   = 整个形状
+ * ⇒ 边界黑、内部显示 back=白、形状外全透明。深色壁纸上也清楚。 */
+#define X11_CURSOR_SIZE 24
+#define X11_CURSOR_HOT 1 /* 尖端在 (1,1) */
+static const uint8_t x11_arrow_src[72] = {
+    0x00, 0x00, 0x00, /* y=0 */
+    0x02, 0x00, 0x00, /* y=1 */
+    0x06, 0x00, 0x00, /* y=2 */
+    0x0a, 0x00, 0x00, /* y=3 */
+    0x12, 0x00, 0x00, /* y=4 */
+    0x22, 0x00, 0x00, /* y=5 */
+    0xc2, 0x00, 0x00, /* y=6 */
+    0x02, 0x01, 0x00, /* y=7 */
+    0x02, 0x02, 0x00, /* y=8 */
+    0x02, 0x04, 0x00, /* y=9 */
+    0x02, 0x08, 0x00, /* y=10 */
+    0x02, 0x10, 0x00, /* y=11 */
+    0x02, 0x7c, 0x00, /* y=12 */
+    0x02, 0x02, 0x00, /* y=13 */
+    0x02, 0x02, 0x00, /* y=14 */
+    0x62, 0x02, 0x00, /* y=15 */
+    0x92, 0x04, 0x00, /* y=16 */
+    0x8a, 0x04, 0x00, /* y=17 */
+    0x06, 0x09, 0x00, /* y=18 */
+    0x02, 0x09, 0x00, /* y=19 */
+    0x00, 0x1a, 0x00, /* y=20 */
+    0x00, 0x06, 0x00, /* y=21 */
+    0x00, 0x00, 0x00, /* y=22 */
+    0x00, 0x00, 0x00, /* y=23 */
+};
+static const uint8_t x11_arrow_mask[72] = {
+    0x00, 0x00, 0x00, /* y=0 */
+    0x02, 0x00, 0x00, /* y=1 */
+    0x06, 0x00, 0x00, /* y=2 */
+    0x0e, 0x00, 0x00, /* y=3 */
+    0x1e, 0x00, 0x00, /* y=4 */
+    0x3e, 0x00, 0x00, /* y=5 */
+    0xfe, 0x00, 0x00, /* y=6 */
+    0xfe, 0x01, 0x00, /* y=7 */
+    0xfe, 0x03, 0x00, /* y=8 */
+    0xfe, 0x07, 0x00, /* y=9 */
+    0xfe, 0x0f, 0x00, /* y=10 */
+    0xfe, 0x1f, 0x00, /* y=11 */
+    0xfe, 0x7f, 0x00, /* y=12 */
+    0xfe, 0x03, 0x00, /* y=13 */
+    0xfe, 0x03, 0x00, /* y=14 */
+    0xfe, 0x03, 0x00, /* y=15 */
+    0x9e, 0x07, 0x00, /* y=16 */
+    0x8e, 0x07, 0x00, /* y=17 */
+    0x06, 0x0f, 0x00, /* y=18 */
+    0x02, 0x0f, 0x00, /* y=19 */
+    0x00, 0x1e, 0x00, /* y=20 */
+    0x00, 0x06, 0x00, /* y=21 */
+    0x00, 0x00, 0x00, /* y=22 */
+    0x00, 0x00, 0x00, /* y=23 */
+};
+
+/* 1-bit 位图 → Pixmap。
+ * 【不用 PutImage(XYBitmap)】服务器对位图每行的字节对齐有自己的一套取整
+ * （实测 16 位宽的行它按 4 字节算，客户端按 (w+7)/8=2 字节发 ⇒ 长度对不上，
+ * 直接回 BadLength(major=72)）。这里改成把每行拆成若干段连续 1，用
+ * PolyFillRectangle 填充：协议上没有任何对齐歧义，而且位图只有 16x16、
+ * 一次性画完，代价可忽略。 */
+static void x11_fill_bitmap(x11_t* c, uint32_t drawable, uint32_t gc, int w,
+                            int rows, const uint8_t* bits) {
+  int stride = (w + 7) / 8;
+  int y;
+  for (y = 0; y < rows; y++) {
+    int x = 0;
+    const uint8_t* row = bits + y * stride;
+    while (x < w) {
+      int start;
+      while (x < w && (row[x >> 3] & (1u << (x & 7))) == 0) {
+        x++;
+      }
+      if (x >= w) {
+        break;
+      }
+      start = x;
+      while (x < w && (row[x >> 3] & (1u << (x & 7))) != 0) {
+        x++;
+      }
+      x11_fill_rect(c, drawable, gc, start, y, x - start, 1);
+    }
+  }
+}
+
+int x11_create_pixmap_cursor(x11_t* c, uint32_t cid, uint32_t src, uint32_t mask,
+                             int hot_x, int hot_y) {
+  uint8_t q[32];
+  memset(q, 0, sizeof(q));
+  /* 【opcode 是 93，不是 94】核心协议的 CreateCursor(93) 才是"用两张 pixmap
+   * 造光标"；94 是 CreateGlyphCursor（用字体字形），字段里 source/mask 被
+   * 当成 Font 查 ⇒ 服务器回 BadFont(7) major=94。服务器端对照：
+   * dix/tables.c:161 ProcCreateCursor / :162 ProcCreateGlyphCursor。 */
+  q[0] = 93; /* CreateCursor(source/mask pixmap) */
+  put16(q + 2, 8);
+  put32(q + 4, cid);
+  put32(q + 8, src);
+  put32(q + 12, mask);
+  put16(q + 16, 0x0000); /* fore：黑 */
+  put16(q + 18, 0x0000);
+  put16(q + 20, 0x0000);
+  put16(q + 22, 0xffff); /* back：白 */
+  put16(q + 24, 0xffff);
+  put16(q + 26, 0xffff);
+  put16(q + 28, (uint16_t)hot_x);
+  put16(q + 30, (uint16_t)hot_y);
+  return write_all(c->fd, q, sizeof(q));
+}
+
+/* 把 cursor 挂到窗口。子窗口在创建时继承父窗口的 cursor，所以设到 root
+ * 就全局生效（之后的窗口才继承；已在的窗口要各自再设一次）。 */
+int x11_set_window_cursor(x11_t* c, uint32_t win, uint32_t cursor) {
+  return x11_change_attrs(c, win, 0x4000 /* CWCursor */, cursor);
+}
+
+/* 光标这套请求全是"无回复"的：发出去就完事，服务器报错（BadMatch/BadAlloc/
+ * BadIDChoice…）只是一条异步 Error 包，不打 sync 就永远看不见。每几步 sync
+ * 一次，把"哪一步被服务器拒绝"打到 stderr 上。 */
+static int x11_cursor_step(x11_t* c, const char* what) {
+  if (x11_sync(c) < 0) {
+    fprintf(stderr, "x11: 光标创建失败于 %s（服务器的错误见上面的 sync got ...）\n",
+            what);
+    return -1;
+  }
+  return 0;
+}
+
+int x11_install_arrow_cursor(x11_t* c) {
+  uint32_t src = x11_id(c);
+  uint32_t mask = x11_id(c);
+  uint32_t gc = x11_id(c);
+  uint32_t cur = x11_id(c);
+  if (x11_create_pixmap(c, src, 1, X11_CURSOR_SIZE, X11_CURSOR_SIZE) < 0 ||
+      x11_create_pixmap(c, mask, 1, X11_CURSOR_SIZE, X11_CURSOR_SIZE) < 0 ||
+      x11_create_gc(c, gc, src) < 0) {
+    return -1;
+  }
+  if (x11_cursor_step(c, "CreatePixmap(1bpp)/CreateGC") < 0) {
+    return -1;
+  }
+  x11_set_gc(c, gc, 0x0C /* FG|BG */, 1, 0);
+  x11_fill_bitmap(c, src, gc, X11_CURSOR_SIZE, X11_CURSOR_SIZE, x11_arrow_src);
+  x11_fill_bitmap(c, mask, gc, X11_CURSOR_SIZE, X11_CURSOR_SIZE,
+                  x11_arrow_mask);
+  if (x11_cursor_step(c, "PolyFillRectangle(1bpp pixmap)") < 0) {
+    return -1;
+  }
+  if (x11_create_pixmap_cursor(c, cur, src, mask, X11_CURSOR_HOT,
+                               X11_CURSOR_HOT) < 0) {
+    return -1;
+  }
+  if (x11_cursor_step(c, "CreatePixmapCursor") < 0) {
+    return -1;
+  }
+  /* pixmap 不释放：CreatePixmapCursor 之后仍作为服务器端资源留着最省事
+   * （一次性四个小资源，进程生命周期内不回收到也不影响）。 */
+  if (x11_set_window_cursor(c, c->root, cur) < 0) {
+    return -1;
+  }
+  return x11_cursor_step(c, "ChangeWindowAttributes(CWCursor)");
+}
+
 /* 一次配置 x/y/w/h：mask 按 X/Y/W/H 位序给值，传 -1 表示该项不改 */
 int x11_configure(x11_t* c, uint32_t win, int x, int y, int w, int h) {
   uint8_t q[28];

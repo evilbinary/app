@@ -245,6 +245,8 @@ int main(int argc, char* argv[]) {
   if (x11_connect(&c, NULL) < 0) {
     return 1;
   }
+  /* 单独跑 dock（不起 wm）时也要有指针 */
+  x11_install_arrow_cursor(&c);
   gc = x11_id(&c);
   font = x11_id(&c);
   if (x11_open_font(&c, font, "fixed") < 0) {
@@ -300,7 +302,7 @@ int main(int argc, char* argv[]) {
           if (x11_ev_u32(ev, 4) == dock) {
             draw();
           }
-        } else if (ev[0] == X11_BUTTON_PRESS) {
+        } else if (ev[0] == X11_BUTTON_PRESS && ev[1] == 1 /* 只有左键 */) {
           if (x11_ev_u32(ev, 12) == dock) {
             on_button(ev);
           }

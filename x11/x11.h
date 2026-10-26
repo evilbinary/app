@@ -27,6 +27,7 @@
 #define X11_MAPPING_NOTIFY 34
 #define X11_BUTTON_PRESS 4
 #define X11_BUTTON_RELEASE 5
+#define X11_MOTION_NOTIFY 6
 
 /* 事件掩码（CreateWindow/ChangeWindowAttributes 用） */
 #define X11_EV_KEY_PRESS 0x00000001u
@@ -119,6 +120,15 @@ int x11_image_text8(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
 /* 指针抓取（弹层菜单用来收"点到外面"的事件） */
 int x11_grab_pointer(x11_t* c, uint32_t win, uint32_t event_mask);
 int x11_ungrab_pointer(x11_t* c);
+
+/* 光标：X 不会"自动显示"默认指针（取不到核心光标字体时是隐形光标），
+ * 需要客户端自己 CreatePixmapCursor 并挂到窗口上。子窗口创建时继承父窗口的
+ * cursor，所以 x11_install_arrow_cursor() 设到 root 即可覆盖后续新建的窗口。 */
+int x11_create_pixmap_cursor(x11_t* c, uint32_t cid, uint32_t src, uint32_t mask,
+                             int hot_x, int hot_y);
+int x11_set_window_cursor(x11_t* c, uint32_t win, uint32_t cursor);
+/* 造一个 16x16 箭头（黑笔画 + 白描边）并挂到根窗口；成功返回 0 */
+int x11_install_arrow_cursor(x11_t* c);
 
 /* 窗口管理器需要的请求 */
 int x11_change_attrs(x11_t* c, uint32_t win, uint32_t value_mask, uint32_t value);

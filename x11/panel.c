@@ -191,6 +191,8 @@ int main(int argc, char* argv[]) {
   if (x11_connect(&c, NULL) < 0) {
     return 1;
   }
+  /* 单独跑 panel（不起 wm）时也要有指针 */
+  x11_install_arrow_cursor(&c);
   bar = x11_create_window(&c, 0, 0, c.w, BAR_H, BAR_BG, 1,
                           X11_EV_EXPOSURE | X11_EV_BUTTON_PRESS);
   bar_gc = x11_id(&c);
@@ -227,7 +229,7 @@ int main(int argc, char* argv[]) {
           } else if (win == popup) {
             draw_popup();
           }
-        } else if (ev[0] == X11_BUTTON_PRESS) {
+        } else if (ev[0] == X11_BUTTON_PRESS && ev[1] == 1 /* 只有左键 */) {
           on_button(ev);
         }
       }
