@@ -161,6 +161,15 @@ static void button(int idx) {
   }
 }
 
+static void draw(void);
+
+/* 每次重画都留一行日志：dock 真出现"一直在刷新"时，看这行就知道是
+ * Expose 洪峰、还是窗口列表在反复变（各一次/800ms），不用猜。 */
+static void redraw(const char* why) {
+  printf("dock: 重画（%s）运行窗口 %d 个\n", why, nruns);
+  draw();
+}
+
 static void draw(void) {
   int i;
   int count = N_LAUNCH + nruns;
@@ -182,13 +191,15 @@ static void draw(void) {
   }
 }
 
-/* 读 _NET_CLIENT_LIST，变化则返回 1 */
+/* 读 _NET_CLIENT_LIST，变化则返回 1。
+ * 【读失败别当成"0 个窗口"】那会让胶囊先缩到最小、下一次读成功又长回来，
+ * 看起来就是"dock 一直在刷新/跳"。失败一律保持现状。 */
 static int refresh_runs(void) {
   uint32_t list[MAX_RUN];
   int n = x11_get_property32(&c, c.root, atom_client_list, list, MAX_RUN);
   int i, changed;
   if (n < 0) {
-    n = 0;
+    return 0;
   }
   changed = (n != nruns);
   if (!changed) {
@@ -259,7 +270,6 @@ static void on_button(const uint8_t* ev) {
 
 int main(int argc, char* argv[]) {
   uint8_t ev[32];
-  int tick = 0;
   int i, loaded = 0;
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
@@ -317,14 +327,21 @@ int main(int argc, char* argv[]) {
 
   for (;;) {
     struct pollfd pfd;
+    int pr, r;
     pfd.fd = c.fd;
     pfd.events = POLLIN;
     pfd.revents = 0;
-    if (poll(&pfd, 1, 800) > 0) {
-      while (x11_next_event(&c, ev) == 1) {
+    pr = poll(&pfd, 1, 800);
+    if (pr > 0) {
+      int exposed = 0;
+      while ((r = x11_next_event(&c, ev)) == 1) {
         if (ev[0] == X11_EXPOSE) {
-          if (x11_ev_u32(ev, 4) == dock) {
-            draw();
+          /* 【一批 Expose 只重画一次】Expose 的 count 字段（offset 12）表示
+           * "后面还有多少条 Expose 等着发"：映射/换形状时服务器一次能甩出
+           * 十几条，逐条重画就是肉眼可见的闪。等到 count==0 再画。 */
+          int more = (int)ev[12] | ((int)ev[13] << 8);
+          if (x11_ev_u32(ev, 4) == dock && more == 0) {
+            exposed = 1;
           }
         } else if (ev[0] == X11_BUTTON_PRESS && ev[1] == 1 /* 只有左键 */) {
           if (x11_ev_u32(ev, 12) == dock) {
@@ -332,11 +349,19 @@ int main(int argc, char* argv[]) {
           }
         }
       }
-    }
-    if (++tick >= 1) { /* 每次超时（0.8s）查一次窗口列表 */
-      tick = 0;
+      if (exposed) {
+        redraw("Expose");
+      }
+      if (r < 0) { /* 连接断了（服务器退出/被杀）：继续跑只会空转 */
+        fprintf(stderr, "dock: 与 X 的连接断开，退出\n");
+        return 1;
+      }
+    } else if (pr == 0) {
+      /* 【只在 poll 超时的时候查列表】早先是"每轮都查"（tick 清零后判断恒
+       * 成立），事件一密就变成每个事件一次 GetProperty 往返；现在事件密集
+       * 时不做多余的同步请求，空闲时每 0.8s 查一次。 */
       if (refresh_runs()) {
-        draw();
+        redraw("窗口列表变化");
       }
     }
     while (waitpid(-1, NULL, WNOHANG) > 0) {

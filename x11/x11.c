@@ -1622,10 +1622,10 @@ int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out,
   put32(q + 16, 0); /* long offset */
   put32(q + 20, (uint32_t)max);
   if (write_all(c->fd, q, sizeof(q)) < 0) {
-    return 0;
+    return -1;
   }
   if (read_reply_raw(c, rep) < 0) { /* 同上：value 由本函数自己读 */
-    return 0;
+    return -1;
   }
   /* 【按 length 字段把数据区读完】value 的字节数由回复头的 length 决定
    * （4 字节单位），不是 nItems*format/8；少读的部分会留在流里，之后
@@ -1633,7 +1633,7 @@ int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out,
   total = le32(rep + 4) * 4u;
   if (rep[1] != 32 || le32(rep + 16) == 0) {
     skip_bytes(c, total);
-    return 0;
+    return 0; /* 属性不存在/不是 32 位：确实 0 项 */
   }
   n32 = (int)le32(rep + 16);
   if (n32 > max) {
@@ -1642,13 +1642,16 @@ int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out,
   for (i = 0; i < n32; i++) {
     uint8_t v[4];
     if (read_exact(c->fd, v, 4) < 0) {
-      return i;
+      return -1;
     }
     out[i] = le32(v);
   }
-  if (total > (uint32_t)n32 * 4u) {
-    skip_bytes(c, total - (uint32_t)n32 * 4u);
+  if (total > (uint32_t)n32 * 4u && skip_bytes(c, total - (uint32_t)n32 * 4u) < 0) {
+    return -1;
   }
+  /* 【失败必须返回 -1，不能和"读到 0 项"混在一起】调用方（dock）拿 0 当
+   * "没有运行窗口"，一次读失败就会把胶囊缩到最小、下次成功又长回来，
+   * 看上去就是"dock 一直在刷新"。 */
   return n32;
 }
 
