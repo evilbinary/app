@@ -183,25 +183,18 @@ static int read_reply_raw(x11_t* c, uint8_t* out32) {
   return 0;
 }
 
-/* 读 32 字节回复 + 按 length 字段跳过附加数据（GetProperty/QueryTree 用） */
-static int read_reply(x11_t* c, uint8_t* out32) {
-  uint8_t rep[32];
-  if (read_exact(c->fd, rep, sizeof(rep)) < 0) {
-    return -1;
-  }
-  if (out32 != NULL) {
-    memcpy(out32, rep, sizeof(rep));
-  }
-  {
-    unsigned extra = le32(rep + 4) * 4u;
-    uint8_t junk[64];
-    while (extra > 0) {
-      unsigned n = extra > sizeof(junk) ? (unsigned)sizeof(junk) : extra;
-      if (read_exact(c->fd, junk, n) < 0) {
-        return -1;
-      }
-      extra -= n;
+/* 丢掉 n 字节（回复里调用方不关心的附加数据 / 4 字节对齐填充）。
+ * 【必须精确丢完】X11 是裸字节流：少读或多读一个字节，后面所有事件与
+ * 回复都会错位，表现为"服务器回了个莫名其妙的东西"+ 客户端拿垃圾 id
+ * 继续发请求。 */
+static int skip_bytes(x11_t* c, unsigned n) {
+  uint8_t junk[64];
+  while (n > 0) {
+    unsigned k = n > (unsigned)sizeof(junk) ? (unsigned)sizeof(junk) : n;
+    if (read_exact(c->fd, junk, k) < 0) {
+      return -1;
     }
+    n -= k;
   }
   return 0;
 }
@@ -298,28 +291,59 @@ int x11_set_gc_font(x11_t* c, uint32_t gc, uint32_t font) {
 int x11_put_image(x11_t* c, uint32_t drawable, uint32_t gc, int dst_x, int dst_y,
                   int w, int rows, const uint8_t* bgrx) {
   uint8_t q[24];
-  uint32_t bytes = (uint32_t)w * (uint32_t)rows * 4u;
-  memset(q, 0, sizeof(q));
-  q[0] = 72;
-  q[1] = 2; /* ZPixmap */
-  put16(q + 2, (uint16_t)((sizeof(q) + bytes) / 4));
-  put32(q + 4, drawable);
-  put32(q + 8, gc);
-  put16(q + 12, (uint16_t)w);
-  put16(q + 14, (uint16_t)rows);
-  put16(q + 16, (uint16_t)dst_x);
-  put16(q + 18, (uint16_t)dst_y);
-  q[20] = 0;
-  q[21] = (uint8_t)c->root_depth;
-  if (write_all(c->fd, q, sizeof(q)) < 0) {
+  int line = w * 4; /* 每行字节数（32bpp，w*4 天然 4 字节对齐） */
+  /* 【请求长度字段只有 16 位】核心协议的 length 是"多少个 4 字节"，最大
+   * 65535 ⇒ 单请求数据上限 65535*4-24 = 262116 字节。超过就溢出成小数
+   * （实测 256x256 图 length 算成 6），服务器只读走 24 字节头、把真正
+   * 的图像数据当成后续请求解析 ⇒ 服务器端请求流错位、内存被踩。
+   * 按整行切成多请求，每个请求的 dst-y 顺延。 */
+  int max_rows = line > 0 ? (int)((65535u * 4u - 24u) / (unsigned)line) : 0;
+  int y = 0;
+
+  if (w <= 0 || rows <= 0 || line <= 0) {
     return -1;
   }
-  return write_all(c->fd, bgrx, bytes);
+  if (max_rows < 1) {
+    return -1;
+  }
+  while (y < rows) {
+    int n = rows - y;
+    uint32_t bytes;
+    if (n > max_rows) {
+      n = max_rows;
+    }
+    bytes = (uint32_t)line * (uint32_t)n;
+    memset(q, 0, sizeof(q));
+    q[0] = 72;
+    q[1] = 2; /* ZPixmap */
+    put16(q + 2, (uint16_t)((sizeof(q) + bytes) / 4));
+    put32(q + 4, drawable);
+    put32(q + 8, gc);
+    put16(q + 12, (uint16_t)w);
+    put16(q + 14, (uint16_t)n);
+    put16(q + 16, (uint16_t)dst_x);
+    put16(q + 18, (uint16_t)(dst_y + y));
+    q[20] = 0;
+    q[21] = (uint8_t)c->root_depth;
+    if (write_all(c->fd, q, sizeof(q)) < 0) {
+      return -1;
+    }
+    if (write_all(c->fd, bgrx + (size_t)y * (size_t)line, bytes) < 0) {
+      return -1;
+    }
+    y += n;
+  }
+  return 0;
 }
 
 int x11_fill_rect(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
                   int w, int h) {
   uint8_t q[20];
+  /* 【空矩形不发】宽或高 <= 0 时服务器要把一个退化矩形并进 region，
+   * debug 构建的 pixman 会断言刷屏（也纯属浪费一次请求）。 */
+  if (w <= 0 || h <= 0) {
+    return 0;
+  }
   memset(q, 0, sizeof(q));
   q[0] = 70; /* PolyFillRectangle */
   put16(q + 2, 5);
@@ -454,7 +478,10 @@ int x11_select_input(x11_t* c, uint32_t win, uint32_t event_mask) {
 
 uint32_t x11_create_window(x11_t* c, int x, int y, int w, int h, uint32_t bg,
                            int override_redirect, uint32_t event_mask) {
-  uint8_t q[40];
+  /* 【必须 44 字节】CreateWindow 头 32 + 最多 3 个 value(12)：back-pixel /
+   * override-redirect / event-mask。原来写成 q[40]，第三个 value 落在
+   * q+40 越界，write_all 又按 44 字节发出去 ⇒ 发出的是栈垃圾当 event_mask。 */
+  uint8_t q[44];
   uint32_t wid = x11_id(c);
   uint32_t mask = CW_BACK_PIXEL | CW_EVENT_MASK;
   unsigned n = 0;
@@ -935,7 +962,10 @@ int x11_set_focus(x11_t* c, uint32_t win) {
 int x11_add_to_save_set(x11_t* c, uint32_t win) {
   uint8_t q[8];
   memset(q, 0, sizeof(q));
-  q[0] = 85;
+  /* 【opcode 是 6，不是 85】85 是 AllocNamedColor（参数是 colormap + 颜色名，
+   * 而且有 reply）：发过去服务器按"颜色名长度 0"解析、回 BadLength/Reply，
+   * 客户端又不读这条回复 ⇒ 回复字节留在流里把后续事件全部错位。 */
+  q[0] = 6; /* ChangeSaveSet */
   put16(q + 2, 2);
   put32(q + 4, win);
   return write_all(c->fd, q, sizeof(q));
@@ -967,17 +997,18 @@ int x11_query_children(x11_t* c, uint32_t win, uint32_t* out, int max) {
     return 0;
   }
   n = (int)le16(rep + 16);
-  if (n > max) {
-    n = max;
-  }
+  /* 【超出的必须读完再丢】只读 max 个、剩下 n-max 个留在流里会让后面
+   * 每个事件/回复都错位（root 子窗口超过 max 时必现）。 */
   for (i = 0; i < n; i++) {
     uint8_t v[4];
     if (read_exact(c->fd, v, 4) < 0) {
-      return i;
+      return i < max ? i : max;
     }
-    out[i] = le32(v);
+    if (i < max) {
+      out[i] = le32(v);
+    }
   }
-  return n;
+  return n > max ? max : n;
 }
 
 int x11_get_geometry(x11_t* c, uint32_t win, int* x, int* y, int* w, int* h) {
@@ -990,7 +1021,10 @@ int x11_get_geometry(x11_t* c, uint32_t win, int* x, int* y, int* w, int* h) {
   if (write_all(c->fd, q, sizeof(q)) < 0) {
     return -1;
   }
-  if (read_reply(c, rep) < 0) {
+  /* 【定长回复一律 raw】GetGeometry 没有任何附加数据；按 length 字段去
+   * 跳字节，一旦服务器在该字段填了非 0（Xorg 的定长回复确实会填 1），
+   * 就会多吃 4 字节，之后整条流的对齐全错。 */
+  if (read_reply_raw(c, rep) < 0) {
     return -1;
   }
   if (x) {
@@ -1019,17 +1053,18 @@ int x11_get_attrs(x11_t* c, uint32_t win, int* map_state, int* override_redirect
   if (write_all(c->fd, q, sizeof(q)) < 0) {
     return -1;
   }
-  if (read_reply(c, rep) < 0) {
+  if (read_reply_raw(c, rep) < 0) { /* 定长回复，见 GetGeometry 的说明 */
     return -1;
   }
   if (map_state) {
-    *map_state = rep[26];
+    *map_state = rep[26]; /* map-state */
   }
   if (override_redirect) {
     *override_redirect = rep[27];
   }
   if (all_event_masks) {
-    *all_event_masks = le32(rep + 28);
+    /* 偏移 28 是 colormap，all-event-masks 在 32 */
+    *all_event_masks = le32(rep + 32);
   }
   return 0;
 }
@@ -1040,6 +1075,7 @@ int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out,
   uint8_t q[24];
   uint8_t rep[32];
   int n32, i;
+  uint32_t total;
   memset(q, 0, sizeof(q));
   q[0] = 20; /* GetProperty */
   put16(q + 2, 6);
@@ -1054,7 +1090,12 @@ int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out,
   if (read_reply_raw(c, rep) < 0) { /* 同上：value 由本函数自己读 */
     return 0;
   }
+  /* 【按 length 字段把数据区读完】value 的字节数由回复头的 length 决定
+   * （4 字节单位），不是 nItems*format/8；少读的部分会留在流里，之后
+   * 每个事件、每次回复读取都错位。 */
+  total = le32(rep + 4) * 4u;
   if (rep[1] != 32 || le32(rep + 16) == 0) {
+    skip_bytes(c, total);
     return 0;
   }
   n32 = (int)le32(rep + 16);
@@ -1068,6 +1109,9 @@ int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out,
     }
     out[i] = le32(v);
   }
+  if (total > (uint32_t)n32 * 4u) {
+    skip_bytes(c, total - (uint32_t)n32 * 4u);
+  }
   return n32;
 }
 
@@ -1079,6 +1123,7 @@ int x11_get_property_str(x11_t* c, uint32_t win, uint32_t prop, char* out,
   int nbytes;
   int n;
   int i;
+  uint32_t total;
   memset(q, 0, sizeof(q));
   q[0] = 20;
   put16(q + 2, 6);
@@ -1093,7 +1138,14 @@ int x11_get_property_str(x11_t* c, uint32_t win, uint32_t prop, char* out,
   if (read_reply_raw(c, rep) < 0) { /* 同上：字符串由本函数自己读 */
     return 0;
   }
+  /* 【format=8 的 value 会补齐到 4 字节】例如 WM_NAME="xeyes"（5 字节）
+   * 服务器发 8 字节（length=2 个 4 字节字）。只读 nbytes=5 会让后面 3 个
+   * 填充字节留在流里 ⇒ 之后读到的事件/回复全部错位（wm 拿到垃圾 window
+   * id 继续发请求，服务器报一堆 BadWindow/BadDrawable）。这里按回复头的
+   * length 把整个数据区读干净。 */
+  total = le32(rep + 4) * 4u;
   if (rep[1] != 8) {
+    skip_bytes(c, total);
     return 0;
   }
   nbytes = (int)le32(rep + 16);
@@ -1109,6 +1161,9 @@ int x11_get_property_str(x11_t* c, uint32_t win, uint32_t prop, char* out,
     if (i < n) {
       out[i] = (char)ch;
     }
+  }
+  if (total > (uint32_t)nbytes) {
+    skip_bytes(c, total - (uint32_t)nbytes); /* 4 字节对齐的填充 */
   }
   out[n] = '\0';
   return n;
@@ -1159,28 +1214,42 @@ int x11_shape_probe(x11_t* c) {
  */
 int x11_shape_rects(x11_t* c, uint32_t win, const int16_t* rects, int n) {
   uint8_t buf[16 + 8 * 64];
-  int i;
-  if (c->shape_op <= 0 || n <= 0 || n > 64) {
+  int i, m = 0;
+  if (c->shape_op <= 0 || n <= 0) {
     return -1;
   }
   memset(buf, 0, sizeof(buf));
-  buf[0] = (uint8_t)c->shape_op;
-  buf[1] = 1; /* ShapeRectangles */
-  put16(buf + 2, (uint16_t)((16 + 8 * n) / 4));
   buf[4] = 0; /* operation = ShapeSet */
   buf[5] = 0; /* destination-kind = ShapeBounding */
   buf[6] = 0; /* ordering = UnSorted */
   put32(buf + 8, win);
   put16(buf + 12, 0); /* x-offset */
   put16(buf + 14, 0); /* y-offset */
-  for (i = 0; i < n; i++) {
-    uint8_t* r = buf + 16 + i * 8;
-    put16(r, (uint16_t)rects[i * 4 + 0]);
-    put16(r + 2, (uint16_t)rects[i * 4 + 1]);
-    put16(r + 4, (uint16_t)rects[i * 4 + 2]);
-    put16(r + 6, (uint16_t)rects[i * 4 + 3]);
+  /* 【丢掉退化矩形】宽或高 <= 0 的矩形并进 region 会让服务器断言
+   * （pixman_region_append_non_o: r->x1 < r->x2 / y1 < y2 was false）。 */
+  for (i = 0; i < n && m < 64; i++) {
+    int16_t x1 = rects[i * 4 + 0];
+    int16_t y1 = rects[i * 4 + 1];
+    int16_t w = rects[i * 4 + 2];
+    int16_t h = rects[i * 4 + 3];
+    uint8_t* r;
+    if (w <= 0 || h <= 0) {
+      continue;
+    }
+    r = buf + 16 + m * 8;
+    put16(r, (uint16_t)x1);
+    put16(r + 2, (uint16_t)y1);
+    put16(r + 4, (uint16_t)w);
+    put16(r + 6, (uint16_t)h);
+    m++;
   }
-  return write_all(c->fd, buf, 16 + 8 * n);
+  if (m == 0) {
+    return -1; /* 全是空矩形：不发（空形状会让窗口彻底不可见/不可点） */
+  }
+  buf[0] = (uint8_t)c->shape_op;
+  buf[1] = 1; /* ShapeRectangles */
+  put16(buf + 2, (uint16_t)((16 + 8 * m) / 4));
+  return write_all(c->fd, buf, 16 + 8 * m);
 }
 
 int x11_next_event(x11_t* c, uint8_t* ev) {

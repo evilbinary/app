@@ -75,10 +75,20 @@ static void spawn(const char* path) {
 static int calc_w(int count) {
   int w;
   if (count <= 0) {
-    return 2 * PAD;
+    w = 2 * PAD;
+  } else {
+    w = count * ICON + (count - 1) * PAD + 2 * PAD;
+    if (w > c.w) {
+      w = c.w;
+    }
   }
-  w = count * ICON + (count - 1) * PAD + 2 * PAD;
-  return (w > c.w) ? c.w : w;
+  /* 【宽度下限 = 2 倍圆角半径】胶囊是逐行算 inset 的：宽 16 时首行 inset
+   * 达到 12，w-2*inset 变成负数 ⇒ 交给 ShapeRectangles 的是退化矩形，
+   * Xorg 的 region 代码（pixman）会断言 "r->x1 < r->x2 was false" 刷屏。 */
+  if (w < 2 * CORNER) {
+    w = 2 * CORNER;
+  }
+  return w;
 }
 
 /* 把 w×h 的圆角矩形拆成逐行矩形（ShapeBounding 用，最多 DOCK_H 组）。
@@ -88,6 +98,7 @@ static int round_rects(int16_t* r, int w, int h, int rad) {
   for (y = 0; y < h && n < 64; y++) {
     int dy = (y < h - 1 - y) ? y : (h - 1 - y); /* 到最近水平边的距离 */
     int inset = 0;
+    int row_w;
     if (dy < rad) {
       int dz = rad - dy;
       int inner = rad * rad - dz * dz;
@@ -97,9 +108,15 @@ static int round_rects(int16_t* r, int w, int h, int rad) {
       }
       inset = rad - s;
     }
+    row_w = w - 2 * inset;
+    /* 【空/负宽度行直接不发】ShapeRectangles 里出现 x1>=x2 或 y1>=y2 的
+     * 矩形，服务器拼 region 时会断言（pixman_region_append_non_o）。 */
+    if (row_w <= 0) {
+      continue;
+    }
     r[n * 4 + 0] = (int16_t)inset;
     r[n * 4 + 1] = (int16_t)y;
-    r[n * 4 + 2] = (int16_t)(w - 2 * inset);
+    r[n * 4 + 2] = (int16_t)row_w;
     r[n * 4 + 3] = 1;
     n++;
   }

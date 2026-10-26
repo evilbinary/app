@@ -97,12 +97,26 @@ static void draw_frame(int idx) {
       title[0] == '\0') {
     strcpy(title, "(no name)");
   }
-  /* 标题栏文字，留出右侧关闭按钮的位置 */
-  i = 0;
-  while (title[i] != '\0' && i < (fw - TITLE_H - 16) / 6) {
-    i++;
+  /* 标题栏文字，留出右侧关闭按钮的位置。
+   * 【必须同时按缓冲区长度截断】原来只按 "frame 宽度能放几个字" 算上界：
+   * frame 宽度一旦是垃圾值（服务器回了个 Error 被当成 GetGeometry 回复、
+   * 或客户端设了很大的初始尺寸），循环就会越过 title[64] 一路写下去，
+   * 把 wm 自己的栈踩烂 —— 之后发出的请求内容全是随机的，服务器那边
+   * 会按错位的数据解析。 */
+  {
+    int lim = (fw - TITLE_H - 16) / 6;
+    if (lim < 0) {
+      lim = 0;
+    }
+    if (lim > (int)sizeof(title) - 1) {
+      lim = (int)sizeof(title) - 1;
+    }
+    i = (int)strlen(title);
+    if (i > lim) {
+      i = lim;
+    }
+    title[i] = '\0';
   }
-  title[i] = '\0';
   x11_set_gc(&c, gc, 0x0C, TITLE_FG, TITLE_BG);
   x11_image_text8(&c, frame, gc, 6, TITLE_H - 5, title, i);
   x11_set_gc(&c, gc, 0x0C, TITLE_FG, CLOSE_BG);
@@ -279,7 +293,10 @@ static void on_motion(const uint8_t* ev) {
 static void handle(const uint8_t* ev) {
   switch (ev[0]) {
     case EV_MAP_REQUEST:
-      manage(x11_ev_u32(ev, 4));
+      /* MapRequest 的布局是 parent@4 + window@8：window 在偏移 8。
+       * 取偏移 4 会拿到 root，manage() 去 reparent 根窗口直接 BadMatch，
+       * 客户端窗口永远不会被 map（进程活着但窗口不出现）。 */
+      manage(x11_ev_u32(ev, 8));
       break;
     case EV_CONFIGURE_REQUEST: {
       uint32_t win = x11_ev_u32(ev, 8);
@@ -294,7 +311,9 @@ static void handle(const uint8_t* ev) {
       if (w > 0 && h > 0) {
         cls[idx].w = w;
         cls[idx].h = h;
-        x11_configure(&c, win, 0, 0, w, h);
+        /* 客户端在 frame 内部的固定槽位是 (BORDER, TITLE_H)：
+         * 位置不能按 (0,0) 摆，否则会盖住标题栏。 */
+        x11_configure(&c, win, BORDER, TITLE_H, w, h);
         x11_configure(&c, cls[idx].frame, -1, -1, w + 2 * BORDER,
                       h + TITLE_H + BORDER);
         draw_frame(idx);
