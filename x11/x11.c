@@ -65,6 +65,12 @@ static int g_trace;    /* X11_TRACE=1 时打印请求/回复/事件，用来抓�
  * 这里累加计数，x11_sync 结束时对账：自上次 sync 以来有 Error 就算失败。 */
 static int g_err_count;    /* 读到的 Error 包总数 */
 static int g_err_checked;  /* 上次 x11_sync 已经报过的那个值 */
+/* 【明知会被拒的请求】少数请求在某些服务器/客户端组合下必然失败（典型：
+ * 在"自己也选了 ButtonPress"的客户端窗口上再选 ButtonPress ⇒ BadAccess，
+ * Xorg/Xephyr/Xvfb 一致）。调用方先用 x11_mute_errors(n) 静音，让这条错误
+ * 既不打印也不计入 sync 对账，自己看返回值判断。 */
+static int g_err_mute;
+static int g_err_muted;    /* 被静音的 Error 条数 */
 
 static void x11_trace_pkt(const char* kind, const uint8_t* p, int seq, int want) {
   if (!g_trace) {
@@ -73,6 +79,25 @@ static void x11_trace_pkt(const char* kind, const uint8_t* p, int seq, int want)
   fprintf(stderr, "[x11] %-7s type=%2d seq=%2d want=%2d | %02x %02x %02x %02x\n",
           kind, p[0], seq, want, p[0], p[1], p[2], p[3]);
 }
+
+/* 记一条服务器 Error：静音期内不打印、也不计入 x11_sync 的对账 */
+static void err_note(const uint8_t* p) {
+  if (g_err_mute > 0) {
+    g_err_mute--;
+    g_err_muted++;
+    return;
+  }
+  g_err_count++;
+  fprintf(stderr, "x11: server error code=%d major=%d minor=%d bad=%u\n", p[1],
+          p[10], (int)(p[8] | (p[9] << 8)), le32(p + 4));
+}
+
+void x11_mute_errors(int n) {
+  g_err_mute = n > 0 ? n : 0;
+  g_err_muted = 0;
+}
+
+int x11_muted_errors(void) { return g_err_muted; }
 
 /* 等 fd 可读/可写。EAGAIN 时【必须 poll 等】而不是 continue 自旋：
  * socket 是非阻塞的，一个 32 字节事件也可能分两次到达，自旋会把 wm 烧成
@@ -107,8 +132,12 @@ static int write_all(int fd, const void* buf, size_t n) {
     g_seq = (g_seq + 1) & 0xffff;
     g_req_left = (int)total - (int)n;
     if (g_trace) {
-      fprintf(stderr, "[x11] req     op=%-3d len=%u seq=%d\n", p[0], total,
-              g_seq);
+      fprintf(stderr, "[x11] req     op=%-3d len=%u seq=%d | %02x%02x%02x%02x"
+                      " %02x%02x%02x%02x %02x%02x%02x%02x\n",
+              p[0], total, g_seq, p[0], p[1], p[2], p[3], n > 4 ? p[4] : 0,
+              n > 5 ? p[5] : 0, n > 6 ? p[6] : 0, n > 7 ? p[7] : 0,
+              n > 8 ? p[8] : 0, n > 9 ? p[9] : 0, n > 10 ? p[10] : 0,
+              n > 11 ? p[11] : 0);
     }
   } else {
     g_req_left -= (int)n;
@@ -505,9 +534,7 @@ static int read_reply_raw(x11_t* c, uint8_t* out32) {
       return 0;
     }
     if (rep[0] == 0) { /* Error */
-      g_err_count++;
-      fprintf(stderr, "x11: server error code=%d major=%d minor=%d bad=%u\n",
-              rep[1], rep[10], (int)(rep[8] | (rep[9] << 8)), le32(rep + 4));
+      err_note(rep);
       if (seq != want) {
         continue; /* 老请求的异步错误：跳过，别当成"本次失败"（计数留给 sync 对账） */
       }
@@ -841,6 +868,22 @@ int x11_set_window_bg_pixmap(x11_t* c, uint32_t win, uint32_t pixmap) {
 
 int x11_select_input(x11_t* c, uint32_t win, uint32_t event_mask) {
   return x11_win_bg(c, win, event_mask, CW_EVENT_MASK);
+}
+
+/* 选事件掩码，被服务器拒（BadAccess）时返回 -1。为什么要这个：在"自己也选了
+ * ButtonPress"的客户端窗口上再选 ButtonPress，Xorg/Xephyr/Xvfb 一致回
+ * BadAccess —— 而这条错误是异步的，不 sync 一次根本不知道成败。静音是为了
+ * 不让可预期的失败刷屏，也不污染 x11_sync 的错误对账。 */
+int x11_select_input_optional(x11_t* c, uint32_t win, uint32_t event_mask) {
+  int muted;
+  x11_mute_errors(1);
+  if (x11_select_input(c, win, event_mask) < 0 || x11_sync(c) < 0) {
+    x11_mute_errors(0);
+    return -1;
+  }
+  muted = x11_muted_errors();
+  x11_mute_errors(0);
+  return muted > 0 ? -1 : 0;
 }
 
 uint32_t x11_create_window(x11_t* c, int x, int y, int w, int h, uint32_t bg,
@@ -1747,9 +1790,7 @@ int x11_next_event(x11_t* c, uint8_t* ev) {
      * type=1 更会撞上"CreateWindow"之类的编号）。 */
     if (ev[0] == 0 || ev[0] == 1) {
       if (ev[0] == 0) {
-        g_err_count++;
-        fprintf(stderr, "x11: server error code=%d major=%d minor=%d bad=%u\n",
-                ev[1], ev[10], (int)(ev[8] | (ev[9] << 8)), le32(ev + 4));
+        err_note(ev);
       }
       continue;
     }

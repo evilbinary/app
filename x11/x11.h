@@ -37,6 +37,12 @@
 #define X11_EV_POINTER_MOTION 0x00000040u
 #define X11_EV_EXPOSURE 0x00008000u
 #define X11_EV_STRUCTURE 0x00020000u
+/* 【注意区别】StructureNotify 是"自己这个窗口"的结构变化；Substructure* 是
+ * 子窗口的结构变化。WM 在根窗口上选的是后者。客户端给 WM 发 ClientMessage
+ * 时必须用下面这两个位，写成 X11_EV_STRUCTURE 服务器会当成"没有客户端订阅"
+ * 直接丢掉（dock 点任务按钮没反应就是这么来的）。 */
+#define X11_EV_SUBSTRUCTURE_NOTIFY 0x00080000u
+#define X11_EV_SUBSTRUCTURE_REDIRECT 0x00100000u
 
 /* It's a pixel value with the same layout as the screen
  * (BGRX on little-endian 32bpp framebuffers). */
@@ -130,6 +136,12 @@ int x11_set_window_bg(x11_t* c, uint32_t win, uint32_t pixmap_or_pixel);
  * 的地方显示父窗口内容，例如根窗口的壁纸）。 */
 int x11_set_window_bg_pixmap(x11_t* c, uint32_t win, uint32_t pixmap);
 int x11_select_input(x11_t* c, uint32_t win, uint32_t event_mask);
+/* 选事件掩码但容忍被拒（返回 -1，不打印错误）。用于"明知某些客户端组合下
+ * 服务器会回 BadAccess"的场合，比如在客户端窗口上选 ButtonPress。 */
+int x11_select_input_optional(x11_t* c, uint32_t win, uint32_t event_mask);
+/* 静音接下来 n 条服务器 Error（不打印、不计入 x11_sync 对账） */
+void x11_mute_errors(int n);
+int x11_muted_errors(void);
 
 /* 文本（X 核心字体，Xorg 内置 "fixed" 可省掉字体文件） */
 int x11_open_font(x11_t* c, uint32_t fid, const char* name);

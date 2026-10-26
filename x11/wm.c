@@ -418,15 +418,22 @@ static void manage(uint32_t win) {
   }
   x11_add_to_save_set(&c, win);
   x11_reparent(&c, win, frame, BORDER, TITLE_H);
-  /* 【点内容区也要抬升/聚焦】frame 是客户端窗口的父窗口，点在客户端区域内
-   * 的按键只会送给客户端自己（frame 收不到），于是"点一下别的窗口把它抬到
-   * 前面"就失效——openbox 这类 WM 的核心手感。这里给客户端窗口补选
-   * ButtonPress：event-mask 是【按客户端】记的，只影响本进程收到的事件，
-   * 不会抢走客户端自己的按键。 */
-  /* 【必须同时选 StructureNotify】否则客户端自己 unmap/退出时我们收不到
-   * 任何事件（frame 是它的父窗口，root 的 SubstructureNotify 只报 root 的
-   * 直接子窗口），点 × 关掉程序后会留下一个空标题条僵尸窗口。 */
-  x11_select_input(&c, win, X11_EV_BUTTON_PRESS | X11_EV_STRUCTURE);
+  /* 【事件掩码必须分两步选，一次选会被 BadAccess 连坐】
+   * 需求有两块：
+   *   1) StructureNotify：客户端自己 unmap/退出时要收到事件（frame 是它的
+   *      父窗口，root 的 SubstructureNotify 只报 root 的直接子窗口），不选
+   *      就会在点 × 之后留下空标题条僵尸窗口。
+   *   2) ButtonPress：点在客户端内容区也能抬升/聚焦（frame 收不到子窗口上
+   *      的按键）。event-mask 按客户端记，只影响本进程收到的事件，不会抢走
+   *      客户端自己的按键。
+   * 【坑】在"自己也选了 ButtonPress"的客户端窗口上（xcalc/xterm 这类）再选
+   * ButtonPress，Xorg/Xephyr/Xvfb 一致回 BadAccess，而且**整条请求作废**
+   * ⇒ 连 StructureNotify 都没选上（实测 xcalc 关掉后留下僵尸标题条）。
+   * 所以先单独选 StructureNotify（一定成功），再尽力补 ButtonPress；补不上
+   * 就退化成"点标题栏抬升"。 */
+  x11_select_input(&c, win, X11_EV_STRUCTURE);
+  (void)x11_select_input_optional(&c, win,
+                                  X11_EV_BUTTON_PRESS | X11_EV_STRUCTURE);
   /* 【backing store：默认关，实测是坑不是药】
    * 原意：让服务器保存"被盖住"的内容，窗口露出时直接贴回，不给客户端发
    * Expose，省掉重画。

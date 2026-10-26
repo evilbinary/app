@@ -213,7 +213,13 @@ static void activate(uint32_t win) {
   memset(ev, 0, sizeof(ev));
   ev[0] = X11_CLIENT_MESSAGE;
   ev[1] = 32;
-  /* 发送给根窗口，data[0] = 目标窗口（与 wm.c 的约定一致） */
+  /* 发送给根窗口，data[0] = 目标窗口（与 wm.c 的约定一致）。
+   * 【event-mask 必须是 Substructure*】SendEvent 的 event-mask 决定"投给哪些
+   * 客户端"：服务器只把事件交给在目标窗口上选了 mask 里任一比特的客户端。
+   * wm 在根窗口上选的是 SubstructureRedirect|SubstructureNotify(0x180000)，
+   * 这里原先写的是 X11_EV_STRUCTURE(0x20000，表示根窗口自己的结构变化)，
+   * 位对不上 ⇒ 服务器谁都不投，dock 点任务按钮完全没反应（最小化的窗口
+   * 也永远恢复不了）。 */
   ev[4] = (uint8_t)(c.root & 0xff);
   ev[5] = (uint8_t)((c.root >> 8) & 0xff);
   ev[6] = (uint8_t)((c.root >> 16) & 0xff);
@@ -226,7 +232,8 @@ static void activate(uint32_t win) {
   ev[13] = (uint8_t)((win >> 8) & 0xff);
   ev[14] = (uint8_t)((win >> 16) & 0xff);
   ev[15] = (uint8_t)((win >> 24) & 0xff);
-  x11_send_event(&c, c.root, X11_EV_STRUCTURE, ev); /* SubstructureNotify */
+  x11_send_event(&c, c.root,
+                 X11_EV_SUBSTRUCTURE_REDIRECT | X11_EV_SUBSTRUCTURE_NOTIFY, ev);
 }
 
 static void on_button(const uint8_t* ev) {
