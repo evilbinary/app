@@ -127,10 +127,14 @@ static void start_resize(int idx, int edge, int rx, int ry) {
   rs_h = fh;
   rs_rx = rx;
   rs_ry = ry;
-  /* 抓住指针：鼠标移出 frame（甚至移出屏幕边缘）也要继续收到 motion */
-  x11_grab_pointer(&c, cls[idx].frame,
-                   X11_EV_BUTTON_PRESS | X11_EV_BUTTON_RELEASE |
-                       X11_EV_POINTER_MOTION);
+  /* 抓住指针：鼠标移出 frame（甚至移出屏幕边缘）也要继续收到 motion。
+   * 抓不到就别进缩放状态：否则 motion 全送给指针下的客户端（xeyes 会跟着
+   * 每像素重绘），我们却一直等不到事件 —— 又卡又没反应。 */
+  if (x11_grab_pointer(&c, cls[idx].frame,
+                       X11_EV_BUTTON_PRESS | X11_EV_BUTTON_RELEASE |
+                           X11_EV_POINTER_MOTION) < 0) {
+    resize_on = 0;
+  }
 }
 
 /* 按鼠标位移把命中的边往外/往里拖，同步改客户端内容区尺寸 */
@@ -423,6 +427,13 @@ static void manage(uint32_t win) {
    * 任何事件（frame 是它的父窗口，root 的 SubstructureNotify 只报 root 的
    * 直接子窗口），点 × 关掉程序后会留下一个空标题条僵尸窗口。 */
   x11_select_input(&c, win, X11_EV_BUTTON_PRESS | X11_EV_STRUCTURE);
+  /* 【backing store】让服务器保存"被别的窗口盖住"的那部分内容，窗口重新
+   * 露出时直接贴回，不必给客户端发 Expose。拖动是最吃这个的场景：每移动一步
+   * 都会露出下层窗口，没有它就等于让 xeyes/xclock 把整块内容重画一遍
+   * （xeyes 的眼睛是大面积填充，软件渲染的 fb 上尤其贵 ⇒ "拖 xeyes 特别卡"）。
+   * 服务器不支持/忽略这个属性也不影响功能，只是照旧发 Expose。 */
+  x11_change_attrs(&c, frame, 0x40 /* CWBackingStore */, 1 /* WhenMapped */);
+  x11_change_attrs(&c, win, 0x40, 1);
   ignore_unmap_win = win; /* 紧接着的 Reparent 会产生一条 UnmapNotify，跳过它 */
   idx = ncls;
   cls[ncls].win = win;
@@ -553,13 +564,16 @@ static void on_button(const uint8_t* ev) {
     if (cls[idx].maxed) { /* 最大化状态不允许拖动 */
       return;
     }
+    /* 抓不到指针就不要进拖动状态（见 start_resize 的说明） */
+    if (x11_grab_pointer(&c, frame,
+                         X11_EV_BUTTON_PRESS | X11_EV_BUTTON_RELEASE |
+                             X11_EV_POINTER_MOTION) < 0) {
+      return;
+    }
     drag_on = 1;
     drag_frame = frame;
     drag_dx = rx - fx;
     drag_dy = ry - fy;
-    x11_grab_pointer(&c, frame,
-                     X11_EV_BUTTON_PRESS | X11_EV_BUTTON_RELEASE |
-                         X11_EV_POINTER_MOTION);
   }
 }
 

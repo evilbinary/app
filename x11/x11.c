@@ -906,6 +906,7 @@ int x11_image_text8(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
 
 int x11_grab_pointer(x11_t* c, uint32_t win, uint32_t event_mask) {
   uint8_t q[24];
+  uint8_t rep[32];
   memset(q, 0, sizeof(q));
   q[0] = 26; /* GrabPointer */
   q[1] = 0;  /* owner_events = false：事件只发给抓取者 */
@@ -917,6 +918,19 @@ int x11_grab_pointer(x11_t* c, uint32_t win, uint32_t event_mask) {
   put32(q + 12, 0); /* confine_to = None */
   put32(q + 16, 0); /* cursor = None */
   if (write_all(c->fd, q, sizeof(q)) < 0) {
+    return -1;
+  }
+  /* 【GrabPointer 是有回复的请求】status: 0=Success 1=AlreadyGrabbed
+   * 2=InvalidTime 3=NotViewable 4=Frozen。以前没读这条回复：reply 留在流里
+   * 凑巧会被"下一包是 Reply 就丢掉"的逻辑吃掉，看起来无害，但**拿不到失败
+   * 原因**——grab 失败时 MotionNotify 会直接送给指针下的客户端（xeyes 会跟着
+   * 鼠标每像素重绘整个眼睛），表现为"窗口拖不动 + 越拖越卡"。 */
+  if (read_reply_raw(c, rep) < 0) {
+    return -1;
+  }
+  if (rep[1] != 0) {
+    fprintf(stderr, "x11: GrabPointer 失败 status=%d win=0x%x mask=0x%x\n",
+            rep[1], win, event_mask);
     return -1;
   }
   return 0;
