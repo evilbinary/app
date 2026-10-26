@@ -37,6 +37,7 @@
 
 /* 事件类型 */
 #define EV_UNMAP_NOTIFY 18
+#define EV_MAP_NOTIFY 19
 #define EV_DESTROY_NOTIFY 17
 #define EV_MAP_REQUEST 20
 #define EV_CONFIGURE_REQUEST 23
@@ -70,6 +71,11 @@ static int drag_dx, drag_dy;
 /* ReparentWindow 会给客户端窗口发一条 UnmapNotify（我们刚选了 StructureNotify），
  * 这条不能当成"客户端自己被隐藏"，否则刚接管的窗口会立刻被 unmanage。 */
 static uint32_t ignore_unmap_win;
+/* 【焦点要等窗口真 visible 了再设】SetInputFocus 要求目标是 viewable 的，
+ * 而 MapWindow 是异步的：manage() 里 map 完立刻设焦点，服务器还在处理
+ * map、窗口仍是 IsUnmapped ⇒ BadMatch(code=8 major=42)，键盘输入进不去。
+ * 记下待设的窗口，等它自己的 MapNotify 到了再设（StructureNotify 已选）。 */
+static uint32_t pending_focus;
 
 /* 缩放状态：resize_edge 是位掩码 1=左 2=右 4=上 8=下 */
 #define EDGE_LEFT 1
@@ -252,28 +258,36 @@ static void draw_frame(int idx) {
   x11_fill_rect(&c, frame, gc, 0, 0, fw, TITLE_H);
 
   /* 右侧三个按钮（各占 TITLE_H 宽，从左到右：最小化 / 最大化 / 关闭）。
-   * frame 太窄（< 4*TITLE_H）时放不下，只画背景，按钮区让给拖动。 */
+   * frame 太窄（< 4*TITLE_H）时放不下，只画背景，按钮区让给拖动。
+   * 【图标一律按"格子中心"算】早先每个图标各写一套硬编码偏移，关闭按钮
+   * 更是直接用核心字体的 'x' 字符画：字宽 6px、基线在 TITLE_H-5，字形墨迹
+   * 又不占满格 ⇒ 叉号被顶到红色按钮的右上角，怎么调都看着不居中。 */
   if (fw >= 4 * TITLE_H) {
-    int bx = fw - 3 * TITLE_H;
-    /* 最小化：一条横杠 */
+    int c0 = fw - 3 * TITLE_H + TITLE_H / 2; /* 三个格的中心 x（与命中区同一网格） */
+    int c1 = c0 + TITLE_H;
+    int c2 = c1 + TITLE_H;
+    int cy = TITLE_H / 2;
+    int k;
     x11_set_gc(&c, gc, 0x0C, TITLE_FG, TITLE_BG);
-    x11_fill_rect(&c, frame, gc, bx + 6, TITLE_H / 2, TITLE_H - 12, 2);
-    /* 最大化：空心方框（四条 2px 边） */
+    /* 最小化：8x2 横杠，居中 */
+    x11_fill_rect(&c, frame, gc, c0 - 4, cy - 1, 8, 2);
+    /* 最大化：10x10 空心方框（四条 2px 边），居中 */
     {
-      int mx = bx + TITLE_H + 5;
-      int my = 5;
-      int mw = TITLE_H - 10;
-      int mh = TITLE_H - 10;
-      x11_fill_rect(&c, frame, gc, mx, my, mw, 2);
-      x11_fill_rect(&c, frame, gc, mx, my + mh - 2, mw, 2);
-      x11_fill_rect(&c, frame, gc, mx, my, 2, mh);
-      x11_fill_rect(&c, frame, gc, mx + mw - 2, my, 2, mh);
+      int mx = c1 - 5;
+      int my = cy - 5;
+      x11_fill_rect(&c, frame, gc, mx, my, 10, 2);
+      x11_fill_rect(&c, frame, gc, mx, my + 8, 10, 2);
+      x11_fill_rect(&c, frame, gc, mx, my, 2, 10);
+      x11_fill_rect(&c, frame, gc, mx + 8, my, 2, 10);
     }
-    /* 关闭：红底 + x */
+    /* 关闭：16x16 红底 + 8x8 对角叉，都居中于格子 */
     x11_set_gc(&c, gc, 0x0C, CLOSE_BG, CLOSE_BG);
-    x11_fill_rect(&c, frame, gc, fw - TITLE_H, 2, TITLE_H - 4, TITLE_H - 4);
+    x11_fill_rect(&c, frame, gc, c2 - 8, cy - 8, 16, 16);
     x11_set_gc(&c, gc, 0x0C, TITLE_FG, CLOSE_BG);
-    x11_image_text8(&c, frame, gc, fw - TITLE_H + 6, TITLE_H - 5, "x", 1);
+    for (k = 0; k < 4; k++) { /* 每条对角线 4 段 2x2，正反各一遍 */
+      x11_fill_rect(&c, frame, gc, c2 - 4 + k * 2, cy - 4 + k * 2, 2, 2);
+      x11_fill_rect(&c, frame, gc, c2 + 2 - k * 2, cy - 4 + k * 2, 2, 2);
+    }
   }
 
   memcpy(title, cls[idx].title, sizeof(title));
@@ -335,6 +349,9 @@ static void activate(uint32_t win) {
 static void unmanage(int idx, int destroy_frame) {
   if (idx < 0 || idx >= ncls) {
     return;
+  }
+  if (pending_focus == cls[idx].win) {
+    pending_focus = 0; /* 窗口没了就别等它的 MapNotify 了 */
   }
   if (destroy_frame && cls[idx].frame != 0) {
     x11_destroy_window(&c, cls[idx].frame);
@@ -427,7 +444,7 @@ static void manage(uint32_t win) {
   x11_map_window(&c, win);
   x11_map_window(&c, frame);
   x11_raise(&c, frame);
-  x11_set_focus(&c, win);
+  pending_focus = win; /* 等 MapNotify：此刻窗口还不可见，直接设焦点会 BadMatch */
   draw_frame(idx);
   update_client_list();
   printf("wm: manage ok win=0x%x geo=%d,%d %dx%d frame=0x%x ncls=%d\n", win, x, y,
@@ -568,11 +585,17 @@ static void handle(const uint8_t* ev) {
       break;
     }
     case EV_CONFIGURE_REQUEST: {
+      /* 【字段偏移】ConfigureRequest = type(0) stack-mode(1) seq(2) parent(4)
+       * window(8) x(12) y(14) width(16) height(18) border-width(20)
+       * value-mask(22)。早先按 16/18/20/22 取，等于把 width 当 x、
+       * value-mask 当 height ⇒ 客户端只想改尺寸时窗口却被"按自己的宽高
+       * 又挪了一次位置"（窗口一出现就跑到屏幕中间）。 */
       uint32_t win = x11_ev_u32(ev, 8);
-      int x = (int16_t)(ev[16] | (ev[17] << 8));
-      int y = (int16_t)(ev[18] | (ev[19] << 8));
-      int w = (int16_t)(ev[20] | (ev[21] << 8));
-      int h = (int16_t)(ev[22] | (ev[23] << 8));
+      int x = (int16_t)(ev[12] | (ev[13] << 8));
+      int y = (int16_t)(ev[14] | (ev[15] << 8));
+      int w = (int16_t)(ev[16] | (ev[17] << 8));
+      int h = (int16_t)(ev[18] | (ev[19] << 8));
+      int mask = ev[22] | (ev[23] << 8);
       int idx = find_win(win);
       if (idx < 0) {
         break;
@@ -585,20 +608,37 @@ static void handle(const uint8_t* ev) {
         draw_frame(idx);
         break;
       }
-      if (w > 0 && h > 0) {
-        cls[idx].w = w;
-        cls[idx].h = h;
-        /* 客户端在 frame 内部的固定槽位是 (BORDER, TITLE_H)：
-         * 位置不能按 (0,0) 摆，否则会盖住标题栏。 */
-        x11_configure(&c, win, BORDER, TITLE_H, w, h);
-        x11_configure(&c, cls[idx].frame, X11_KEEP, X11_KEEP,
-                      w + 2 * BORDER, h + TITLE_H + BORDER);
-        draw_frame(idx);
-      } else if (x != 0 || y != 0) {
+      /* 【必须看 value-mask】只有置位的字段才有效：只发"挪位置"(CWX|CWY)
+       * 的客户端，w/h 字段是 0，照着用就会被缩成 0×0。 */
+      {
+        int nw = (mask & 0x04) ? w : cls[idx].w; /* CWWidth */
+        int nh = (mask & 0x08) ? h : cls[idx].h; /* CWHeight */
+        if ((mask & 0x0c) != 0 && nw > 0 && nh > 0) {
+          cls[idx].w = nw;
+          cls[idx].h = nh;
+          /* 客户端在 frame 内部的固定槽位是 (BORDER, TITLE_H)：
+           * 位置不能按 (0,0) 摆，否则会盖住标题栏。 */
+          x11_configure(&c, win, BORDER, TITLE_H, nw, nh);
+          x11_configure(&c, cls[idx].frame, X11_KEEP, X11_KEEP,
+                        nw + 2 * BORDER, nh + TITLE_H + BORDER);
+          draw_frame(idx);
+          break;
+        }
+      }
+      if ((mask & 0x03) != 0) { /* CWX|CWY：客户端要挪位置 */
         int fx = 0, fy = 0;
         x11_get_geometry(&c, cls[idx].frame, &fx, &fy, NULL, NULL);
         x11_configure(&c, cls[idx].frame, fx + x, fy + y, X11_KEEP,
                       X11_KEEP);
+      }
+      break;
+    }
+    case EV_MAP_NOTIFY: {
+      /* 客户端窗口真 visible 了：这时候设焦点才合法（见 pending_focus 注释） */
+      uint32_t mw = x11_ev_u32(ev, 8);
+      if (pending_focus != 0 && mw == pending_focus) {
+        x11_set_focus(&c, mw);
+        pending_focus = 0;
       }
       break;
     }

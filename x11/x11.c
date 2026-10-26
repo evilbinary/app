@@ -126,8 +126,27 @@ static int read_exact(int fd, void* buf, size_t n) {
 
 uint32_t x11_id(x11_t* c) { return c->id_base | (c->next_id++ & c->id_mask); }
 
+/* 按 DISPLAY 算本地 socket 路径（":0" → /tmp/.X11-unix/X0）。
+ * 【别写死 X0】换 display 是最常见的调试动作（Xephyr :1 做嵌套桌面、Xvfb
+ * 多屏对比），写死的话 wm 会悄悄连到 :0 上：由于 :0 通常是 XQuartz，要求
+ * xauth cookie，而本客户端发的是无鉴权 setup ⇒ 只看到 "setup rejected
+ * (status 0)"，很容易误判成"协议写错了"。只支持本机 display，TCP 不做。 */
+static void x11_display_socket(char* out, size_t cap) {
+  const char* d = getenv("DISPLAY");
+  const char* colon;
+  int num = 0;
+  if (d != NULL && (colon = strrchr(d, ':')) != NULL) {
+    num = atoi(colon + 1);
+    if (num < 0) {
+      num = 0;
+    }
+  }
+  snprintf(out, cap, "/tmp/.X11-unix/X%d", num);
+}
+
 int x11_connect(x11_t* c, const char* path) {
   struct sockaddr_un sa;
+  char disp[64];
   uint8_t setup[12];
   uint8_t hdr[8];
   static uint8_t body[8192];
@@ -140,7 +159,8 @@ int x11_connect(x11_t* c, const char* path) {
   g_err_count = 0;
   g_err_checked = 0;
   if (path == NULL) {
-    path = X11_SOCKET;
+    x11_display_socket(disp, sizeof(disp));
+    path = disp;
   }
   c->fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (c->fd < 0) {
