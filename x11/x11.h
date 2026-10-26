@@ -68,7 +68,7 @@ typedef struct {
    * MotionNotify…）。这些事件不能当回复解析（尺寸/属性立刻变垃圾，而且流
    * 从此错位），也不能丢（Expose 丢了窗口就不重绘），只能先排进这里等
    * 主循环取。 */
-  uint8_t evq[32 * 32];
+  uint8_t evq[32 * 256];
   int evq_head, evq_tail;
 } x11_t;
 

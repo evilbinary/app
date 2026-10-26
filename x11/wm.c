@@ -68,6 +68,9 @@ static uint32_t atom_client_list, atom_active;
 static int drag_on;
 static uint32_t drag_frame;
 static int drag_dx, drag_dy;
+/* 拖动目标位置：同一批 MotionNotify 只发一条 ConfigureWindow（见 on_motion） */
+static int drag_pending;
+static int drag_px, drag_py;
 /* ReparentWindow 会给客户端窗口发一条 UnmapNotify（我们刚选了 StructureNotify），
  * 这条不能当成"客户端自己被隐藏"，否则刚接管的窗口会立刻被 unmanage。 */
 static uint32_t ignore_unmap_win;
@@ -570,7 +573,21 @@ static void on_motion(const uint8_t* ev) {
   if (!drag_on) {
     return;
   }
-  x11_configure(&c, drag_frame, rx - drag_dx, ry - drag_dy, X11_KEEP, X11_KEEP);
+  /* 【合并同一批 Motion】拖动时鼠标每动一个像素服务器就发一条 MotionNotify，
+   * 而每条都发一次 ConfigureWindow 的话：服务器要真正移动窗口 → 露出下层
+   * 窗口 → 那些窗口收到 Expose 各自重绘 → X 队列暴涨，鼠标跟着顿（窗口越多
+   * 越明显）。这里只记目标位置，等这一批事件处理完，由主循环统一发一次。 */
+  drag_px = rx - drag_dx;
+  drag_py = ry - drag_dy;
+  drag_pending = 1;
+}
+
+/* 把合并后的拖动位置真正发出去（主循环每处理完一批事件调一次）。 */
+static void flush_drag(void) {
+  if (drag_pending) {
+    drag_pending = 0;
+    x11_configure(&c, drag_frame, drag_px, drag_py, X11_KEEP, X11_KEEP);
+  }
 }
 
 static void handle(const uint8_t* ev) {
@@ -668,7 +685,11 @@ static void handle(const uint8_t* ev) {
     }
     case X11_EXPOSE: {
       int idx = find_frame(x11_ev_u32(ev, 4));
-      if (idx >= 0) {
+      /* 【合并成批到达的 Expose】Expose 的 count 字段（偏移 16）> 0 表示
+       * "本窗口后面还有 Expose"，此时重绘是白画——一次拖动/抬升会生成几十条
+       * Expose，逐条重绘等于把标题栏画几十遍（每遍约 20 条请求），窗口一多
+       * 就把 X server 的队列撑爆，鼠标跟着一起顿。只认最后一条（count==0）。 */
+      if (idx >= 0 && ev[16] == 0) {
         draw_frame(idx);
       }
       break;
@@ -691,6 +712,7 @@ static void handle(const uint8_t* ev) {
       break;
     case X11_BUTTON_RELEASE:
       if (drag_on) {
+        flush_drag(); /* 最后一段位移不能丢（否则松手位置差几像素） */
         drag_on = 0;
         x11_ungrab_pointer(&c);
       }
@@ -773,6 +795,7 @@ int main(int argc, char* argv[]) {
     while (x11_next_event(&c, ev) == 1) {
       handle(ev);
     }
+    flush_drag(); /* 这一批 Motion 合并成一条 configure 再发 */
   }
   return 0;
 }

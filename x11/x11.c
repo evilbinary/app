@@ -74,6 +74,17 @@ static void x11_trace_pkt(const char* kind, const uint8_t* p, int seq, int want)
           kind, p[0], seq, want, p[0], p[1], p[2], p[3]);
 }
 
+/* 等 fd 可读/可写。EAGAIN 时【必须 poll 等】而不是 continue 自旋：
+ * socket 是非阻塞的，一个 32 字节事件也可能分两次到达，自旋会把 wm 烧成
+ * 100% CPU。3 秒对本地 unix socket 等于"永远不会来"，超时就放弃。 */
+static int wait_fd(int fd, short events, int ms) {
+  struct pollfd pfd;
+  pfd.fd = fd;
+  pfd.events = events;
+  pfd.revents = 0;
+  return poll(&pfd, 1, ms) > 0;
+}
+
 static int write_all(int fd, const void* buf, size_t n) {
   const uint8_t* p = (const uint8_t*)buf;
   size_t off = 0;
@@ -82,7 +93,9 @@ static int write_all(int fd, const void* buf, size_t n) {
     if (w > 0) {
       off += (size_t)w;
     } else if (w < 0 && eagain()) {
-      continue;
+      if (!wait_fd(fd, POLLOUT, 3000)) {
+        return -1; /* 服务器长时间不接收：宁可报错也别把 wm 永远挂住 */
+      }
     } else {
       return -1;
     }
@@ -116,7 +129,9 @@ static int read_exact(int fd, void* buf, size_t n) {
     } else if (r == 0) {
       return -1;
     } else if (eagain()) {
-      continue;
+      if (!wait_fd(fd, POLLIN, 3000)) {
+        return -1;
+      }
     } else {
       return -1;
     }
@@ -126,28 +141,95 @@ static int read_exact(int fd, void* buf, size_t n) {
 
 uint32_t x11_id(x11_t* c) { return c->id_base | (c->next_id++ & c->id_mask); }
 
-/* 按 DISPLAY 算本地 socket 路径（":0" → /tmp/.X11-unix/X0）。
+/* 按 DISPLAY 算本地 socket 路径（":0" → /tmp/.X11-unix/X0）与 display 号。
  * 【别写死 X0】换 display 是最常见的调试动作（Xephyr :1 做嵌套桌面、Xvfb
- * 多屏对比），写死的话 wm 会悄悄连到 :0 上：由于 :0 通常是 XQuartz，要求
- * xauth cookie，而本客户端发的是无鉴权 setup ⇒ 只看到 "setup rejected
- * (status 0)"，很容易误判成"协议写错了"。只支持本机 display，TCP 不做。 */
-static void x11_display_socket(char* out, size_t cap) {
+ * 多屏对比），写死的话 wm 会悄悄连到 :0 上。只支持本机 display，TCP 不做。 */
+static void x11_display_parse(char* sock, size_t sc, char* num, size_t nc) {
   const char* d = getenv("DISPLAY");
   const char* colon;
-  int num = 0;
+  int n = 0;
   if (d != NULL && (colon = strrchr(d, ':')) != NULL) {
-    num = atoi(colon + 1);
-    if (num < 0) {
-      num = 0;
+    n = atoi(colon + 1);
+    if (n < 0) {
+      n = 0;
     }
   }
-  snprintf(out, cap, "/tmp/.X11-unix/X%d", num);
+  snprintf(sock, sc, "/tmp/.X11-unix/X%d", n);
+  snprintf(num, nc, "%d", n);
+}
+
+static unsigned be16(const uint8_t* p) { return (unsigned)((p[0] << 8) | p[1]); }
+
+static int read_n(FILE* f, void* p, unsigned n) {
+  return n == 0 || fread(p, 1, n, f) == n;
+}
+
+/* 从 Xauthority 里取 MIT-MAGIC-COOKIE-1。XQuartz 这类 server 要求鉴权，
+ * 不带 cookie 的 setup 会被直接拒掉（"setup rejected (status 0)"）。
+ * 文件格式：每条目 = family(2) addrlen(2) addr numlen(2) num namelen(2) name
+ * datalen(2) data，长度字段一律大端 16 位。取第一条 name 匹配、display 号
+ * 匹配（number 为空＝任意屏）的。成功返回 cookie 长度，失败 -1。 */
+static int x11_read_cookie(const char* file, const char* num, uint8_t* out,
+                           int cap) {
+  FILE* f = fopen(file, "rb");
+  uint8_t hdr[2], addr[256], nbuf[64], name[128], data[256];
+  if (f == NULL) {
+    return -1;
+  }
+  for (;;) {
+    unsigned fam, alen, nlen, namelen, dlen;
+    if (!read_n(f, hdr, 2)) {
+      break;
+    }
+    fam = be16(hdr);
+    if (!read_n(f, hdr, 2)) {
+      break;
+    }
+    alen = be16(hdr);
+    if (alen > sizeof(addr) || !read_n(f, addr, alen)) {
+      break;
+    }
+    if (!read_n(f, hdr, 2)) {
+      break;
+    }
+    nlen = be16(hdr);
+    if (nlen > sizeof(nbuf) || !read_n(f, nbuf, nlen)) {
+      break;
+    }
+    if (!read_n(f, hdr, 2)) {
+      break;
+    }
+    namelen = be16(hdr);
+    if (namelen > sizeof(name) || !read_n(f, name, namelen)) {
+      break;
+    }
+    if (!read_n(f, hdr, 2)) {
+      break;
+    }
+    dlen = be16(hdr);
+    if (dlen > sizeof(data) || !read_n(f, data, dlen)) {
+      break;
+    }
+    if (namelen == 18 && memcmp(name, "MIT-MAGIC-COOKIE-1", 18) == 0 &&
+        (nlen == 0 || (strlen(num) == nlen && memcmp(nbuf, num, nlen) == 0))) {
+      (void)fam;
+      if ((int)dlen > cap) {
+        dlen = (unsigned)cap;
+      }
+      memcpy(out, data, dlen);
+      fclose(f);
+      return (int)dlen;
+    }
+  }
+  fclose(f);
+  return -1;
 }
 
 int x11_connect(x11_t* c, const char* path) {
   struct sockaddr_un sa;
   char disp[64];
-  uint8_t setup[12];
+  char dnum[16] = "0";
+  uint8_t setup[128];
   uint8_t hdr[8];
   static uint8_t body[8192];
   unsigned extra, vendor_len, nformats, off;
@@ -159,8 +241,13 @@ int x11_connect(x11_t* c, const char* path) {
   g_err_count = 0;
   g_err_checked = 0;
   if (path == NULL) {
-    x11_display_socket(disp, sizeof(disp));
+    x11_display_parse(disp, sizeof(disp), dnum, sizeof(dnum));
     path = disp;
+  } else {
+    const char* x = strrchr(path, 'X'); /* 显式路径：display 号取尾部的 X<n> */
+    if (x != NULL && x[1] != '\0') {
+      snprintf(dnum, sizeof(dnum), "%d", atoi(x + 1));
+    }
   }
   c->fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (c->fd < 0) {
@@ -185,14 +272,61 @@ int x11_connect(x11_t* c, const char* path) {
       return -1;
     }
   }
-  /* 连接建立：'l' + 11.0 + 无鉴权 */
-  memset(setup, 0, sizeof(setup));
-  setup[0] = 'l';
-  put16(setup + 2, 11);
-  if (write_all(c->fd, setup, sizeof(setup)) < 0) {
-    return -1;
+  /* 【必须非阻塞】X11 是双向管道：服务器往这条连接写事件的同时，我们也在
+   * 往里写请求。阻塞 socket 下只要一方缓冲满就互相等死 —— 窗口一多，服务器
+   * 要写的 StructureNotify/Expose 事件量上来，我们（正忙于处理事件）不读，
+   * 它就写不出去；它写不出去，我们下一次 write_all 就卡在 write() 上，
+   * 整个 wm 冻住、所有窗口不再刷新（体感：开几个应用后点哪都不动）。
+   * read_exact/write_all 里本来就有 EAGAIN 分支，这里把 socket 真正设成
+   * 非阻塞，让那两条分支生效。 */
+  {
+    int fl = fcntl(c->fd, F_GETFL, 0);
+    if (fl >= 0) {
+      fcntl(c->fd, F_SETFL, fl | O_NONBLOCK);
+    }
+  }
+  /* 连接建立：'l' + 协议 11.0 + 鉴权（Xauthority 里有 cookie 就带）。
+   * Xvfb/Xephyr 不校验，cookie 取不到就按无鉴权发（25 年来的老姿势）。 */
+  {
+    static const char aname[] = "MIT-MAGIC-COOKIE-1";
+    char defauth[512];
+    uint8_t cookie[64];
+    const char* xa = getenv("XAUTHORITY");
+    unsigned nlen = 0, clen = 0, pad_n, pad_d, total;
+    int got;
+    if (xa == NULL || xa[0] == '\0') {
+      const char* home = getenv("HOME");
+      snprintf(defauth, sizeof(defauth), "%s/.Xauthority",
+               home != NULL ? home : "");
+      xa = defauth;
+    }
+    got = x11_read_cookie(xa, dnum, cookie, (int)sizeof(cookie));
+    if (got > 0) {
+      clen = (unsigned)got;
+      nlen = (unsigned)(sizeof(aname) - 1);
+    }
+    pad_n = (4u - (nlen & 3u)) & 3u;
+    pad_d = (4u - (clen & 3u)) & 3u;
+    total = 12u + nlen + pad_n + clen + pad_d;
+    if (total > sizeof(setup)) {
+      return -1;
+    }
+    memset(setup, 0, total);
+    setup[0] = 'l';
+    put16(setup + 2, 11); /* protocol-major=11, minor=0 */
+    put16(setup + 6, (uint16_t)nlen);
+    put16(setup + 8, (uint16_t)clen);
+    memcpy(setup + 12, aname, nlen);
+    memcpy(setup + 12 + nlen + pad_n, cookie, clen);
+    if (write_all(c->fd, setup, total) < 0) {
+      return -1;
+    }
   }
   if (read_exact(c->fd, hdr, sizeof(hdr)) < 0) {
+    /* 【别静默失败】server 还在初始化（刚起的 Xephyr/Xvfb）时 socket 已经能
+     * connect，但 setup 响应要等一会儿才来；读失败（含 3 秒超时）就走这里。
+     * 以前这里直接 return，调用方看日志一片空白，很像"wm 一启动就没了"。 */
+    fprintf(stderr, "x11: 读 setup 响应失败（server 没就绪？socket=%s）\n", path);
     return -1;
   }
   if (hdr[0] != 1) {
@@ -248,9 +382,18 @@ void x11_close(x11_t* c) {
 #define X11_EVQ_SLOTS ((int)(sizeof(((x11_t*)0)->evq) / 32))
 
 static int evq_push(x11_t* c, const uint8_t* ev) {
+  static int warned;
   int next = (c->evq_tail + 1) % X11_EVQ_SLOTS;
   if (next == c->evq_head) {
-    return -1; /* 满了：只能丢（打印一次，说明主循环被卡住了） */
+    /* 【别静默丢】队列满说明我们处理事件的速度跟不上服务器产出（窗口多 +
+     * 拖动时 Expose/Configure 洪峰）。丢掉的多是 Expose/Notify，丢一条
+     * MapRequest 就等于"客户端窗口永远不出现"。打一次日志方便定位。 */
+    if (!warned) {
+      warned = 1;
+      fprintf(stderr, "x11: event queue full (%d slots), dropping (type=%d)\n",
+              X11_EVQ_SLOTS - 1, ev[0]);
+    }
+    return -1;
   }
   memcpy(c->evq + c->evq_tail * 32, ev, 32);
   c->evq_tail = next;
@@ -732,7 +875,14 @@ int x11_close_font(x11_t* c, uint32_t fid) {
 int x11_image_text8(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
                     const char* s, int len) {
   uint8_t q[16];
-  unsigned pad = (unsigned)((4 - (len & 3)) & 3);
+  unsigned pad;
+  /* 【空串不发】len<=0 的 ImageText8 让服务器去画一个零宽文本，debug 版
+   * pixman 会刷 "r->x1 < r->x2 was false"（退化的 region 矩形），而且净是
+   * 白跑一趟。标题为空/窗口窄到一个字都放不下时就会走到这里。 */
+  if (len <= 0 || s == NULL) {
+    return 0;
+  }
+  pad = (unsigned)((4 - (len & 3)) & 3);
   memset(q, 0, sizeof(q));
   q[0] = 76;           /* ImageText8 */
   q[1] = (uint8_t)len; /* 第二字节 = 字符串长度，漏了就是 BadLength */
@@ -1031,35 +1181,45 @@ int x11_configure(x11_t* c, uint32_t win, int x, int y, int w, int h) {
   uint8_t q[28];
   uint32_t mask = 0;
   unsigned n = 0;
+  /* 【宽高为 0 的请求不下发】X 协议允许 0 尺寸窗口，但服务器内部要拿它去拼
+   * region，遇到退化矩形 debug 版 pixman 就刷 "y1 < y2 was false"。窗口宽度
+   * 0 对用户也没意义 —— 当"不改"处理。
+   * 【flag 必须先算好】mask 与真正写入的值个数必须严格对应：少写一个值服务器
+   * 会把后面的字节当新请求头，多写一个它会按下一个请求解析 —— 两种都是整条
+   * 请求流错位，比退化矩形严重得多。 */
+  int sx = (x != X11_KEEP);
+  int sy = (y != X11_KEEP);
+  int sw = (w != X11_KEEP && w > 0);
+  int sh = (h != X11_KEEP && h > 0);
   memset(q, 0, sizeof(q));
   q[0] = 12; /* ConfigureWindow */
   put32(q + 4, win);
-  if (x != X11_KEEP) {
+  if (sx) {
     mask |= 0x01;
   }
-  if (y != X11_KEEP) {
+  if (sy) {
     mask |= 0x02;
   }
-  if (w != X11_KEEP) {
+  if (sw) {
     mask |= 0x04;
   }
-  if (h != X11_KEEP) {
+  if (sh) {
     mask |= 0x08;
   }
   put16(q + 8, (uint16_t)mask);
-  if (x != X11_KEEP) {
+  if (sx) {
     put32(q + 12 + n * 4, (uint32_t)x);
     n++;
   }
-  if (y != X11_KEEP) {
+  if (sy) {
     put32(q + 12 + n * 4, (uint32_t)y);
     n++;
   }
-  if (w != X11_KEEP) {
+  if (sw) {
     put32(q + 12 + n * 4, (uint32_t)w);
     n++;
   }
-  if (h != X11_KEEP) {
+  if (sh) {
     put32(q + 12 + n * 4, (uint32_t)h);
     n++;
   }
