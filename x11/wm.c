@@ -372,6 +372,15 @@ static void manage(uint32_t win) {
     x11_map_window(&c, win);
     return;
   }
+  /* 【标题栏别跑到屏幕外】客户端自己的位置在 0,0 时 frame 的坐标是
+   * -BORDER / -TITLE_H：标题栏、关闭按钮全落在负坐标上 ⇒ 拖不动也点不到
+   * （表现为"窗口出现在左上角但没法操作"）。左上贴边即可。 */
+  if (x < BORDER) {
+    x = BORDER;
+  }
+  if (y < TITLE_H) {
+    y = TITLE_H;
+  }
   /* frame 只选按键与 Expose：PointerMotion 交给拖动/缩放时的 GrabPointer。
    * 选了 PointerMotion 的话，鼠标只要划过标题栏/边框，Xorg 就要为每个像素
    * 生成一条 MotionNotify 推给我们，窗口一多就是持续的事件流量。 */
@@ -400,7 +409,9 @@ static void manage(uint32_t win) {
   cls[ncls].frame = frame;
   cls[ncls].w = w;
   cls[ncls].h = h;
-  cls[ncls].ox = cls[ncls].oy = 0;
+  /* 记 frame 的当前位置（最大化后还原用），与 create_window 传的坐标一致 */
+  cls[ncls].ox = x - BORDER;
+  cls[ncls].oy = y - TITLE_H;
   cls[ncls].ow = w;
   cls[ncls].oh = h;
   cls[ncls].maxed = 0;

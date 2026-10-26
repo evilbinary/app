@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -57,6 +58,21 @@ static void put32(uint8_t* p, uint32_t v) {
  *   · 序号 == 本次请求的 Error = 本条请求真失败，可以放弃等待。 */
 static int g_seq;      /* 已发出的请求数（低 16 位 = 协议序列号） */
 static int g_req_left; /* 当前请求还有多少字节没写（不含已写部分的头） */
+static int g_trace;    /* X11_TRACE=1 时打印请求/回复/事件，用来抓流错位 */
+/* 【异步 Error 计数】Error 包的序号属于"之前某条请求"，等回复时会被跳过继续
+ * 读（不能当成当前请求失败），于是"这批请求被服务器拒了"就彻底静默了——典型
+ * 例子：抢根窗口 SubstructureRedirect 被别的 WM 占着 ⇒ BadAccess，sync 却报成功。
+ * 这里累加计数，x11_sync 结束时对账：自上次 sync 以来有 Error 就算失败。 */
+static int g_err_count;    /* 读到的 Error 包总数 */
+static int g_err_checked;  /* 上次 x11_sync 已经报过的那个值 */
+
+static void x11_trace_pkt(const char* kind, const uint8_t* p, int seq, int want) {
+  if (!g_trace) {
+    return;
+  }
+  fprintf(stderr, "[x11] %-7s type=%2d seq=%2d want=%2d | %02x %02x %02x %02x\n",
+          kind, p[0], seq, want, p[0], p[1], p[2], p[3]);
+}
 
 static int write_all(int fd, const void* buf, size_t n) {
   const uint8_t* p = (const uint8_t*)buf;
@@ -77,6 +93,10 @@ static int write_all(int fd, const void* buf, size_t n) {
     unsigned total = ((unsigned)p[2] | ((unsigned)p[3] << 8)) * 4u;
     g_seq = (g_seq + 1) & 0xffff;
     g_req_left = (int)total - (int)n;
+    if (g_trace) {
+      fprintf(stderr, "[x11] req     op=%-3d len=%u seq=%d\n", p[0], total,
+              g_seq);
+    }
   } else {
     g_req_left -= (int)n;
   }
@@ -114,6 +134,11 @@ int x11_connect(x11_t* c, const char* path) {
   unsigned extra, vendor_len, nformats, off;
 
   memset(c, 0, sizeof(*c));
+  g_trace = (getenv("X11_TRACE") != NULL);
+  g_seq = 0;
+  g_req_left = 0;
+  g_err_count = 0;
+  g_err_checked = 0;
   if (path == NULL) {
     path = X11_SOCKET;
   }
@@ -125,12 +150,20 @@ int x11_connect(x11_t* c, const char* path) {
   memset(&sa, 0, sizeof(sa));
   sa.sun_family = AF_UNIX;
   snprintf(sa.sun_path, sizeof(sa.sun_path), "%s", path);
-  if (connect(c->fd, (struct sockaddr*)&sa,
-              sizeof(sa.sun_family) + strlen(sa.sun_path)) < 0) {
-    perror("x11: connect");
-    close(c->fd);
-    c->fd = -1;
-    return -1;
+  {
+    /* 【地址长度按 offsetof 算】按"sizeof(sun_family) + 路径长度"在 Linux
+     * 上等价，但在 BSD/macOS 上 sun_family 只有 1 字节、前面还有 sun_len，
+     * 长度算错 connect 直接 ENOENT。 */
+    size_t alen = offsetof(struct sockaddr_un, sun_path) + strlen(sa.sun_path);
+#ifdef __APPLE__
+    sa.sun_len = (unsigned char)alen;
+#endif
+    if (connect(c->fd, (struct sockaddr*)&sa, (socklen_t)alen) < 0) {
+      perror("x11: connect");
+      close(c->fd);
+      c->fd = -1;
+      return -1;
+    }
   }
   /* 连接建立：'l' + 11.0 + 无鉴权 */
   memset(setup, 0, sizeof(setup));
@@ -248,6 +281,8 @@ static int read_reply_raw(x11_t* c, uint8_t* out32) {
       return -1;
     }
     seq = rep[2] | (rep[3] << 8);
+    x11_trace_pkt(rep[0] == 1 ? "reply" : (rep[0] == 0 ? "error" : "event"),
+                  rep, seq, want);
     if (rep[0] == 1) { /* Reply */
       if (seq != want) {
         continue; /* 陈旧回复：属于早先被放弃的请求 */
@@ -258,10 +293,11 @@ static int read_reply_raw(x11_t* c, uint8_t* out32) {
       return 0;
     }
     if (rep[0] == 0) { /* Error */
+      g_err_count++;
       fprintf(stderr, "x11: server error code=%d major=%d minor=%d bad=%u\n",
               rep[1], rep[10], (int)(rep[8] | (rep[9] << 8)), le32(rep + 4));
       if (seq != want) {
-        continue; /* 老请求的异步错误：跳过，别当成"本次失败" */
+        continue; /* 老请求的异步错误：跳过，别当成"本次失败"（计数留给 sync 对账） */
       }
       return -2; /* 本条请求被拒：不会再有 Reply，必须立刻放弃等待 */
     }
@@ -303,9 +339,20 @@ int x11_sync(x11_t* c) {
    * 否则"抢根窗口失败"这类问题会完全静默（比如已有别的 WM 在跑）。 */
   if (rep[0] != 1) {
     /* Error 事件：code(1) seq(2) bad_value(4) minor(2) major(1) */
+    g_err_checked = g_err_count;
     fprintf(stderr, "x11: sync got type=%d code=%d major=%d minor=%d bad=%u\n",
             rep[0], rep[1], rep[10], (int)(rep[8] | (rep[9] << 8)),
             le32(rep + 4));
+    return -1;
+  }
+  /* 最后一关：read_reply_raw 会把"老序号"的 Error 跳过继续等 Reply（它不能
+   * 把别的请求的失败算到当前请求头上），但同步点本身就是个错误检查点——
+   * 自上次 sync 起只要服务器发过 Error，这批请求里就有被拒的，必须报失败，
+   * 否则调用方会以为"抢根窗口/建 frame"都成功了。 */
+  if (g_err_count != g_err_checked) {
+    fprintf(stderr, "x11: 自上次同步以来有 %d 条请求被服务器拒绝\n",
+            g_err_count - g_err_checked);
+    g_err_checked = g_err_count;
     return -1;
   }
   return 0;
@@ -1132,7 +1179,12 @@ int x11_get_geometry(x11_t* c, uint32_t win, int* x, int* y, int* w, int* h) {
 int x11_get_attrs(x11_t* c, uint32_t win, int* map_state, int* override_redirect,
                   uint32_t* all_event_masks) {
   uint8_t q[8];
-  uint8_t rep[32];
+  /* 【回复是 44 字节，不是 32】GetWindowAttributes 的 length 字段是 3（多余
+   * 3 个字），前 32 字节到 colormap 为止，后面还有 all-event-masks(4) /
+   * your-event-masks(4) / do-not-propagate-mask(2) / pad(2)。只读 32 字节会把
+   * 这 12 个字节留在流里 ⇒ 下一个包从错位处解析，表现为"服务器回了个
+   * code=0 major=0 bad=0 的错误包"（其实是全零的事件掩码被当成了包头）。 */
+  uint8_t rep[44];
   memset(q, 0, sizeof(q));
   q[0] = 3; /* GetWindowAttributes */
   put16(q + 2, 2);
@@ -1140,7 +1192,10 @@ int x11_get_attrs(x11_t* c, uint32_t win, int* map_state, int* override_redirect
   if (write_all(c->fd, q, sizeof(q)) < 0) {
     return -1;
   }
-  if (read_reply_raw(c, rep) < 0) { /* 定长回复，见 GetGeometry 的说明 */
+  if (read_reply_raw(c, rep) < 0) {
+    return -1;
+  }
+  if (read_exact(c->fd, rep + 32, 12) < 0) { /* 尾部 3 个字必须读走 */
     return -1;
   }
   if (map_state) {
@@ -1150,7 +1205,7 @@ int x11_get_attrs(x11_t* c, uint32_t win, int* map_state, int* override_redirect
     *override_redirect = rep[27];
   }
   if (all_event_masks) {
-    /* 偏移 28 是 colormap，all-event-masks 在 32 */
+    /* 偏移 28 是 colormap，all-event-masks 在后 32 字节区 */
     *all_event_masks = le32(rep + 32);
   }
   return 0;
@@ -1361,6 +1416,7 @@ int x11_next_event(x11_t* c, uint8_t* ev) {
      * type=1 更会撞上"CreateWindow"之类的编号）。 */
     if (ev[0] == 0 || ev[0] == 1) {
       if (ev[0] == 0) {
+        g_err_count++;
         fprintf(stderr, "x11: server error code=%d major=%d minor=%d bad=%u\n",
                 ev[1], ev[10], (int)(ev[8] | (ev[9] << 8)), le32(ev + 4));
       }
