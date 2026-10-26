@@ -350,17 +350,25 @@ static void manage(uint32_t win) {
   int idx;
 
   if (ncls >= MAX_CLIENTS || find_win(win) >= 0) {
+    printf("wm: manage skip win=0x%x (dup/full)\n", win);
     x11_map_window(&c, win);
     return;
   }
   if (x11_get_attrs(&c, win, &map_state, &override, NULL) < 0) {
+    /* 【必须兜底 map】这里若直接 return，这条被重定向扣住的 MapRequest 就
+     * 再也没人满足了 ⇒ 客户端进程活着、窗口永远不出现。 */
+    printf("wm: get_attrs fail win=0x%x -> map as-is\n", win);
+    x11_map_window(&c, win);
     return;
   }
   if (override) { /* 菜单/面板这类不该被接管 */
+    printf("wm: override win=0x%x -> map as-is\n", win);
     x11_map_window(&c, win);
     return;
   }
   if (x11_get_geometry(&c, win, &x, &y, &w, &h) < 0 || w <= 0 || h <= 0) {
+    printf("wm: geometry fail win=0x%x (%d,%d %dx%d) -> map as-is\n", win, x, y,
+           w, h);
     x11_map_window(&c, win);
     return;
   }
@@ -411,6 +419,8 @@ static void manage(uint32_t win) {
   x11_set_focus(&c, win);
   draw_frame(idx);
   update_client_list();
+  printf("wm: manage ok win=0x%x geo=%d,%d %dx%d frame=0x%x ncls=%d\n", win, x, y,
+         w, h, frame, ncls);
 }
 
 static void close_client(int idx) {
@@ -537,12 +547,15 @@ static void on_motion(const uint8_t* ev) {
 
 static void handle(const uint8_t* ev) {
   switch (ev[0]) {
-    case EV_MAP_REQUEST:
+    case EV_MAP_REQUEST: {
+      uint32_t mw = x11_ev_u32(ev, 8);
       /* MapRequest 的布局是 parent@4 + window@8：window 在偏移 8。
        * 取偏移 4 会拿到 root，manage() 去 reparent 根窗口直接 BadMatch，
        * 客户端窗口永远不会被 map（进程活着但窗口不出现）。 */
-      manage(x11_ev_u32(ev, 8));
+      printf("wm: MapRequest win=0x%x\n", mw);
+      manage(mw);
       break;
+    }
     case EV_CONFIGURE_REQUEST: {
       uint32_t win = x11_ev_u32(ev, 8);
       int x = (int16_t)(ev[16] | (ev[17] << 8));
@@ -697,6 +710,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  printf("wm: 事件循环开始（已有 %d 个窗口在管）\n", ncls);
   for (;;) {
     struct pollfd pfd;
     pfd.fd = c.fd;

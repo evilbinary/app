@@ -50,6 +50,14 @@ static void put32(uint8_t* p, uint32_t v) {
   p[3] = (uint8_t)(v >> 24);
 }
 
+/* 【序号跟踪】所有请求都经过 write_all，靠它数出"已发出多少个请求"
+ * （X11 的 sequence number）。等回复时用它区分：
+ *   · 序号 < 本次请求的 Error/Reply = 之前某条请求的异步结果，必须跳过
+ *     （否则会被误判成"本次请求失败"，manage() 直接放弃接管窗口）；
+ *   · 序号 == 本次请求的 Error = 本条请求真失败，可以放弃等待。 */
+static int g_seq;      /* 已发出的请求数（低 16 位 = 协议序列号） */
+static int g_req_left; /* 当前请求还有多少字节没写（不含已写部分的头） */
+
 static int write_all(int fd, const void* buf, size_t n) {
   const uint8_t* p = (const uint8_t*)buf;
   size_t off = 0;
@@ -62,6 +70,18 @@ static int write_all(int fd, const void* buf, size_t n) {
     } else {
       return -1;
     }
+  }
+  /* 记账：一个请求 = 4 字节头（含 16 位"多少个 4 字节"）+ 其余数据。
+   * 本工程的每个请求第一次 write 都包含完整头，后续 write 只有数据。 */
+  if (g_req_left <= 0) {
+    unsigned total = ((unsigned)p[2] | ((unsigned)p[3] << 8)) * 4u;
+    g_seq = (g_seq + 1) & 0xffff;
+    g_req_left = (int)total - (int)n;
+  } else {
+    g_req_left -= (int)n;
+  }
+  if (g_req_left < 0) {
+    g_req_left = 0;
   }
   return 0;
 }
@@ -159,6 +179,9 @@ int x11_connect(x11_t* c, const char* path) {
   c->h = (int)le16(body + off + 22);
   c->root_visual = le32(body + off + 32);
   c->root_depth = body[off + 38];
+  /* setup 那 12 字节不是 X 请求，序列号从第一条真请求重新数 */
+  g_seq = 0;
+  g_req_left = 0;
   return 0;
 }
 
@@ -201,9 +224,12 @@ static int evq_pop(x11_t* c, uint8_t* ev) {
  * 异步 Error → 打印后跳过，只有真 Reply 才返回。 */
 static int read_reply_raw(x11_t* c, uint8_t* out32) {
   uint8_t rep[32];
+  /* 刚发出去的那条请求的序号 = 我们在等的回复序号（调用方都是"发完立刻等"） */
+  int want = g_seq;
   for (;;) {
     struct pollfd pfd;
     int pr;
+    int seq;
     pfd.fd = c->fd;
     pfd.events = POLLIN;
     pfd.revents = 0;
@@ -212,7 +238,7 @@ static int read_reply_raw(x11_t* c, uint8_t* out32) {
      * （表现为整屏光标不动）。3 秒对本地 unix socket 已经是天文数字。 */
     pr = poll(&pfd, 1, 3000);
     if (pr == 0) {
-      fprintf(stderr, "x11: waiting reply timeout\n");
+      fprintf(stderr, "x11: waiting reply timeout (seq=%d)\n", want);
       return -1;
     }
     if (pr < 0) {
@@ -221,19 +247,23 @@ static int read_reply_raw(x11_t* c, uint8_t* out32) {
     if (read_exact(c->fd, rep, sizeof(rep)) < 0) {
       return -1;
     }
+    seq = rep[2] | (rep[3] << 8);
     if (rep[0] == 1) { /* Reply */
+      if (seq != want) {
+        continue; /* 陈旧回复：属于早先被放弃的请求 */
+      }
       if (out32 != NULL) {
         memcpy(out32, rep, sizeof(rep));
       }
       return 0;
     }
-    if (rep[0] == 0) {
-      /* 【Error 必须是"本次请求失败"，不能跳过继续等】请求被服务器拒绝
-       * （BadWindow/BadDrawable/BadAtom…）时不会再有 Reply 跟着来，继续
-       * 等就是永久阻塞。打印并立刻返回失败，让调用方走错误分支。 */
+    if (rep[0] == 0) { /* Error */
       fprintf(stderr, "x11: server error code=%d major=%d minor=%d bad=%u\n",
               rep[1], rep[10], (int)(rep[8] | (rep[9] << 8)), le32(rep + 4));
-      return -2;
+      if (seq != want) {
+        continue; /* 老请求的异步错误：跳过，别当成"本次失败" */
+      }
+      return -2; /* 本条请求被拒：不会再有 Reply，必须立刻放弃等待 */
     }
     evq_push(c, rep); /* 事件：交给主循环 */
   }
