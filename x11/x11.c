@@ -1113,20 +1113,29 @@ int x11_set_title(x11_t* c, uint32_t win, const char* title) {
   return x11_set_property_str(c, win, x11_intern_atom(c, "WM_NAME"), title);
 }
 
-/* 声明自己支持 WM_DELETE_WINDOW，返回该 atom（主循环拿它比对收到的请求）。
- * 【为什么要声明】不声明的话，wm 点 × 只能 XKillClient 硬断连接：我们的
- * 客户端会卡在"窗口已经没了、进程还在"的状态。声明后 wm 改发 ClientMessage，
- * 客户端自己决定什么时候退出。 */
-int x11_enable_delete_window(x11_t* c, uint32_t win) {
+/* 声明自己支持 WM_DELETE_WINDOW。
+ * 【两个 atom 都要，别只比一个】X 的关闭请求是一个 ClientMessage：
+ *     type 字段 = WM_PROTOCOLS，data[0] = WM_DELETE_WINDOW
+ * 只拿 WM_DELETE_WINDOW 一个 atom 去比对 type 字段永远不相等（踩过：点 ×
+ * 之后客户端不退出，wm 只能把它 XKillClient 掉，窗口没了进程还挂着）。
+ * 成功返回 0，*type_atom / *data_atom 分别收这两个 atom。 */
+int x11_enable_delete_window(x11_t* c, uint32_t win, uint32_t* type_atom,
+                             uint32_t* data_atom) {
   uint32_t protos = x11_intern_atom(c, "WM_PROTOCOLS");
   uint32_t del = x11_intern_atom(c, "WM_DELETE_WINDOW");
   if (protos == 0 || del == 0) {
-    return 0;
+    return -1;
   }
   if (x11_set_property32(c, win, protos, X11_ATOM_ATOM, &del, 1) < 0) {
-    return 0;
+    return -1;
   }
-  return (int)del;
+  if (type_atom != NULL) {
+    *type_atom = protos;
+  }
+  if (data_atom != NULL) {
+    *data_atom = del;
+  }
+  return 0;
 }
 
 int x11_set_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t type,

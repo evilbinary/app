@@ -118,7 +118,7 @@ static void draw_all(void) {
 int main(int argc, char* argv[]) {
   uint8_t ev[32];
   int w = 200, h = 160, gx = -1, gy = -1, x, y;
-  int del_atom;
+  uint32_t del_type = 0, del_data = 0;
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
@@ -155,7 +155,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   x11_set_title(&c, win, "xeyes");
-  del_atom = x11_enable_delete_window(&c, win);
+  (void)x11_enable_delete_window(&c, win, &del_type, &del_data);
   x11_map_window(&c, win);
   printf("xeyes: %dx%d at %d,%d\n", w, h, x, y);
 
@@ -175,8 +175,8 @@ int main(int argc, char* argv[]) {
       while ((r = x11_next_event(&c, ev)) == 1) {
         /* 事件 type 最高位是 send_event 标志（wm 发的关闭请求就是这样），
          * 比对类型前一律先掩掉 */
-        if ((ev[0] & 0x7f) == X11_CLIENT_MESSAGE && del_atom != 0 &&
-            (int)x11_ev_u32(ev, 8) == del_atom) {
+        if ((ev[0] & 0x7f) == X11_CLIENT_MESSAGE && del_type != 0 &&
+            x11_ev_u32(ev, 8) == del_type && x11_ev_u32(ev, 12) == del_data) {
           quit = 1; /* wm 点了 × */
           break;
         }

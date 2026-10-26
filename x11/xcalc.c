@@ -272,7 +272,7 @@ static int hit(int x, int y) {
 int main(int argc, char* argv[]) {
   uint8_t ev[32];
   int gx = -1, gy = -1, x, y;
-  int del_atom;
+  uint32_t del_type = 0, del_data = 0;
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
@@ -315,7 +315,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   x11_set_title(&c, win, "xcalc");
-  del_atom = x11_enable_delete_window(&c, win);
+  (void)x11_enable_delete_window(&c, win, &del_type, &del_data);
   x11_map_window(&c, win);
   printf("xcalc: %dx%d at %d,%d，%d 个按键\n", win_w, win_h, x, y, nkeys);
   draw_all();
@@ -336,8 +336,8 @@ int main(int argc, char* argv[]) {
       int quit = 0;
       while ((r = x11_next_event(&c, ev)) == 1) {
         /* type 最高位 = send_event 标志（wm 的关闭请求带这一位） */
-        if ((ev[0] & 0x7f) == X11_CLIENT_MESSAGE && del_atom != 0 &&
-            (int)x11_ev_u32(ev, 8) == del_atom) {
+        if ((ev[0] & 0x7f) == X11_CLIENT_MESSAGE && del_type != 0 &&
+            x11_ev_u32(ev, 8) == del_type && x11_ev_u32(ev, 12) == del_data) {
           quit = 1;
           break;
         }
