@@ -427,13 +427,20 @@ static void manage(uint32_t win) {
    * 任何事件（frame 是它的父窗口，root 的 SubstructureNotify 只报 root 的
    * 直接子窗口），点 × 关掉程序后会留下一个空标题条僵尸窗口。 */
   x11_select_input(&c, win, X11_EV_BUTTON_PRESS | X11_EV_STRUCTURE);
-  /* 【backing store】让服务器保存"被别的窗口盖住"的那部分内容，窗口重新
-   * 露出时直接贴回，不必给客户端发 Expose。拖动是最吃这个的场景：每移动一步
-   * 都会露出下层窗口，没有它就等于让 xeyes/xclock 把整块内容重画一遍
-   * （xeyes 的眼睛是大面积填充，软件渲染的 fb 上尤其贵 ⇒ "拖 xeyes 特别卡"）。
-   * 服务器不支持/忽略这个属性也不影响功能，只是照旧发 Expose。 */
-  x11_change_attrs(&c, frame, 0x40 /* CWBackingStore */, 1 /* WhenMapped */);
-  x11_change_attrs(&c, win, 0x40, 1);
+  /* 【backing store：默认关，实测是坑不是药】
+   * 原意：让服务器保存"被盖住"的内容，窗口露出时直接贴回，不给客户端发
+   * Expose，省掉重画。
+   * 实测两个问题（macOS XQuartz + Xephyr）：
+   *   1. 正确性：给客户端窗口设 WhenMapped 后，客户端在 reparent 的
+   *      unmap→map 期间画好的内容被丢弃，而且**不再补发 Expose** ⇒ 窗口
+   *      永久空白（自研 xeyes 实测整窗全空，去掉就正常）。
+   *   2. 性能：每次遮挡/暴露服务器要把整窗内容 memcpy 进出备份缓冲，
+   *      拖一步的端到端延迟 0.65ms → 1.97ms（XTEST 实测）。
+   * 所以默认不设；WM_BACKING_STORE=1 时才打开，留给慢服务器做对比。 */
+  if (getenv("WM_BACKING_STORE") != NULL) {
+    x11_change_attrs(&c, frame, 0x40 /* CWBackingStore */, 1 /* WhenMapped */);
+    x11_change_attrs(&c, win, 0x40, 1);
+  }
   ignore_unmap_win = win; /* 紧接着的 Reparent 会产生一条 UnmapNotify，跳过它 */
   idx = ncls;
   cls[ncls].win = win;

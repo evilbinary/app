@@ -10,7 +10,7 @@
  *      彩色方块 + 字母，保证没有资源时也能用。
  *
  * 交互：
- *   左边  固定启动器：终端 / 时钟 / xeyes
+ *   左边  固定启动器：终端 / xeyes / xcalc（都是本仓库自带的客户端）
  *   右边  运行中的窗口：读根窗口 _NET_CLIENT_LIST，每个窗口一个按钮，
  *         点一下发 _NET_ACTIVE_WINDOW 给根窗口，由 wm 负责 raise + 焦点
  *
@@ -49,8 +49,8 @@ struct launcher {
 
 static struct launcher launch[] = {
     {"T", "/usr/bin/lxterminal", "dock-term.bmp", X11_RGB(0xa3, 0xbe, 0x8c)},
-    {"C", "/usr/bin/xclock", "dock-clock.bmp", X11_RGB(0x88, 0xc0, 0xd0)},
-    {"E", "/usr/bin/xeyes", "dock-eyes.bmp", X11_RGB(0xeb, 0xcb, 0x8b)},
+    {"E", "/bin/xeyes", "dock-eyes.bmp", X11_RGB(0xeb, 0xcb, 0x8b)},
+    {"C", "/bin/xcalc", "dock-calc.bmp", X11_RGB(0x88, 0xc0, 0xd0)},
 };
 #define N_LAUNCH ((int)(sizeof(launch) / sizeof(launch[0])))
 #define ICON_RUN (N_LAUNCH) /* 运行中窗口按钮用的图标下标 */

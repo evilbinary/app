@@ -160,6 +160,55 @@ static void x11_display_parse(char* sock, size_t sc, char* num, size_t nc) {
 
 static unsigned be16(const uint8_t* p) { return (unsigned)((p[0] << 8) | p[1]); }
 
+/* "WxH+X+Y" → 四个数（宽高必须给，偏移可省且可为负）。分隔符（'x'、'+'、'-'
+ * 之外的任何字符）一律跳过，所以 "200x160"、"240x180+80+60"、"300x200-10-10"
+ * 都能吃。第一个数前若有符号按正数处理，免得 "x" 被当成负数号。 */
+int x11_parse_geom(const char* s, int* w, int* h, int* x, int* y) {
+  int v[4] = {0, 0, 0, 0};
+  int n = 0;
+  const char* p = s;
+  if (s == NULL) {
+    return -1;
+  }
+  while (*p != '\0' && n < 4) {
+    int sign = 1;
+    int digits = 0;
+    int val = 0;
+    if (*p == '-' && n > 0) {
+      sign = -1;
+      p++;
+    } else if (*p == '+') {
+      p++;
+    }
+    while (*p >= '0' && *p <= '9') {
+      val = val * 10 + (*p - '0');
+      p++;
+      digits = 1;
+    }
+    if (!digits) {
+      p++; /* 不是数字（'x' 或多写的一个 '+'）：跳过一个字符继续 */
+      continue;
+    }
+    v[n++] = sign * val;
+  }
+  if (n < 2 || v[0] <= 0 || v[1] <= 0) {
+    return -1;
+  }
+  if (w != NULL) {
+    *w = v[0];
+  }
+  if (h != NULL) {
+    *h = v[1];
+  }
+  if (x != NULL) {
+    *x = (n > 2) ? v[2] : 0;
+  }
+  if (y != NULL) {
+    *y = (n > 3) ? v[3] : 0;
+  }
+  return 0;
+}
+
 static int read_n(FILE* f, void* p, unsigned n) {
   return n == 0 || fread(p, 1, n, f) == n;
 }
@@ -632,6 +681,28 @@ int x11_put_image(x11_t* c, uint32_t drawable, uint32_t gc, int dst_x, int dst_y
   return 0;
 }
 
+/* 填充圆弧：PolyFillArc(71)。一条弧 12 字节（x,y,w,h,angle1,angle2），
+ * 全是 Int16；角度单位 1/64 度、逆时针（X 的 y 轴向下，所以视觉上是逆时针）。 */
+int x11_fill_arc(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
+                 int w, int h, int angle1, int angle2) {
+  uint8_t q[24];
+  if (w <= 0 || h <= 0) {
+    return 0;
+  }
+  memset(q, 0, sizeof(q));
+  q[0] = 71; /* PolyFillArc */
+  put16(q + 2, 6); /* 3 个字头 + 1 条弧 3 个字 */
+  put32(q + 4, drawable);
+  put32(q + 8, gc);
+  put16(q + 12, (uint16_t)x);
+  put16(q + 14, (uint16_t)y);
+  put16(q + 16, (uint16_t)w);
+  put16(q + 18, (uint16_t)h);
+  put16(q + 20, (uint16_t)angle1);
+  put16(q + 22, (uint16_t)angle2);
+  return write_all(c->fd, q, sizeof(q));
+}
+
 int x11_fill_rect(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
                   int w, int h) {
   uint8_t q[20];
@@ -971,6 +1042,11 @@ uint32_t x11_intern_atom(x11_t* c, const char* name) {
     return 0;
   }
   return le32(rep + 8);
+}
+
+/* 设置标题：wm 接管窗口时读 WM_NAME 缓存进标题栏（只读一次，之后不 round-trip） */
+int x11_set_title(x11_t* c, uint32_t win, const char* title) {
+  return x11_set_property_str(c, win, x11_intern_atom(c, "WM_NAME"), title);
 }
 
 int x11_set_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t type,
@@ -1370,6 +1446,42 @@ int x11_get_geometry(x11_t* c, uint32_t win, int* x, int* y, int* w, int* h) {
   return 0;
 }
 
+int x11_query_pointer(x11_t* c, uint32_t win, int* x, int* y, int* wx, int* wy,
+                      uint32_t* mask) {
+  uint8_t q[8];
+  uint8_t rep[32];
+  memset(q, 0, sizeof(q));
+  q[0] = 38; /* QueryPointer */
+  put16(q + 2, 2);
+  put32(q + 4, win);
+  if (write_all(c->fd, q, sizeof(q)) < 0) {
+    return -1;
+  }
+  /* 定长回复（32 字节，没有附加数据）：同 GetGeometry，必须用 raw 读 */
+  if (read_reply_raw(c, rep) < 0) {
+    return -1;
+  }
+  if (rep[1] == 0) { /* same-screen = false：指针在别的屏上，坐标无意义 */
+    return -1;
+  }
+  if (x) {
+    *x = (int16_t)le16(rep + 16);
+  }
+  if (y) {
+    *y = (int16_t)le16(rep + 18);
+  }
+  if (wx) {
+    *wx = (int16_t)le16(rep + 20);
+  }
+  if (wy) {
+    *wy = (int16_t)le16(rep + 22);
+  }
+  if (mask) {
+    *mask = (uint32_t)le16(rep + 24);
+  }
+  return 0;
+}
+
 int x11_get_attrs(x11_t* c, uint32_t win, int* map_state, int* override_redirect,
                   uint32_t* all_event_masks) {
   uint8_t q[8];
@@ -1449,6 +1561,31 @@ int x11_get_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t* out,
     skip_bytes(c, total - (uint32_t)n32 * 4u);
   }
   return n32;
+}
+
+/* 写字符串属性（ChangeProperty，format=8，type=STRING）。自研客户端靠它
+ * 设 WM_NAME，wm 接管时读一次拿到的就是标题栏文字（否则显示 "(no name)"）。
+ * 【必须补 4 字节对齐】协议里 length 按 4 字节字算，数据不满一个字时服务器
+ * 会把紧随其后的请求头当属性值吃掉 ⇒ 之后整条流错位。 */
+int x11_set_property_str(x11_t* c, uint32_t win, uint32_t prop, const char* s) {
+  uint8_t q[24 + 256];
+  int n = (int)strlen(s);
+  int padded;
+  if (n > 250) {
+    n = 250;
+  }
+  padded = (n + 3) & ~3;
+  memset(q, 0, (size_t)(24 + padded));
+  q[0] = 18; /* ChangeProperty */
+  q[1] = 0;  /* mode = Replace */
+  put16(q + 2, (uint16_t)((24 + padded) / 4));
+  put32(q + 4, win);
+  put32(q + 8, prop);
+  put32(q + 12, X11_ATOM_STRING);
+  q[16] = 8; /* format */
+  put32(q + 20, (uint32_t)n);
+  memcpy(q + 24, s, (size_t)n);
+  return write_all(c->fd, q, (size_t)(24 + padded));
 }
 
 /* 读字符串属性（WM_NAME 之类，format=8），返回字节数 */

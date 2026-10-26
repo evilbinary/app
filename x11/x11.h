@@ -22,6 +22,7 @@
 
 /* 事件类型（X11 线上值） */
 #define X11_EXPOSE 12
+#define X11_MAP_NOTIFY 19
 #define X11_CONFIGURE_NOTIFY 22
 #define X11_CLIENT_MESSAGE 33
 #define X11_MAPPING_NOTIFY 34
@@ -74,6 +75,9 @@ typedef struct {
 
 /* 连接：path 传 NULL 用 /tmp/.X11-unix/X0；成功返回 0 */
 int x11_connect(x11_t* c, const char* path);
+/* 解析 "WxH+X+Y"（偏移可省，可为负数；也容忍 "WxH-20-30"）；成功返回 0。
+ * 桌面组件统一用它吃命令行几何参数，省得每个程序各写一份。 */
+int x11_parse_geom(const char* s, int* w, int* h, int* x, int* y);
 void x11_close(x11_t* c);
 uint32_t x11_id(x11_t* c);
 
@@ -103,6 +107,15 @@ int x11_load_bmp(const char* name, x11_image_t* img);
 /* 请求 */
 int x11_fill_rect(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
                   int w, int h);
+/* 填充圆弧（PolyFillArc）。(x,y,w,h) 是外接矩形；角度单位 1/64 度，
+ * 逆时针、0 度指向 +x。整圈传 0 和 360*64（用 x11_fill_ellipse 更省事）。 */
+int x11_fill_arc(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
+                 int w, int h, int angle1, int angle2);
+/* 整圈椭圆（xeyes 的眼白/瞳孔就够了） */
+static inline int x11_fill_ellipse(x11_t* c, uint32_t drawable, uint32_t gc,
+                                   int x, int y, int w, int h) {
+  return x11_fill_arc(c, drawable, gc, x, y, w, h, 0, 360 * 64);
+}
 int x11_clear(x11_t* c, uint32_t drawable);
 int x11_set_root_bg(x11_t* c, uint32_t pixmap);
 
@@ -127,6 +140,12 @@ int x11_image_text8(x11_t* c, uint32_t drawable, uint32_t gc, int x, int y,
 /* 指针抓取（弹层菜单用来收"点到外面"的事件） */
 int x11_grab_pointer(x11_t* c, uint32_t win, uint32_t event_mask);
 int x11_ungrab_pointer(x11_t* c);
+
+/* 查指针位置（QueryPointer）：x/y 是根窗口坐标，wx/wy 是相对 win 的坐标
+ * （指针在窗口外时照样有效，可以是负数或大于窗口尺寸）。mask 是按键状态。
+ * 【xeyes 靠它】只靠 MotionNotify 的话指针一移出窗口眼珠就不动了。 */
+int x11_query_pointer(x11_t* c, uint32_t win, int* x, int* y, int* wx, int* wy,
+                      uint32_t* mask);
 
 /* 光标：X 不会"自动显示"默认指针（取不到核心光标字体时是隐形光标），
  * 需要客户端自己 CreatePixmapCursor 并挂到窗口上。子窗口创建时继承父窗口的
@@ -166,6 +185,10 @@ int x11_shape_rects(x11_t* c, uint32_t win, const int16_t* rects, int n);
 uint32_t x11_intern_atom(x11_t* c, const char* name);
 int x11_set_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t type,
                        const uint32_t* data, int count);
+/* 写字符串属性（type=STRING，format=8）：客户端用它设 WM_NAME 当标题 */
+int x11_set_property_str(x11_t* c, uint32_t win, uint32_t prop, const char* s);
+/* 设置自己的 WM_NAME（wm 的标题栏读的就是它） */
+int x11_set_title(x11_t* c, uint32_t win, const char* title);
 int x11_delete_property(x11_t* c, uint32_t win, uint32_t prop);
 
 /* 事件：返回 1=拿到一个事件（写入 ev[32]），0=暂时没有，-1=连接断开 */

@@ -5,7 +5,7 @@
  * 自己做曝光重绘：
  *
  *   ┌───────────────────────────────────────────────┐
- *   │ Menu   xclock   xeyes   Terminal  wifi bat vol HH:MM │
+ *   │ Menu   xeyes   xcalc   Terminal  wifi bat vol HH:MM │
  *   └───────────────────────────────────────────────┘
  *
  * 右上角是状态区：Wi-Fi / 电池 / 音量图标（/res/bar-*.bmp，由
@@ -45,10 +45,12 @@ struct menu_item {
   const char* exec;
 };
 
+/* 只列本仓库自带的程序（镜像里没有 Xorg 那套客户端；原生 xeyes/xclock
+ * 在软件渲染的 fb 上大面积重画特别占帧，自研版本见 xeyes.c/xcalc.c） */
 static struct menu_item items[] = {
     {"Terminal", "/usr/bin/lxterminal"},
-    {"xclock", "/usr/bin/xclock"},
-    {"xeyes", "/usr/bin/xeyes"},
+    {"xeyes", "/bin/xeyes"},
+    {"xcalc", "/bin/xcalc"},
 };
 #define N_ITEMS ((int)(sizeof(items) / sizeof(items[0])))
 

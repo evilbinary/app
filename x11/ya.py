@@ -12,6 +12,8 @@
 #   panel    顶部任务栏：Menu 弹出菜单 + 时钟（替代 lxpanel）
 #   dock     底部 dock：启动器 + 运行中窗口按钮（wxbar/plank 的角色）
 #   session  会话启动器：拉起 wm + wall + panel + dock 并守护（替代 lxsession）
+#   xeyes    跟随指针的眼睛（替代 Xorg 的 xeyes）
+#   xcalc    计算器（替代 Xorg 的 xcalc）
 
 target("wm")
 set_type("cli")
@@ -32,3 +34,19 @@ add_files("x11.c", "dock.c")
 target("session")
 set_type("cli")
 add_files("session.c")
+
+target("xeyes")
+set_type("cli")
+add_files("x11.c", "xeyes.c")
+
+target("xcalc")
+set_type("cli")
+add_files("x11.c", "xcalc.c")
+
+target("xcalc")
+set_type("cli")
+add_files("x11.c","xcalc.c")
+
+target("xeyes")
+set_type("cli")
+add_files("x11.c","xeyes.c")
