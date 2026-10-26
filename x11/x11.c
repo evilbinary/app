@@ -5,6 +5,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -168,19 +169,74 @@ void x11_close(x11_t* c) {
   }
 }
 
+#define X11_EVQ_SLOTS ((int)(sizeof(((x11_t*)0)->evq) / 32))
+
+static int evq_push(x11_t* c, const uint8_t* ev) {
+  int next = (c->evq_tail + 1) % X11_EVQ_SLOTS;
+  if (next == c->evq_head) {
+    return -1; /* 满了：只能丢（打印一次，说明主循环被卡住了） */
+  }
+  memcpy(c->evq + c->evq_tail * 32, ev, 32);
+  c->evq_tail = next;
+  return 0;
+}
+
+static int evq_pop(x11_t* c, uint8_t* ev) {
+  if (c->evq_head == c->evq_tail) {
+    return 0;
+  }
+  memcpy(ev, c->evq + c->evq_head * 32, 32);
+  c->evq_head = (c->evq_head + 1) % X11_EVQ_SLOTS;
+  return 1;
+}
+
 /* 读 32 字节回复，不碰"附加数据"字段。
- * 【坑】定长回复（GetInputFocus/InternAtom 等）里 offset 4 的 length 字段
+ * 【坑 1】定长回复（GetInputFocus/InternAtom 等）里 offset 4 的 length 字段
  * Xorg 会填 1（不是 0，也不是附加字节数），照着它去读 4 字节会永远等不到
- * 数据 ⇒ wm/wall 卡死在 sync 上。定长回复一律用这个。 */
+ * 数据 ⇒ wm/wall 卡死在 sync 上。定长回复一律用这个。
+ * 【坑 2·更致命】回复和事件在同一条流里。服务器处理完我们批发的请求后，
+ * ReparentNotify / UnmapNotify / Expose / ButtonPress 会排在回复前面到达。
+ * 直接读 32 字节当回复 = 拿事件头当回复字段（尺寸、属性全变垃圾），而且
+ * 真正的回复还留在流里，之后每一次读都错位一格。这里必须：事件 → 入队，
+ * 异步 Error → 打印后跳过，只有真 Reply 才返回。 */
 static int read_reply_raw(x11_t* c, uint8_t* out32) {
   uint8_t rep[32];
-  if (read_exact(c->fd, rep, sizeof(rep)) < 0) {
-    return -1;
+  for (;;) {
+    struct pollfd pfd;
+    int pr;
+    pfd.fd = c->fd;
+    pfd.events = POLLIN;
+    pfd.revents = 0;
+    /* 【必须有超时】没有它的话，某个请求拿不到回复时客户端就永久卡在
+     * read 上：既不再读事件，也让服务器写这个 socket 写满后一起卡死
+     * （表现为整屏光标不动）。3 秒对本地 unix socket 已经是天文数字。 */
+    pr = poll(&pfd, 1, 3000);
+    if (pr == 0) {
+      fprintf(stderr, "x11: waiting reply timeout\n");
+      return -1;
+    }
+    if (pr < 0) {
+      return -1;
+    }
+    if (read_exact(c->fd, rep, sizeof(rep)) < 0) {
+      return -1;
+    }
+    if (rep[0] == 1) { /* Reply */
+      if (out32 != NULL) {
+        memcpy(out32, rep, sizeof(rep));
+      }
+      return 0;
+    }
+    if (rep[0] == 0) {
+      /* 【Error 必须是"本次请求失败"，不能跳过继续等】请求被服务器拒绝
+       * （BadWindow/BadDrawable/BadAtom…）时不会再有 Reply 跟着来，继续
+       * 等就是永久阻塞。打印并立刻返回失败，让调用方走错误分支。 */
+      fprintf(stderr, "x11: server error code=%d major=%d minor=%d bad=%u\n",
+              rep[1], rep[10], (int)(rep[8] | (rep[9] << 8)), le32(rep + 4));
+      return -2;
+    }
+    evq_push(c, rep); /* 事件：交给主循环 */
   }
-  if (out32 != NULL) {
-    memcpy(out32, rep, sizeof(rep));
-  }
-  return 0;
 }
 
 /* 丢掉 n 字节（回复里调用方不关心的附加数据 / 4 字节对齐填充）。
@@ -872,7 +928,8 @@ int x11_install_arrow_cursor(x11_t* c) {
   return x11_cursor_step(c, "ChangeWindowAttributes(CWCursor)");
 }
 
-/* 一次配置 x/y/w/h：mask 按 X/Y/W/H 位序给值，传 -1 表示该项不改 */
+/* 一次配置 x/y/w/h：mask 按 X/Y/W/H 位序给值，传 X11_KEEP 表示该项不改。
+ * 值一律按 32 位小端写：x/y 负数是合法的（服务器按 INT16 解释 value）。 */
 int x11_configure(x11_t* c, uint32_t win, int x, int y, int w, int h) {
   uint8_t q[28];
   uint32_t mask = 0;
@@ -880,32 +937,32 @@ int x11_configure(x11_t* c, uint32_t win, int x, int y, int w, int h) {
   memset(q, 0, sizeof(q));
   q[0] = 12; /* ConfigureWindow */
   put32(q + 4, win);
-  if (x >= 0) {
+  if (x != X11_KEEP) {
     mask |= 0x01;
   }
-  if (y >= 0) {
+  if (y != X11_KEEP) {
     mask |= 0x02;
   }
-  if (w > 0) {
+  if (w != X11_KEEP) {
     mask |= 0x04;
   }
-  if (h > 0) {
+  if (h != X11_KEEP) {
     mask |= 0x08;
   }
   put16(q + 8, (uint16_t)mask);
-  if (x >= 0) {
+  if (x != X11_KEEP) {
     put32(q + 12 + n * 4, (uint32_t)x);
     n++;
   }
-  if (y >= 0) {
+  if (y != X11_KEEP) {
     put32(q + 12 + n * 4, (uint32_t)y);
     n++;
   }
-  if (w > 0) {
+  if (w != X11_KEEP) {
     put32(q + 12 + n * 4, (uint32_t)w);
     n++;
   }
-  if (h > 0) {
+  if (h != X11_KEEP) {
     put32(q + 12 + n * 4, (uint32_t)h);
     n++;
   }
@@ -1253,21 +1310,32 @@ int x11_shape_rects(x11_t* c, uint32_t win, const int16_t* rects, int n) {
 }
 
 int x11_next_event(x11_t* c, uint8_t* ev) {
-  ssize_t r = read(c->fd, ev, 32);
-  if (r == 32) {
-    return 1;
-  }
-  if (r > 0) { /* 半个事件：补齐 */
-    if (read_exact(c->fd, ev + r, (size_t)(32 - r)) < 0) {
+  for (;;) {
+    ssize_t r;
+    /* 排队的优先：它们是在等某个回复时先到的事件，顺序必须保持 */
+    if (evq_pop(c, ev)) {
+      return 1;
+    }
+    r = read(c->fd, ev, 32);
+    if (r == 0) {
       return -1;
+    }
+    if (r < 0) {
+      return eagain() ? 0 : -1;
+    }
+    if (r < 32 && read_exact(c->fd, ev + r, (size_t)(32 - r)) < 0) {
+      return -1;
+    }
+    /* 这里不该出现 Reply（没有请求在等），Error 是异步错误：都丢掉重读，
+     * 别把它们的字节当事件字段（type=0 会让 handle 走 default 分支，
+     * type=1 更会撞上"CreateWindow"之类的编号）。 */
+    if (ev[0] == 0 || ev[0] == 1) {
+      if (ev[0] == 0) {
+        fprintf(stderr, "x11: server error code=%d major=%d minor=%d bad=%u\n",
+                ev[1], ev[10], (int)(ev[8] | (ev[9] << 8)), le32(ev + 4));
+      }
+      continue;
     }
     return 1;
   }
-  if (r == 0) {
-    return -1;
-  }
-  if (eagain()) {
-    return 0;
-  }
-  return -1;
 }

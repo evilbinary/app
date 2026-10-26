@@ -63,6 +63,13 @@ typedef struct {
   uint32_t id_mask;
   uint32_t next_id;
   int shape_op; /* SHAPE 扩展的 major opcode（0 = 不可用） */
+  /* 【事件队列（必须有）】X11 是单条流，回复和事件混在一起。等某个请求的
+   * 回复时，服务器很可能先塞进来几条事件（ReparentNotify/Expose/ButtonPress/
+   * MotionNotify…）。这些事件不能当回复解析（尺寸/属性立刻变垃圾，而且流
+   * 从此错位），也不能丢（Expose 丢了窗口就不重绘），只能先排进这里等
+   * 主循环取。 */
+  uint8_t evq[32 * 32];
+  int evq_head, evq_tail;
 } x11_t;
 
 /* 连接：path 传 NULL 用 /tmp/.X11-unix/X0；成功返回 0 */
@@ -132,6 +139,9 @@ int x11_install_arrow_cursor(x11_t* c);
 
 /* 窗口管理器需要的请求 */
 int x11_change_attrs(x11_t* c, uint32_t win, uint32_t value_mask, uint32_t value);
+/* 传 X11_KEEP 表示该项不改。不能用 -1 当哨兵：窗口可以拖/缩到负坐标
+ * （贴着屏幕左边或上边），-1 是合法坐标。 */
+#define X11_KEEP (-32768)
 int x11_configure(x11_t* c, uint32_t win, int x, int y, int w, int h);
 int x11_raise(x11_t* c, uint32_t win);
 int x11_reparent(x11_t* c, uint32_t win, uint32_t parent, int x, int y);
