@@ -201,6 +201,10 @@ int x11_set_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t type,
 int x11_set_property_str(x11_t* c, uint32_t win, uint32_t prop, const char* s);
 /* 设置自己的 WM_NAME（wm 的标题栏读的就是它） */
 int x11_set_title(x11_t* c, uint32_t win, const char* title);
+/* 声明支持 WM_DELETE_WINDOW（点 × 时 wm 发 ClientMessage 而不是硬断连接），
+ * 返回 WM_DELETE_WINDOW 的 atom：主循环用 (ev[0]&0x7f)==CLIENT_MESSAGE &&
+ * data[0]==该 atom 判断"用户要关我了"。失败返回 0。 */
+int x11_enable_delete_window(x11_t* c, uint32_t win);
 int x11_delete_property(x11_t* c, uint32_t win, uint32_t prop);
 
 /* 事件：返回 1=拿到一个事件（写入 ev[32]），0=暂时没有，-1=连接断开 */

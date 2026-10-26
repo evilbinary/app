@@ -118,6 +118,7 @@ static void draw_all(void) {
 int main(int argc, char* argv[]) {
   uint8_t ev[32];
   int w = 200, h = 160, gx = -1, gy = -1, x, y;
+  int del_atom;
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
@@ -154,6 +155,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   x11_set_title(&c, win, "xeyes");
+  del_atom = x11_enable_delete_window(&c, win);
   x11_map_window(&c, win);
   printf("xeyes: %dx%d at %d,%d\n", w, h, x, y);
 
@@ -164,11 +166,20 @@ int main(int argc, char* argv[]) {
 
   for (;;) {
     struct pollfd pfd;
+    int r;
+    int quit = 0;
     pfd.fd = c.fd;
     pfd.events = POLLIN;
     pfd.revents = 0;
     if (poll(&pfd, 1, SAMPLE_MS) > 0) {
-      while (x11_next_event(&c, ev) == 1) {
+      while ((r = x11_next_event(&c, ev)) == 1) {
+        /* 事件 type 最高位是 send_event 标志（wm 发的关闭请求就是这样），
+         * 比对类型前一律先掩掉 */
+        if ((ev[0] & 0x7f) == X11_CLIENT_MESSAGE && del_atom != 0 &&
+            (int)x11_ev_u32(ev, 8) == del_atom) {
+          quit = 1; /* wm 点了 × */
+          break;
+        }
         if (ev[0] == X11_EXPOSE || ev[0] == X11_MAP_NOTIFY) {
           /* MapNotify 也重绘：wm reparent 的 unmap→map 期间窗口内容可能被
            * 服务器丢掉，而它不一定补 Expose（backing store 开着时就这样，
@@ -187,6 +198,9 @@ int main(int argc, char* argv[]) {
             draw_all();
           }
         }
+      }
+      if (quit || r < 0) {
+        break; /* 关闭请求 / 连接断了（XKillClient）：退出进程 */
       }
     }
     /* 指针位置统一由这里跟进：指针移出窗口后 MotionNotify 不会来了 */

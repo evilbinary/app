@@ -272,6 +272,7 @@ static int hit(int x, int y) {
 int main(int argc, char* argv[]) {
   uint8_t ev[32];
   int gx = -1, gy = -1, x, y;
+  int del_atom;
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
@@ -314,6 +315,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   x11_set_title(&c, win, "xcalc");
+  del_atom = x11_enable_delete_window(&c, win);
   x11_map_window(&c, win);
   printf("xcalc: %dx%d at %d,%d，%d 个按键\n", win_w, win_h, x, y, nkeys);
   draw_all();
@@ -330,7 +332,15 @@ int main(int argc, char* argv[]) {
     pfd.events = POLLIN;
     pfd.revents = 0;
     if (poll(&pfd, 1, PRESS_MS) > 0) {
-      while (x11_next_event(&c, ev) == 1) {
+      int r;
+      int quit = 0;
+      while ((r = x11_next_event(&c, ev)) == 1) {
+        /* type 最高位 = send_event 标志（wm 的关闭请求带这一位） */
+        if ((ev[0] & 0x7f) == X11_CLIENT_MESSAGE && del_atom != 0 &&
+            (int)x11_ev_u32(ev, 8) == del_atom) {
+          quit = 1;
+          break;
+        }
         if (ev[0] == X11_EXPOSE || ev[0] == X11_MAP_NOTIFY) {
           /* MapNotify 也重绘一次：reparent 的 unmap→map 可能把窗口内容丢掉
            * 而不补 Expose（见 xeyes 里同款注释）。 */
@@ -357,6 +367,9 @@ int main(int argc, char* argv[]) {
             }
           }
         }
+      }
+      if (quit || r < 0) {
+        break; /* 关闭请求 / 连接断了：退出进程 */
       }
     }
   }

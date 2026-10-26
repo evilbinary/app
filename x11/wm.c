@@ -234,6 +234,7 @@ static void toggle_max(int idx) {
  * 恢复走 activate()：dock 的任务按钮发 _NET_ACTIVE_WINDOW 给根窗口。 */
 static void minimize_win(int idx) {
   cls[idx].minimized = 1;
+  printf("wm: minimize win=0x%x frame=0x%x\n", cls[idx].win, cls[idx].frame);
   x11_unmap_window(&c, cls[idx].frame);
 }
 
@@ -242,6 +243,7 @@ static void restore_win(int idx) {
     return;
   }
   cls[idx].minimized = 0;
+  printf("wm: restore win=0x%x frame=0x%x\n", cls[idx].win, cls[idx].frame);
   x11_map_window(&c, cls[idx].frame);
   draw_frame(idx);
 }
@@ -343,6 +345,7 @@ static void update_client_list(void) {
 
 static void activate(uint32_t win) {
   int idx = find_win(win);
+  printf("wm: activate win=0x%x idx=%d\n", win, idx);
   if (idx < 0) {
     return;
   }
@@ -619,7 +622,11 @@ static void flush_drag(void) {
 }
 
 static void handle(const uint8_t* ev) {
-  switch (ev[0]) {
+  /* 【必须掩掉 send_event 位】别的客户端用 SendEvent 发来的事件（dock 的
+   * _NET_ACTIVE_WINDOW ClientMessage 就是），线上 type 的最高位是 1：33 变成
+   * 0xA1=161。照着 33 匹配永远命中不了 default 分支 ⇒ 点 dock 任务按钮毫无
+   * 反应（最小化到 dock 的窗口再也恢复不回来）。Xlib 也是这么掩的。 */
+  switch (ev[0] & 0x7f) {
     case EV_MAP_REQUEST: {
       uint32_t mw = x11_ev_u32(ev, 8);
       /* MapRequest 的布局是 parent@4 + window@8：window 在偏移 8。

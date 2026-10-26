@@ -303,7 +303,28 @@ static int x11_read_cookie(const char* file, const char* num, uint8_t* out,
   return -1;
 }
 
+static int x11_connect_once(x11_t* c, const char* path);
+
+/* 【为什么要重试】server 刚起来时 socket 已经能 connect，但 setup 响应要等
+ * 一会儿（Xephyr/Xvfb 初始化、服务器正忙于整屏重绘也见过）。一次失败就把
+ * 客户端判死，开机自启的 wall/panel/dock 会随机缺一个，日志只剩"读 setup
+ * 响应失败"，很难往这里想。这里最多试 8 次、每次间隔 120ms。 */
 int x11_connect(x11_t* c, const char* path) {
+  int i;
+  for (i = 0; i < 8; i++) {
+    if (x11_connect_once(c, path) == 0) {
+      return 0;
+    }
+    if (c->fd > 0) {
+      close(c->fd);
+      c->fd = -1;
+    }
+    usleep(120 * 1000);
+  }
+  return -1;
+}
+
+static int x11_connect_once(x11_t* c, const char* path) {
   struct sockaddr_un sa;
   char disp[64];
   char dnum[16] = "0";
@@ -1092,6 +1113,22 @@ int x11_set_title(x11_t* c, uint32_t win, const char* title) {
   return x11_set_property_str(c, win, x11_intern_atom(c, "WM_NAME"), title);
 }
 
+/* 声明自己支持 WM_DELETE_WINDOW，返回该 atom（主循环拿它比对收到的请求）。
+ * 【为什么要声明】不声明的话，wm 点 × 只能 XKillClient 硬断连接：我们的
+ * 客户端会卡在"窗口已经没了、进程还在"的状态。声明后 wm 改发 ClientMessage，
+ * 客户端自己决定什么时候退出。 */
+int x11_enable_delete_window(x11_t* c, uint32_t win) {
+  uint32_t protos = x11_intern_atom(c, "WM_PROTOCOLS");
+  uint32_t del = x11_intern_atom(c, "WM_DELETE_WINDOW");
+  if (protos == 0 || del == 0) {
+    return 0;
+  }
+  if (x11_set_property32(c, win, protos, X11_ATOM_ATOM, &del, 1) < 0) {
+    return 0;
+  }
+  return (int)del;
+}
+
 int x11_set_property32(x11_t* c, uint32_t win, uint32_t prop, uint32_t type,
                        const uint32_t* data, int count) {
   uint8_t q[24];
@@ -1785,6 +1822,10 @@ int x11_next_event(x11_t* c, uint8_t* ev) {
     if (r < 32 && read_exact(c->fd, ev + r, (size_t)(32 - r)) < 0) {
       return -1;
     }
+    /* 主循环读路径也要打点：早先只有"等回复时顺带读到的事件"才进 trace，
+     * 正常事件一个都看不到，排查 dock/wm 之间的事件到底是没发出去还是没被
+     * 认出来时白绕了一大圈。 */
+    x11_trace_pkt("event", ev, ev[2] | (ev[3] << 8), -1);
     /* 这里不该出现 Reply（没有请求在等），Error 是异步错误：都丢掉重读，
      * 别把它们的字节当事件字段（type=0 会让 handle 走 default 分支，
      * type=1 更会撞上"CreateWindow"之类的编号）。 */
