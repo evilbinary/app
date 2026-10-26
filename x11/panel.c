@@ -223,7 +223,10 @@ int main(int argc, char* argv[]) {
     pfd.events = POLLIN;
     pfd.revents = 0;
     if (poll(&pfd, 1, 1000) > 0) {
-      while (x11_next_event(&c, ev) == 1) {
+      int r;
+      int got = 0;
+      while ((r = x11_next_event(&c, ev)) == 1) {
+        got++;
         if (ev[0] == X11_EXPOSE) {
           uint32_t win = x11_ev_u32(ev, 4);
           if (win == bar) {
@@ -234,6 +237,14 @@ int main(int argc, char* argv[]) {
         } else if (ev[0] == X11_BUTTON_PRESS && ev[1] == 1 /* 只有左键 */) {
           on_button(ev);
         }
+      }
+      if (r < 0) {
+        fprintf(stderr, "panel: 与 X 的连接断开，退出\n");
+        return 1;
+      }
+      /* 假唤醒（报就绪却读不到事件）让 2ms，别空转烧 CPU */
+      if (got == 0) {
+        usleep(2000);
       }
     }
     refreshed = 0;

@@ -821,16 +821,28 @@ int main(int argc, char* argv[]) {
   printf("wm: 事件循环开始（已有 %d 个窗口在管）\n", ncls);
   for (;;) {
     struct pollfd pfd;
+    int got = 0;
+    int r;
     pfd.fd = c.fd;
     pfd.events = POLLIN;
     pfd.revents = 0;
     if (poll(&pfd, 1, 2000) <= 0) {
       continue;
     }
-    while (x11_next_event(&c, ev) == 1) {
+    while ((r = x11_next_event(&c, ev)) == 1) {
+      got++;
       handle(ev);
     }
     flush_drag(); /* 这一批 Motion 合并成一条 configure 再发 */
+    if (r < 0) {  /* 连接断了：继续跑只会空转 */
+      fprintf(stderr, "wm: 与 X 的连接断开，退出\n");
+      return 1;
+    }
+    /* 【假唤醒让一步】本内核 poll 偶发"报就绪但读不到事件"：不让步的话这里
+     * 就是 poll→空读→poll 的死循环，一核直接烧满（实测 wm 空闲 6%）。 */
+    if (got == 0) {
+      usleep(2000);
+    }
   }
   return 0;
 }

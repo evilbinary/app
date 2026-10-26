@@ -334,7 +334,9 @@ int main(int argc, char* argv[]) {
     if (poll(&pfd, 1, PRESS_MS) > 0) {
       int r;
       int quit = 0;
+      int got = 0;
       while ((r = x11_next_event(&c, ev)) == 1) {
+        got++;
         /* type 最高位 = send_event 标志（wm 的关闭请求带这一位） */
         if ((ev[0] & 0x7f) == X11_CLIENT_MESSAGE && del_type != 0 &&
             x11_ev_u32(ev, 8) == del_type && x11_ev_u32(ev, 12) == del_data) {
@@ -370,6 +372,12 @@ int main(int argc, char* argv[]) {
       }
       if (quit || r < 0) {
         break; /* 关闭请求 / 连接断了：退出进程 */
+      }
+      /* 【假唤醒让一步】本内核 poll 偶发"报就绪但读不到事件"（实测空闲的
+       * xcalc 烧 9% CPU 就是这么来的）。让 2ms 把空转压到 500 次/秒内，
+       * 对交互毫无影响。 */
+      if (got == 0) {
+        usleep(2000);
       }
     }
   }

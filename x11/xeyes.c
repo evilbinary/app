@@ -172,7 +172,9 @@ int main(int argc, char* argv[]) {
     pfd.events = POLLIN;
     pfd.revents = 0;
     if (poll(&pfd, 1, SAMPLE_MS) > 0) {
+      int got = 0;
       while ((r = x11_next_event(&c, ev)) == 1) {
+        got++;
         /* 事件 type 最高位是 send_event 标志（wm 发的关闭请求就是这样），
          * 比对类型前一律先掩掉 */
         if ((ev[0] & 0x7f) == X11_CLIENT_MESSAGE && del_type != 0 &&
@@ -201,6 +203,10 @@ int main(int argc, char* argv[]) {
       }
       if (quit || r < 0) {
         break; /* 关闭请求 / 连接断了（XKillClient）：退出进程 */
+      }
+      /* 假唤醒（报就绪却读不到事件）让一步，别把 CPU 烧在空转上 */
+      if (got == 0) {
+        usleep(2000);
       }
     }
     /* 指针位置统一由这里跟进：指针移出窗口后 MotionNotify 不会来了 */

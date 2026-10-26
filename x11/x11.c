@@ -57,6 +57,7 @@ static void put32(uint8_t* p, uint32_t v) {
  *     （否则会被误判成"本次请求失败"，manage() 直接放弃接管窗口）；
  *   · 序号 == 本次请求的 Error = 本条请求真失败，可以放弃等待。 */
 static int g_seq;      /* 已发出的请求数（低 16 位 = 协议序列号） */
+static int g_last_op;  /* 最近一条请求的 opcode（等回复超时时打出来定位） */
 static int g_req_left; /* 当前请求还有多少字节没写（不含已写部分的头） */
 static int g_trace;    /* X11_TRACE=1 时打印请求/回复/事件，用来抓流错位 */
 /* 【异步 Error 计数】Error 包的序号属于"之前某条请求"，等回复时会被跳过继续
@@ -101,13 +102,36 @@ int x11_muted_errors(void) { return g_err_muted; }
 
 /* 等 fd 可读/可写。EAGAIN 时【必须 poll 等】而不是 continue 自旋：
  * socket 是非阻塞的，一个 32 字节事件也可能分两次到达，自旋会把 wm 烧成
- * 100% CPU。3 秒对本地 unix socket 等于"永远不会来"，超时就放弃。 */
+ * 100% CPU。
+ *
+ * 【必须切片等】把整个超时一次性交给 poll 是不行的：YiYiYa 内核的 poll
+ * 唤醒偶发丢失（真机实测同一批请求里出现成串 "waiting reply timeout"，
+ * 而数据其实早就在 socket 里排着了）。一次睡满 3 秒就只能干等到超时；
+ * 切成 50ms 小片后，最坏只多等一片。数据已就绪时 poll 立刻返回，切片
+ * 不增加任何额外往返（正常路径仍是一次 poll 就拿到）。 */
+#define WAIT_SLICE_MS 50
 static int wait_fd(int fd, short events, int ms) {
-  struct pollfd pfd;
-  pfd.fd = fd;
-  pfd.events = events;
-  pfd.revents = 0;
-  return poll(&pfd, 1, ms) > 0;
+  int waited = 0;
+  while (waited < ms) {
+    struct pollfd pfd;
+    int slice = ms - waited;
+    int pr;
+    if (slice > WAIT_SLICE_MS) {
+      slice = WAIT_SLICE_MS;
+    }
+    pfd.fd = fd;
+    pfd.events = events;
+    pfd.revents = 0;
+    pr = poll(&pfd, 1, slice);
+    if (pr > 0) {
+      return 1;
+    }
+    if (pr < 0) {
+      return 0;
+    }
+    waited += slice;
+  }
+  return 0;
 }
 
 static int write_all(int fd, const void* buf, size_t n) {
@@ -130,6 +154,7 @@ static int write_all(int fd, const void* buf, size_t n) {
   if (g_req_left <= 0) {
     unsigned total = ((unsigned)p[2] | ((unsigned)p[3] << 8)) * 4u;
     g_seq = (g_seq + 1) & 0xffff;
+    g_last_op = p[0];
     g_req_left = (int)total - (int)n;
     if (g_trace) {
       fprintf(stderr, "[x11] req     op=%-3d len=%u seq=%d | %02x%02x%02x%02x"
@@ -522,21 +547,16 @@ static int read_reply_raw(x11_t* c, uint8_t* out32) {
   /* 刚发出去的那条请求的序号 = 我们在等的回复序号（调用方都是"发完立刻等"） */
   int want = g_seq;
   for (;;) {
-    struct pollfd pfd;
-    int pr;
     int seq;
-    pfd.fd = c->fd;
-    pfd.events = POLLIN;
-    pfd.revents = 0;
     /* 【必须有超时】没有它的话，某个请求拿不到回复时客户端就永久卡在
      * read 上：既不再读事件，也让服务器写这个 socket 写满后一起卡死
-     * （表现为整屏光标不动）。3 秒对本地 unix socket 已经是天文数字。 */
-    pr = poll(&pfd, 1, 3000);
-    if (pr == 0) {
-      fprintf(stderr, "x11: waiting reply timeout (seq=%d)\n", want);
-      return -1;
-    }
-    if (pr < 0) {
+     * （表现为整屏光标不动）。3 秒对本地 unix socket 已经是天文数字。
+     * 用 wait_fd（切片等），内核丢唤醒时最多多等一片 50ms 而不是 3 秒。 */
+    if (!wait_fd(c->fd, POLLIN, 3000)) {
+      /* 【带上 pid 和 opcode】同一块控制台上好几个客户端都在打印，只有
+       * seq 根本分不清是谁、卡在哪条请求上（曾经为此反复猜）。 */
+      fprintf(stderr, "x11: reply timeout (pid=%d seq=%d op=%d)\n", (int)getpid(),
+              want, g_last_op);
       return -1;
     }
     if (read_exact(c->fd, rep, sizeof(rep)) < 0) {

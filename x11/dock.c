@@ -334,7 +334,9 @@ int main(int argc, char* argv[]) {
     pr = poll(&pfd, 1, 800);
     if (pr > 0) {
       int exposed = 0;
+      int got = 0;
       while ((r = x11_next_event(&c, ev)) == 1) {
+        got++;
         if (ev[0] == X11_EXPOSE) {
           /* 【一批 Expose 只重画一次】Expose 的 count 字段（offset 12）表示
            * "后面还有多少条 Expose 等着发"：映射/换形状时服务器一次能甩出
@@ -355,6 +357,10 @@ int main(int argc, char* argv[]) {
       if (r < 0) { /* 连接断了（服务器退出/被杀）：继续跑只会空转 */
         fprintf(stderr, "dock: 与 X 的连接断开，退出\n");
         return 1;
+      }
+      /* 假唤醒（poll 报就绪却读不到事件）让 2ms，避免空转烧 CPU */
+      if (got == 0) {
+        usleep(2000);
       }
     } else if (pr == 0) {
       /* 【只在 poll 超时的时候查列表】早先是"每轮都查"（tick 清零后判断恒
