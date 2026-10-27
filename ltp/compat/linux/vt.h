@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-#ifndef _LINUX_VT_H
-#define _LINUX_VT_H
+#ifndef _UAPI_LINUX_VT_H
+#define _UAPI_LINUX_VT_H
 
 
 /*
@@ -84,4 +84,4 @@ struct vt_setactivate {
 
 #define VT_SETACTIVATE	0x560F	/* Activate and set the mode of a console */
 
-#endif /* _LINUX_VT_H */
+#endif /* _UAPI_LINUX_VT_H */
