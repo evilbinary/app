@@ -1837,6 +1837,46 @@ int x11_shape_rects(x11_t* c, uint32_t win, const int16_t* rects, int n) {
   return write_all(c->fd, buf, 16 + 8 * m);
 }
 
+int x11_get_keyboard_mapping(x11_t* c, unsigned first_keycode, unsigned count,
+                             uint32_t* keysyms, int max) {
+  uint8_t q[8];
+  uint8_t rep[32];
+  unsigned per, want, i, got;
+  uint32_t total;
+  memset(q, 0, sizeof(q));
+  q[0] = 101; /* GetKeyboardMapping：keycode → keysym 表 */
+  q[4] = (uint8_t)first_keycode;
+  q[5] = (uint8_t)count;
+  put16(q + 2, 2);
+  if (write_all(c->fd, q, sizeof(q)) < 0) {
+    return -1;
+  }
+  if (read_reply_raw(c, rep) < 0) {
+    return -1;
+  }
+  per = rep[1]; /* 每个 keycode 几个 keysym（Xorg 常见 2，shift 切换第二列） */
+  total = le32(rep + 4) * 4u; /* 数据区字节数（4 字节单位），必须读干净 */
+  if (per == 0 || total == 0) {
+    if (total > 0) {
+      skip_bytes(c, total);
+    }
+    return 0;
+  }
+  want = per * count;
+  got = (want > (unsigned)max) ? (unsigned)max : want;
+  for (i = 0; i < got; i++) {
+    uint8_t v[4];
+    if (read_exact(c->fd, v, 4) < 0) {
+      return -1;
+    }
+    keysyms[i] = le32(v);
+  }
+  if (total > got * 4u && skip_bytes(c, total - got * 4u) < 0) {
+    return -1;
+  }
+  return (int)per;
+}
+
 int x11_next_event(x11_t* c, uint8_t* ev) {
   for (;;) {
     ssize_t r;

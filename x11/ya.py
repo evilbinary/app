@@ -47,6 +47,10 @@ target("xcalc")
 set_type("cli")
 add_files("x11.c","xcalc.c")
 
+target("xterm")
+set_type("cli")
+add_files("x11.c", "xterm.c")
+
 target("xeyes")
 set_type("cli")
 add_files("x11.c","xeyes.c")

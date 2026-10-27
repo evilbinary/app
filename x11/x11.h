@@ -214,6 +214,12 @@ int x11_delete_property(x11_t* c, uint32_t win, uint32_t prop);
 /* 事件：返回 1=拿到一个事件（写入 ev[32]），0=暂时没有，-1=连接断开 */
 int x11_next_event(x11_t* c, uint8_t* ev);
 
+/* 取 keycode → keysym 映射表（GetKeyboardMapping，opcode 101）。
+ * keysyms 按行展开：keysyms[(kc - first_keycode) * per + level]。
+ * 返回每个 keycode 的 keysym 个数（Xorg 常见 2），0/-1 = 失败。 */
+int x11_get_keyboard_mapping(x11_t* c, unsigned first_keycode, unsigned count,
+                             uint32_t* keysyms, int max);
+
 /* 常用取值 */
 static inline uint32_t x11_ev_u32(const uint8_t* ev, int off) {
   return (uint32_t)ev[off] | ((uint32_t)ev[off + 1] << 8) |

@@ -48,7 +48,9 @@ struct launcher {
 };
 
 static struct launcher launch[] = {
-    {"T", "/usr/bin/lxterminal", "dock-term.bmp", X11_RGB(0xa3, 0xbe, 0x8c)},
+    /* 终端用自研 /bin/xterm（app/x11/xterm.c）：镜像里的 lxterminal 是
+     * GTK3 大依赖（pango/cairo/gdk 全家桶），拉进 rootfs 得不偿失 */
+    {"T", "/bin/xterm", "dock-term.bmp", X11_RGB(0xa3, 0xbe, 0x8c)},
     {"E", "/bin/xeyes", "dock-eyes.bmp", X11_RGB(0xeb, 0xcb, 0x8b)},
     {"C", "/bin/xcalc", "dock-calc.bmp", X11_RGB(0x88, 0xc0, 0xd0)},
 };

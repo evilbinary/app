@@ -48,7 +48,7 @@ struct menu_item {
 /* 只列本仓库自带的程序（镜像里没有 Xorg 那套客户端；原生 xeyes/xclock
  * 在软件渲染的 fb 上大面积重画特别占帧，自研版本见 xeyes.c/xcalc.c） */
 static struct menu_item items[] = {
-    {"Terminal", "/usr/bin/lxterminal"},
+    {"Terminal", "/bin/xterm"}, /* 自研终端（app/x11/xterm.c），替代 lxterminal */
     {"xeyes", "/bin/xeyes"},
     {"xcalc", "/bin/xcalc"},
 };
