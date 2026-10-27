@@ -59,27 +59,38 @@ def main():
     main_files = []    # (id, relpath)
     helpers = []       # relpath
 
-    for dirpath, dirnames, filenames in os.walk(SYSCALLS):
-        dirnames.sort()
-        for fn in sorted(filenames):
-            if not fn.endswith(".c"):
-                continue
-            full = os.path.join(dirpath, fn)
-            rel = os.path.relpath(full, LTP)
-            key = os.path.relpath(full, SYSCALLS)
-            if key in excluded:
-                continue
-            with open(full, "r", errors="ignore") as fh:
-                src = fh.read()
-            has_struct = "static struct tst_test test" in src
-            has_main = re.search(r"\bint\s+main\s*\(", src) is not None
-            fid = key.replace("/", "_")[:-2]  # fork/fork01.c -> fork_fork01
-            if has_struct:
-                struct_files.append((fid, rel))
-            elif has_main:
-                main_files.append((fid, rel))
-            else:
-                helpers.append(rel)
+    # 扫描根：(目录, id 前缀)。syscalls 是历史主目录（无前缀）；
+    # pty 来自 LTP full 包迁移（testcases/kernel/pty，id 前缀 pty_）。
+    scan_roots = [
+        (SYSCALLS, ""),
+        (os.path.join(LTP, "testcases", "kernel", "pty"), "pty"),
+    ]
+
+    for scan_root, scan_prefix in scan_roots:
+        if not os.path.isdir(scan_root):
+            continue
+        for dirpath, dirnames, filenames in os.walk(scan_root):
+            dirnames.sort()
+            for fn in sorted(filenames):
+                if not fn.endswith(".c"):
+                    continue
+                full = os.path.join(dirpath, fn)
+                rel = os.path.relpath(full, LTP)
+                rel_root = os.path.relpath(full, scan_root)
+                key = (scan_prefix + "/" + rel_root) if scan_prefix else rel_root
+                if key in excluded:
+                    continue
+                with open(full, "r", errors="ignore") as fh:
+                    src = fh.read()
+                has_struct = "static struct tst_test test" in src
+                has_main = re.search(r"\bint\s+main\s*\(", src) is not None
+                fid = key.replace("/", "_")[:-2]  # fork/fork01.c -> fork_fork01
+                if has_struct:
+                    struct_files.append((fid, rel))
+                elif has_main:
+                    main_files.append((fid, rel))
+                else:
+                    helpers.append(rel)
 
     # ---- 生成 wrappers ----
     entries = []

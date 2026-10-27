@@ -39,6 +39,10 @@ def main():
     os.makedirs(OBJS_OUT, exist_ok=True)
     os.makedirs(out_build_dir, exist_ok=True)
     n = 0
+    # keepfile 复用单个稳定临时文件（每个 wrapper 顺序覆盖写）：以前每个
+    # 测试建一个 .keep_<fid> 再删，一次跑 500+ 个 os.remove 会触发工作区
+    # 批量删除安全闸，整个构建卡死。
+    kf = os.path.join(OBJS_OUT, ".keep_active")
     for fn in sorted(os.listdir(wrap_dir)):
         if not fn.endswith(".o"):
             continue
@@ -46,7 +50,6 @@ def main():
         # 统一保留两个名字：struct 只有 ltp_get_x、oldmain 两者都有，
         # keep 列表里不存在的名字只是无效过滤项，无害
         keep = ["ltp_get_" + fid, "ltp_run_" + fid]
-        kf = os.path.join(OBJS_OUT, ".keep_" + fid)
         with open(kf, "w") as fh:
             fh.write("\n".join(keep) + "\n")
         dst = os.path.join(OBJS_OUT, fid + ".o")
@@ -55,7 +58,6 @@ def main():
         if not (os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src)):
             subprocess.check_call([OBJCOPY, "--keep-global-symbols=" + kf, src, dst])
             n += 1
-        os.remove(kf)
         # 同步到 build objs 目录（链接器实际取用的路径）。
         # mtime 拨早 1 秒：ymake 只在 obj 严格早于 src 时才认为"有修改"并
         # 重新链接最终二进制（否则 wrapper .c 变化后 ltp 不会 relink）。

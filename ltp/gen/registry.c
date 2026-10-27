@@ -695,6 +695,22 @@ struct tst_test *ltp_get_ptrace_ptrace07(void);
 struct tst_test *ltp_get_ptrace_ptrace08(void);
 struct tst_test *ltp_get_ptrace_ptrace10(void);
 struct tst_test *ltp_get_ptrace_ptrace11(void);
+int ltp_run_pty_hangup01(int argc, char **argv);
+struct tst_test *ltp_get_pty_ptem01(void);
+struct tst_test *ltp_get_pty_ptem02(void);
+struct tst_test *ltp_get_pty_ptem03(void);
+struct tst_test *ltp_get_pty_ptem04(void);
+struct tst_test *ltp_get_pty_ptem05(void);
+struct tst_test *ltp_get_pty_ptem06(void);
+struct tst_test *ltp_get_pty_pty01(void);
+struct tst_test *ltp_get_pty_pty02(void);
+struct tst_test *ltp_get_pty_pty03(void);
+struct tst_test *ltp_get_pty_pty04(void);
+struct tst_test *ltp_get_pty_pty05(void);
+struct tst_test *ltp_get_pty_pty06(void);
+struct tst_test *ltp_get_pty_pty07(void);
+struct tst_test *ltp_get_pty_pty08(void);
+struct tst_test *ltp_get_pty_pty09(void);
 struct tst_test *ltp_get_pwrite_pwrite01(void);
 struct tst_test *ltp_get_pwrite_pwrite02(void);
 struct tst_test *ltp_get_pwrite_pwrite03(void);
@@ -1728,6 +1744,22 @@ const ltp_entry_t ltp_tests[] = {
   {"ptrace_ptrace08", ltp_get_ptrace_ptrace08, 0},
   {"ptrace_ptrace10", ltp_get_ptrace_ptrace10, 0},
   {"ptrace_ptrace11", ltp_get_ptrace_ptrace11, 0},
+  {"pty_hangup01", 0, ltp_run_pty_hangup01},
+  {"pty_ptem01", ltp_get_pty_ptem01, 0},
+  {"pty_ptem02", ltp_get_pty_ptem02, 0},
+  {"pty_ptem03", ltp_get_pty_ptem03, 0},
+  {"pty_ptem04", ltp_get_pty_ptem04, 0},
+  {"pty_ptem05", ltp_get_pty_ptem05, 0},
+  {"pty_ptem06", ltp_get_pty_ptem06, 0},
+  {"pty_pty01", ltp_get_pty_pty01, 0},
+  {"pty_pty02", ltp_get_pty_pty02, 0},
+  {"pty_pty03", ltp_get_pty_pty03, 0},
+  {"pty_pty04", ltp_get_pty_pty04, 0},
+  {"pty_pty05", ltp_get_pty_pty05, 0},
+  {"pty_pty06", ltp_get_pty_pty06, 0},
+  {"pty_pty07", ltp_get_pty_pty07, 0},
+  {"pty_pty08", ltp_get_pty_pty08, 0},
+  {"pty_pty09", ltp_get_pty_pty09, 0},
   {"pwrite_pwrite01", ltp_get_pwrite_pwrite01, 0},
   {"pwrite_pwrite02", ltp_get_pwrite_pwrite02, 0},
   {"pwrite_pwrite03", ltp_get_pwrite_pwrite03, 0},
@@ -2068,4 +2100,4 @@ const ltp_entry_t ltp_tests[] = {
   {"writev_writev07", ltp_get_writev_writev07, 0},
   {"zrepro_zrepro01", 0, ltp_run_zrepro_zrepro01},
 };
-const int ltp_test_count = 1031;
+const int ltp_test_count = 1047;
