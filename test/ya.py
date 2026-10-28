@@ -207,3 +207,10 @@ set_type("cli")
 add_files(
    'test-scmrights.c'
 )
+
+# memfd_create + mmap 共享 + SCM_RIGHTS 传递：wl_shm 全链路验收。见 test-memfd.c。
+target("test-memfd")
+set_type("cli")
+add_files(
+   'test-memfd.c'
+)
