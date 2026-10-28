@@ -381,6 +381,12 @@ struct tst_test *ltp_get_inotify_inotify07(void);
 struct tst_test *ltp_get_inotify_inotify08(void);
 struct tst_test *ltp_get_inotify_inotify09(void);
 struct tst_test *ltp_get_inotify_inotify12(void);
+struct tst_test *ltp_get_input_input01(void);
+struct tst_test *ltp_get_input_input02(void);
+struct tst_test *ltp_get_input_input03(void);
+struct tst_test *ltp_get_input_input04(void);
+struct tst_test *ltp_get_input_input05(void);
+struct tst_test *ltp_get_input_input06(void);
 struct tst_test *ltp_get_io_cancel_io_cancel02(void);
 struct tst_test *ltp_get_io_destroy_io_destroy01(void);
 struct tst_test *ltp_get_io_getevents_io_getevents02(void);
@@ -1430,6 +1436,12 @@ const ltp_entry_t ltp_tests[] = {
   {"inotify_inotify08", ltp_get_inotify_inotify08, 0},
   {"inotify_inotify09", ltp_get_inotify_inotify09, 0},
   {"inotify_inotify12", ltp_get_inotify_inotify12, 0},
+  {"input_input01", ltp_get_input_input01, 0},
+  {"input_input02", ltp_get_input_input02, 0},
+  {"input_input03", ltp_get_input_input03, 0},
+  {"input_input04", ltp_get_input_input04, 0},
+  {"input_input05", ltp_get_input_input05, 0},
+  {"input_input06", ltp_get_input_input06, 0},
   {"io_cancel_io_cancel02", ltp_get_io_cancel_io_cancel02, 0},
   {"io_destroy_io_destroy01", ltp_get_io_destroy_io_destroy01, 0},
   {"io_getevents_io_getevents02", ltp_get_io_getevents_io_getevents02, 0},
@@ -2100,4 +2112,4 @@ const ltp_entry_t ltp_tests[] = {
   {"writev_writev07", ltp_get_writev_writev07, 0},
   {"zrepro_zrepro01", 0, ltp_run_zrepro_zrepro01},
 };
-const int ltp_test_count = 1047;
+const int ltp_test_count = 1053;

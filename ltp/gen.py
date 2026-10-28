@@ -64,6 +64,8 @@ def main():
     scan_roots = [
         (SYSCALLS, ""),
         (os.path.join(LTP, "testcases", "kernel", "pty"), "pty"),
+        # /dev/input/eventN + uinput 的 evdev 测试（input01-06）
+        (os.path.join(LTP, "testcases", "kernel", "input"), "input"),
     ]
 
     for scan_root, scan_prefix in scan_roots:

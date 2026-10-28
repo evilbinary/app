@@ -376,6 +376,12 @@ gen/wrappers/inotify_inotify07.c
 gen/wrappers/inotify_inotify08.c
 gen/wrappers/inotify_inotify09.c
 gen/wrappers/inotify_inotify12.c
+gen/wrappers/input_input01.c
+gen/wrappers/input_input02.c
+gen/wrappers/input_input03.c
+gen/wrappers/input_input04.c
+gen/wrappers/input_input05.c
+gen/wrappers/input_input06.c
 gen/wrappers/io_cancel_io_cancel02.c
 gen/wrappers/io_destroy_io_destroy01.c
 gen/wrappers/io_getevents_io_getevents02.c

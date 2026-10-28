@@ -376,6 +376,12 @@ inotify_inotify07 testcases/kernel/syscalls/inotify/inotify07.c
 inotify_inotify08 testcases/kernel/syscalls/inotify/inotify08.c
 inotify_inotify09 testcases/kernel/syscalls/inotify/inotify09.c
 inotify_inotify12 testcases/kernel/syscalls/inotify/inotify12.c
+input_input01 testcases/kernel/input/input01.c
+input_input02 testcases/kernel/input/input02.c
+input_input03 testcases/kernel/input/input03.c
+input_input04 testcases/kernel/input/input04.c
+input_input05 testcases/kernel/input/input05.c
+input_input06 testcases/kernel/input/input06.c
 io_cancel_io_cancel02 testcases/kernel/syscalls/io_cancel/io_cancel02.c
 io_destroy_io_destroy01 testcases/kernel/syscalls/io_destroy/io_destroy01.c
 io_getevents_io_getevents02 testcases/kernel/syscalls/io_getevents/io_getevents02.c

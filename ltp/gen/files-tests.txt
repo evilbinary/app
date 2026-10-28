@@ -376,6 +376,12 @@ gen/objs/inotify_inotify07.o
 gen/objs/inotify_inotify08.o
 gen/objs/inotify_inotify09.o
 gen/objs/inotify_inotify12.o
+gen/objs/input_input01.o
+gen/objs/input_input02.o
+gen/objs/input_input03.o
+gen/objs/input_input04.o
+gen/objs/input_input05.o
+gen/objs/input_input06.o
 gen/objs/io_cancel_io_cancel02.o
 gen/objs/io_destroy_io_destroy01.o
 gen/objs/io_getevents_io_getevents02.o
