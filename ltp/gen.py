@@ -31,6 +31,24 @@ WRAPPERS = os.path.join(GEN, "wrappers")
 EXCLUDE_FILE = os.path.join(GEN, "exclude.txt")
 
 
+def write_if_changed(path, content):
+    """内容没变就不动文件（也不更新 mtime）。
+
+    gen.py 每次构建都会跑一遍。若无条件重写每个 wrapper，ymake 会认为
+    全部 .c 都是新的，于是每次构建都重编 1000+ 个 TU（几分钟）。写前
+    比对内容，只有真正变化/新增的测试才触发编译。
+    """
+    if os.path.exists(path):
+        try:
+            with open(path, "r") as fh:
+                if fh.read() == content:
+                    return
+        except (OSError, UnicodeDecodeError):
+            pass
+    with open(path, "w") as fh:
+        fh.write(content)
+
+
 def load_exclude():
     if not os.path.exists(EXCLUDE_FILE):
         return set()
@@ -68,10 +86,23 @@ def main():
     #   kvm / mce-test   —— x86 专属（vmx/svm、机器检查），aarch64 上不可运行；
     #   sound            —— 需要 <sound/asound.h>（alsa-lib 开发包）
     # 子目录跳过：device-drivers/v4l（V4L2 大 uapi + 真实摄像头）、fs/xfs（xfsprogs 头）
-    SKIP_ROOT_NAMES = ("kvm", "mce-test", "sound")
+    SKIP_ROOT_NAMES = ("kvm", "mce-test", "sound", "firmware")
     #   include/         —— device-drivers/include 下是"被 #include 的片段"，
     #                       不是独立 TU（单独编译必然语法错）
     SKIP_REL_PREFIXES = ("v4l/", "xfs/", "include/")
+
+    # 默认只编"当前用得到"的目录：syscalls（syscall 合规）+ pty + input。
+    # 其余目录的源码已经迁进 ltp/testcases/kernel/ 了，需要时用环境变量点名：
+    #   LTP_KERNEL_DIRS=mem,fs,sched ./build_all.sh
+    # 全量：LTP_KERNEL_DIRS=all ./build_all.sh
+    # 这样日常构建保持单次 ~1 分钟的规模，不必为没跑到的目录付编译代价。
+    _enabled_env = os.environ.get("LTP_KERNEL_DIRS")
+    if _enabled_env is None:
+        enabled_dirs = {"pty", "input"}
+    elif _enabled_env.strip() == "all":
+        enabled_dirs = None
+    else:
+        enabled_dirs = set(x.strip() for x in _enabled_env.split(",") if x.strip())
 
     scan_roots = [(SYSCALLS, "")]
     kernel_dir = os.path.join(LTP, "testcases", "kernel")
@@ -80,6 +111,8 @@ def main():
         if not os.path.isdir(sub) or name in ("syscalls", "include", "lib"):
             continue
         if name in SKIP_ROOT_NAMES:
+            continue
+        if enabled_dirs is not None and name not in enabled_dirs:
             continue
         scan_roots.append((sub, name))
 
@@ -116,35 +149,33 @@ def main():
     # ---- 生成 wrappers ----
     entries = []
     for fid, rel in struct_files:
-        w = os.path.join(WRAPPERS, fid + ".c")
-        with open(w, "w") as fh:
-            fh.write(
-                "/* 自动生成：勿改。壳 TU 暴露 %s 的 tst_test 结构 */\n"
-                "#define TST_NO_DEFAULT_MAIN\n"
-                '#include "ltp/%s"\n'
-                "#include <tst_test.h>\n"
-                "struct tst_test *ltp_get_%s(void);\n"
-                "struct tst_test *ltp_get_%s(void) { return &test; }\n"
-                % (fid, rel, fid, fid)
-            )
+        write_if_changed(
+            os.path.join(WRAPPERS, fid + ".c"),
+            "/* 自动生成：勿改。壳 TU 暴露 %s 的 tst_test 结构 */\n"
+            "#define TST_NO_DEFAULT_MAIN\n"
+            '#include "ltp/%s"\n'
+            "#include <tst_test.h>\n"
+            "struct tst_test *ltp_get_%s(void);\n"
+            "struct tst_test *ltp_get_%s(void) { return &test; }\n"
+            % (fid, rel, fid, fid),
+        )
         entries.append((fid, "struct", rel))
 
     for fid, rel in main_files:
-        w = os.path.join(WRAPPERS, fid + ".c")
-        with open(w, "w") as fh:
-            fh.write(
-                "/* 自动生成：勿改。旧 API 测试，宏改名 main 并暴露 run 入口 */\n"
-                "#define main LTP_OLD_MAIN_%s\n"
-                '#include "ltp/%s"\n'
-                "#undef main\n"
-                "int LTP_OLD_MAIN_%s();\n"
-                "int ltp_run_%s(int argc, char **argv) {\n"
-                "  return ((int (*)(int, char **))LTP_OLD_MAIN_%s)(argc, argv);\n"
-                "}\n"
-                "struct tst_test *ltp_get_%s(void);\n"
-                "struct tst_test *ltp_get_%s(void) { return (void *)0; }\n"
-                % (fid, rel, fid, fid, fid, fid, fid)
-            )
+        write_if_changed(
+            os.path.join(WRAPPERS, fid + ".c"),
+            "/* 自动生成：勿改。旧 API 测试，宏改名 main 并暴露 run 入口 */\n"
+            "#define main LTP_OLD_MAIN_%s\n"
+            '#include "ltp/%s"\n'
+            "#undef main\n"
+            "int LTP_OLD_MAIN_%s();\n"
+            "int ltp_run_%s(int argc, char **argv) {\n"
+            "  return ((int (*)(int, char **))LTP_OLD_MAIN_%s)(argc, argv);\n"
+            "}\n"
+            "struct tst_test *ltp_get_%s(void);\n"
+            "struct tst_test *ltp_get_%s(void) { return (void *)0; }\n"
+            % (fid, rel, fid, fid, fid, fid, fid),
+        )
         entries.append((fid, "oldmain", rel))
 
     # ---- registry.c ----
