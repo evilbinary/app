@@ -49,6 +49,8 @@ static void surf_attach(struct wl_client* c, struct wl_resource* r,
   (void)c;
   (void)x;
   (void)y;
+  printf("SERVER: attach buffer=%p\n", (void*)buffer);
+  fflush(stdout);
   s->pending_buffer = buffer;
 }
 
@@ -164,6 +166,8 @@ static void compositor_create_surface(struct wl_client* c, struct wl_resource* r
                                       uint32_t id) {
   struct surface_state* s = calloc(1, sizeof(*s));
   struct wl_resource* res;
+  printf("SERVER: create_surface id=%u\n", id);
+  fflush(stdout);
   if (s == NULL) {
     wl_client_post_no_memory(c);
     return;
@@ -339,9 +343,16 @@ static int client_run(void) {
   wl_surface_attach(surface, buffer, 0, 0);
   wl_surface_commit(surface);
   printf("TPASS: client attach+commit\n");
-  wl_display_flush(display);
+  {
+    int fr = wl_display_flush(display);
+    printf("TINFO: flush=%d errno=%d\n", fr, fr < 0 ? errno : 0);
+  }
   /* 等 server 处理完 commit（server 会在 commit 里 terminate 并写结果） */
-  wl_display_roundtrip(display);
+  {
+    int rr = wl_display_roundtrip(display);
+    printf("TINFO: roundtrip=%d errno=%d wl_err=%d\n", rr,
+           rr < 0 ? errno : 0, wl_display_get_error(display));
+  }
   ret = 0;
 
 out_display:

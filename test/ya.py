@@ -222,3 +222,14 @@ add_deps("ffi")
 add_files(
    'test-ffi.c'
 )
+
+# libinput 移植验收（path 后端）：stat 设备节点 → libudev(libudev-zero)
+# 按 rdev 反查 /sys/dev/char → 读 sysfs capabilities → libevdev 读能力位
+# → libinput 识别设备。见 libinput-test.c。
+target("input-test")
+set_type("cli")
+add_packages(get_config('default_libc'))
+add_deps("input")
+add_files(
+   'libinput-test.c'
+)
