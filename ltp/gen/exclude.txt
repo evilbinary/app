@@ -402,3 +402,6 @@ device-drivers/drm/user_space/user_tdrm.c
 fs/doio/doio.c
 fs/fsstress/fsstress.c
 sched/sched_stress/sched_tc6.c
+sysfs/class/net/sys_net02.c
+sysfs/class/net/sys_net03.c
+sysfs/class/net/sys_net04.c

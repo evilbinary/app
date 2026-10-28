@@ -958,6 +958,32 @@ struct tst_test *ltp_get_syncfs_syncfs01(void);
 struct tst_test *ltp_get_syscall_syscall01(void);
 struct tst_test *ltp_get_syscall_syscall02(void);
 int ltp_run_sysconf_sysconf01(int argc, char **argv);
+struct tst_test *ltp_get_sysfs_block_sys_block_loop01(void);
+struct tst_test *ltp_get_sysfs_block_sys_block_queue01(void);
+struct tst_test *ltp_get_sysfs_block_sys_block_size01(void);
+struct tst_test *ltp_get_sysfs_class_ata_device_sys_ata01(void);
+struct tst_test *ltp_get_sysfs_class_bdi_sys_bdi01(void);
+struct tst_test *ltp_get_sysfs_class_hwmon_sys_hwmon01(void);
+struct tst_test *ltp_get_sysfs_class_leds_sys_leds01(void);
+struct tst_test *ltp_get_sysfs_class_net_sys_net01(void);
+struct tst_test *ltp_get_sysfs_class_rtc_sys_rtc01(void);
+struct tst_test *ltp_get_sysfs_class_thermal_sys_thermal01(void);
+struct tst_test *ltp_get_sysfs_class_wakeup_sys_wakeup01(void);
+struct tst_test *ltp_get_sysfs_devices_system_clockevents_sys_clockevents01(void);
+struct tst_test *ltp_get_sysfs_devices_system_clocksource_sys_clocksource01(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_cache01(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_smt01(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_topology01(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_topology02(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_vulnerabilities01(void);
+struct tst_test *ltp_get_sysfs_devices_system_node_sys_node01(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_hugepages_sys_hugepages01(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_hugepages_sys_hugepages02(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_ksm_sys_ksm01(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_swap_sys_mm_swap01(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_transparent_hugepage_sys_thp01(void);
+struct tst_test *ltp_get_sysfs_kernel_sys_kernel01(void);
+struct tst_test *ltp_get_sysfs_power_sys_power01(void);
 struct tst_test *ltp_get_sysinfo_sysinfo01(void);
 struct tst_test *ltp_get_sysinfo_sysinfo02(void);
 struct tst_test *ltp_get_syslog_syslog11(void);
@@ -2013,6 +2039,32 @@ const ltp_entry_t ltp_tests[] = {
   {"syscall_syscall01", ltp_get_syscall_syscall01, 0},
   {"syscall_syscall02", ltp_get_syscall_syscall02, 0},
   {"sysconf_sysconf01", 0, ltp_run_sysconf_sysconf01},
+  {"sysfs_block_sys_block_loop01", ltp_get_sysfs_block_sys_block_loop01, 0},
+  {"sysfs_block_sys_block_queue01", ltp_get_sysfs_block_sys_block_queue01, 0},
+  {"sysfs_block_sys_block_size01", ltp_get_sysfs_block_sys_block_size01, 0},
+  {"sysfs_class_ata_device_sys_ata01", ltp_get_sysfs_class_ata_device_sys_ata01, 0},
+  {"sysfs_class_bdi_sys_bdi01", ltp_get_sysfs_class_bdi_sys_bdi01, 0},
+  {"sysfs_class_hwmon_sys_hwmon01", ltp_get_sysfs_class_hwmon_sys_hwmon01, 0},
+  {"sysfs_class_leds_sys_leds01", ltp_get_sysfs_class_leds_sys_leds01, 0},
+  {"sysfs_class_net_sys_net01", ltp_get_sysfs_class_net_sys_net01, 0},
+  {"sysfs_class_rtc_sys_rtc01", ltp_get_sysfs_class_rtc_sys_rtc01, 0},
+  {"sysfs_class_thermal_sys_thermal01", ltp_get_sysfs_class_thermal_sys_thermal01, 0},
+  {"sysfs_class_wakeup_sys_wakeup01", ltp_get_sysfs_class_wakeup_sys_wakeup01, 0},
+  {"sysfs_devices_system_clockevents_sys_clockevents01", ltp_get_sysfs_devices_system_clockevents_sys_clockevents01, 0},
+  {"sysfs_devices_system_clocksource_sys_clocksource01", ltp_get_sysfs_devices_system_clocksource_sys_clocksource01, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_cache01", ltp_get_sysfs_devices_system_cpu_sys_cpu_cache01, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_smt01", ltp_get_sysfs_devices_system_cpu_sys_cpu_smt01, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_topology01", ltp_get_sysfs_devices_system_cpu_sys_cpu_topology01, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_topology02", ltp_get_sysfs_devices_system_cpu_sys_cpu_topology02, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_vulnerabilities01", ltp_get_sysfs_devices_system_cpu_sys_cpu_vulnerabilities01, 0},
+  {"sysfs_devices_system_node_sys_node01", ltp_get_sysfs_devices_system_node_sys_node01, 0},
+  {"sysfs_kernel_mm_hugepages_sys_hugepages01", ltp_get_sysfs_kernel_mm_hugepages_sys_hugepages01, 0},
+  {"sysfs_kernel_mm_hugepages_sys_hugepages02", ltp_get_sysfs_kernel_mm_hugepages_sys_hugepages02, 0},
+  {"sysfs_kernel_mm_ksm_sys_ksm01", ltp_get_sysfs_kernel_mm_ksm_sys_ksm01, 0},
+  {"sysfs_kernel_mm_swap_sys_mm_swap01", ltp_get_sysfs_kernel_mm_swap_sys_mm_swap01, 0},
+  {"sysfs_kernel_mm_transparent_hugepage_sys_thp01", ltp_get_sysfs_kernel_mm_transparent_hugepage_sys_thp01, 0},
+  {"sysfs_kernel_sys_kernel01", ltp_get_sysfs_kernel_sys_kernel01, 0},
+  {"sysfs_power_sys_power01", ltp_get_sysfs_power_sys_power01, 0},
   {"sysinfo_sysinfo01", ltp_get_sysinfo_sysinfo01, 0},
   {"sysinfo_sysinfo02", ltp_get_sysinfo_sysinfo02, 0},
   {"syslog_syslog11", ltp_get_syslog_syslog11, 0},
@@ -2112,4 +2164,4 @@ const ltp_entry_t ltp_tests[] = {
   {"writev_writev07", ltp_get_writev_writev07, 0},
   {"zrepro_zrepro01", 0, ltp_run_zrepro_zrepro01},
 };
-const int ltp_test_count = 1053;
+const int ltp_test_count = 1079;
