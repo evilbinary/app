@@ -214,3 +214,11 @@ set_type("cli")
 add_files(
    'test-memfd.c'
 )
+
+# libffi 移植验收（wayland 地基）：ffi_prep_cif + ffi_call 基本正确性。
+target("test-ffi")
+set_type("cli")
+add_deps("ffi")
+add_files(
+   'test-ffi.c'
+)
