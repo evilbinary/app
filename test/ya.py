@@ -198,3 +198,12 @@ set_type("cli")
 add_files(
    'test-unixsock.c'
 )
+
+# SCM_RIGHTS fd 传递端到端验证（wayland 地基）：socketpair + fork +
+# sendmsg(SCM_RIGHTS) + 子进程 recvmsg 收 fd 后 read。输出 LTP 风格
+# TPASS/TFAIL + Summary，可用 tools/ltp_batch.py /bin/test-scmrights 跑。
+target("test-scmrights")
+set_type("cli")
+add_files(
+   'test-scmrights.c'
+)
