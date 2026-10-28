@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -29,6 +30,7 @@
 #include <libweston/libweston.h>
 #include <libweston/windowed-output-api.h>
 #include <xkbcommon/xkbcommon.h>
+#include <mini-shell.h>
 
 #define SOCK_NAME "wayland-weston-test"
 #define OUT_W 640
@@ -95,6 +97,7 @@ static void weston_log_print(const char *fmt, va_list ap) {
 }
 
 static int g_outputs_enabled;
+static struct weston_output *g_output;
 
 /* head 出现/变化时为其建输出并 enable（windowed 后端标准流程） */
 static void on_heads_changed(struct wl_listener *listener, void *data) {
@@ -132,8 +135,16 @@ static void on_heads_changed(struct wl_listener *listener, void *data) {
       continue;
     }
 
+    /* 注意：这里【不能】立刻 weston_output_set_ready()。它会马上 schedule
+     * 一次 repaint，而此刻场景图里还没有任何 view，compositor 会撞上
+     * "empty scene graph at repaint" 断言退出。ready 由 mini-shell 在第一个
+     * surface 入层之后再置位。 */
     g_outputs_enabled++;
+    g_output = out;
     step("output enabled");
+
+    if (mini_shell_init(ec, out) < 0)
+      step("mini_shell_init failed");
   }
 }
 
@@ -284,23 +295,29 @@ struct globals {
   int xdg_output_manager;
   int seat;
   int total;
+
+  /* 画像素要用到的两个对象 */
+  struct wl_compositor *compositor_obj;
+  struct wl_shm *shm_obj;
 };
 
 static void on_global(void *data, struct wl_registry *reg, uint32_t name,
                       const char *iface, uint32_t version) {
   struct globals *g = data;
 
-  (void)reg;
-  (void)name;
   (void)version;
   g->total++;
 
-  if (strcmp(iface, "wl_compositor") == 0)
+  if (strcmp(iface, "wl_compositor") == 0) {
     g->compositor++;
-  else if (strcmp(iface, "wl_subcompositor") == 0)
+    g->compositor_obj =
+        wl_registry_bind(reg, name, &wl_compositor_interface, 4);
+  } else if (strcmp(iface, "wl_subcompositor") == 0)
     g->subcompositor++;
-  else if (strcmp(iface, "wl_shm") == 0)
+  else if (strcmp(iface, "wl_shm") == 0) {
     g->shm++;
+    g->shm_obj = wl_registry_bind(reg, name, &wl_shm_interface, 1);
+  }
   else if (strcmp(iface, "wl_output") == 0)
     g->output++;
   else if (strcmp(iface, "wp_viewporter") == 0)
@@ -360,6 +377,64 @@ static int run_client(void) {
   check(g.presentation == 1, "wp_presentation global 已注册");
   check(g.xdg_output_manager == 1, "zxdg_output_manager_v1 global 已注册");
   check(g.total >= 7, "registry 共 %d 个 global", g.total);
+
+  /* ---- 画一块 64x64 纯红，走 wl_shm + attach/commit ---- *
+   * 像素是否真的进了 output 影子缓冲，由 server 侧（mini-shell 的定时抓帧）
+   * 打印 SHELL: 行给出；client 这边负责把 buffer 递出去并确认 server 消费。 */
+  {
+    const int W = 64;
+    const int H = 64;
+    const int stride = W * 4;
+    const int size = stride * H;
+    struct wl_shm_pool *pool;
+    struct wl_buffer *buf;
+    struct wl_surface *surf;
+    uint32_t *px;
+    int fd;
+    int i;
+
+    fd = memfd_create("wl-weston-shm", 0);
+    check(fd >= 0, "memfd_create 返回 fd=%d", fd);
+    if (fd < 0) {
+      wl_display_disconnect(display);
+      return 1;
+    }
+
+    check(ftruncate(fd, size) == 0, "ftruncate(%d) 成功（%d 字节）", fd, size);
+
+    px = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    check(px != MAP_FAILED, "mmap 共享页 %d 字节", size);
+    if (px == MAP_FAILED) {
+      close(fd);
+      wl_display_disconnect(display);
+      return 1;
+    }
+
+    for (i = 0; i < W * H; i++)
+      px[i] = 0xFFFF0000u; /* XRGB8888 纯红 */
+
+    surf = wl_compositor_create_surface(g.compositor_obj);
+    pool = wl_shm_create_pool(g.shm_obj, fd, size);
+    buf = wl_shm_pool_create_buffer(pool, 0, W, H, stride,
+                                    WL_SHM_FORMAT_XRGB8888);
+    check(surf != NULL && pool != NULL && buf != NULL,
+          "surface/pool/buffer 创建成功");
+
+    if (surf != NULL && buf != NULL) {
+      wl_surface_attach(surf, buf, 0, 0);
+      wl_surface_damage(surf, 0, 0, W, H);
+      wl_surface_commit(surf);
+      step("client committed 64x64 red");
+
+      if (wl_display_roundtrip(display) < 0)
+        check(0, "commit 后 roundtrip 失败");
+      else
+        check(1, "commit 后 roundtrip 成功（server 已消费请求）");
+    }
+
+    /* 留 300ms 给 server 侧 mini-shell 的定时抓帧打印 SHELL: 行 */
+    usleep(300 * 1000);
+  }
 
   wl_registry_destroy(registry);
   wl_display_disconnect(display);
