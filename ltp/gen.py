@@ -91,18 +91,26 @@ def main():
     #                       不是独立 TU（单独编译必然语法错）
     SKIP_REL_PREFIXES = ("v4l/", "xfs/", "include/")
 
-    # 默认只编"当前用得到"的目录：syscalls（syscall 合规）+ pty + input。
+    # 默认只编"当前用得到"的目录：syscalls（syscall 合规，始终扫描）+ input + pty。
     # 其余目录的源码已经迁进 ltp/testcases/kernel/ 了，需要时用环境变量点名：
     #   LTP_KERNEL_DIRS=mem,fs,sched ./build_all.sh
     # 全量：LTP_KERNEL_DIRS=all ./build_all.sh
     # 这样日常构建保持单次 ~1 分钟的规模，不必为没跑到的目录付编译代价。
     _enabled_env = os.environ.get("LTP_KERNEL_DIRS")
     if _enabled_env is None:
-        enabled_dirs = {"pty", "input"}
+        enabled_dirs = {"input", "pty"}
     elif _enabled_env.strip() == "all":
         enabled_dirs = None
     else:
         enabled_dirs = set(x.strip() for x in _enabled_env.split(",") if x.strip())
+
+    # 更细的一层：只编名字匹配这些子串的测试（逗号分隔，匹配 fid）。
+    #   LTP_TESTS=input,uinput   —— 只留 input 系
+    #   不设置 = 该目录下全部测试（保持原有覆盖）
+    _only_env = os.environ.get("LTP_TESTS")
+    only_names = None
+    if _only_env is not None and _only_env.strip() and _only_env.strip() != "all":
+        only_names = tuple(x.strip() for x in _only_env.split(",") if x.strip())
 
     scan_roots = [(SYSCALLS, "")]
     kernel_dir = os.path.join(LTP, "testcases", "kernel")
@@ -139,6 +147,8 @@ def main():
                 # 标识符只保留 [A-Za-z0-9_]：LTP 里有 cpuctl_fj_cpu-hog.c
                 # 这类带 '-' 的文件名，直接拼进 C 标识符会语法错。
                 fid = re.sub(r"[^A-Za-z0-9_]+", "_", key[:-2])
+                if only_names is not None and not any(n in fid for n in only_names):
+                    continue
                 if has_struct:
                     struct_files.append((fid, rel))
                 elif has_main:
@@ -180,70 +190,67 @@ def main():
 
     # ---- registry.c ----
     entries.sort(key=lambda e: e[0])
-    # id -> 源文件映射（排除循环用）
-    with open(os.path.join(GEN, "idmap.txt"), "w") as fh:
-        for fid, kind, rel in entries:
-            fh.write("%s %s\n" % (fid, rel))
-    with open(os.path.join(GEN, "registry.c"), "w") as fh:
-        fh.write("/* 自动生成：勿改。LTP 测试注册表 */\n")
-        fh.write("#define TST_NO_DEFAULT_MAIN\n")
-        fh.write('#include <tst_test.h>\n#include "ltp_runner.h"\n\n')
-        for fid, kind, rel in entries:
-            if kind == "struct":
-                fh.write("struct tst_test *ltp_get_%s(void);\n" % fid)
-            else:
-                fh.write("int ltp_run_%s(int argc, char **argv);\n" % fid)
-        fh.write("\nconst ltp_entry_t ltp_tests[] = {\n")
-        for fid, kind, rel in entries:
-            if kind == "struct":
-                fh.write('  {"%s", ltp_get_%s, 0},\n' % (fid, fid))
-            else:
-                fh.write('  {"%s", 0, ltp_run_%s},\n' % (fid, fid))
-        fh.write("};\n")
-        fh.write("const int ltp_test_count = %d;\n" % len(entries))
+    reg = ["/* 自动生成：勿改。LTP 测试注册表 */\n",
+           "#define TST_NO_DEFAULT_MAIN\n",
+           '#include <tst_test.h>\n#include "ltp_runner.h"\n\n']
+    for fid, kind, rel in entries:
+        if kind == "struct":
+            reg.append("struct tst_test *ltp_get_%s(void);\n" % fid)
+        else:
+            reg.append("int ltp_run_%s(int argc, char **argv);\n" % fid)
+    reg.append("\nconst ltp_entry_t ltp_tests[] = {\n")
+    for fid, kind, rel in entries:
+        if kind == "struct":
+            reg.append('  {"%s", ltp_get_%s, 0},\n' % (fid, fid))
+        else:
+            reg.append('  {"%s", 0, ltp_run_%s},\n' % (fid, fid))
+    reg.append("};\n")
+    reg.append("const int ltp_test_count = %d;\n" % len(entries))
+    write_if_changed(os.path.join(GEN, "registry.c"), "".join(reg))
 
     # ---- idmap（wrapper id -> 源文件相对路径），供排除循环反查 ----
-    with open(os.path.join(GEN, "idmap.txt"), "w") as fh:
-        for fid, kind, rel in sorted(entries):
-            fh.write("%s %s\n" % (fid, rel))
+    write_if_changed(os.path.join(GEN, "idmap.txt"),
+                     "".join("%s %s\n" % (fid, rel)
+                             for fid, kind, rel in entries))
 
     # ---- 文件清单 ----
-    with open(os.path.join(GEN, "files-lib.txt"), "w") as fh:
-        for fn in sorted(os.listdir(os.path.join(LTP, "lib"))):
-            if fn.endswith(".c") and ("lib/" + fn) not in excluded:
-                fh.write("ltp/lib/" + fn + "\n")
-        # per-dir 辅助库（libs/<name>/*.c）：LTP 的 tse_*.h 的实现体，
-        # 例如 libs/uinput 提供 open_uinput()/create_input_device()。
-        libs_dir = os.path.join(LTP, "libs")
-        if os.path.isdir(libs_dir):
-            for name in sorted(os.listdir(libs_dir)):
-                sub = os.path.join(libs_dir, name)
-                if not os.path.isdir(sub):
+    libs = []
+    for fn in sorted(os.listdir(os.path.join(LTP, "lib"))):
+        if fn.endswith(".c") and ("lib/" + fn) not in excluded:
+            libs.append("ltp/lib/" + fn + "\n")
+    # per-dir 辅助库（libs/<name>/*.c）：LTP 的 tse_*.h 的实现体，
+    # 例如 libs/uinput 提供 open_uinput()/create_input_device()。
+    libs_dir = os.path.join(LTP, "libs")
+    if os.path.isdir(libs_dir):
+        for name in sorted(os.listdir(libs_dir)):
+            sub = os.path.join(libs_dir, name)
+            if not os.path.isdir(sub):
+                continue
+            for fn in sorted(os.listdir(sub)):
+                if not fn.endswith(".c"):
                     continue
-                for fn in sorted(os.listdir(sub)):
-                    if not fn.endswith(".c"):
-                        continue
-                    rel = "libs/" + name + "/" + fn
-                    if rel not in excluded:
-                        fh.write("ltp/" + rel + "\n")
-        # 构建期生成物/被排除文件的兼容实现
-        for c in ("compat/tst_umount.c", "compat/tst_syscall.c",
-                  "compat/tst_device_shim.c", "compat/tst_wallclock_shim.c",
-                  "compat/tst_missing.c"):
-            fh.write(c + "\n")
-    with open(os.path.join(GEN, "files-wrappers.txt"), "w") as fh:
-        # wrapper .c 由 ltpwrap 静态库目标编译（pass A），随后 localize.py
-        # 用 objcopy 把各 wrapper 内部符号本地化成 gen/objs/<fid>.o
-        for fid, kind, rel in entries:
-            fh.write("gen/wrappers/" + fid + ".c\n")
-    with open(os.path.join(GEN, "files-tests.txt"), "w") as fh:
-        # ltp 目标直接吃本地化后的 .o（ymake 对 .o 跳过编译直接进链接），
-        # 解决各测试独立二进制遗留的非 static run/setup 等全局符号撞名
-        for fid, kind, rel in entries:
-            fh.write("gen/objs/" + fid + ".o\n")
-        for rel in sorted(helpers):
-            fh.write("ltp/" + rel + "\n")
-        fh.write("gen/registry.c\n")
+                rel = "libs/" + name + "/" + fn
+                if rel not in excluded:
+                    libs.append("ltp/" + rel + "\n")
+    # 构建期生成物/被排除文件的兼容实现
+    for c in ("compat/tst_umount.c", "compat/tst_syscall.c",
+              "compat/tst_device_shim.c", "compat/tst_wallclock_shim.c",
+              "compat/tst_missing.c"):
+        libs.append(c + "\n")
+    write_if_changed(os.path.join(GEN, "files-lib.txt"), "".join(libs))
+
+    # wrapper .c 由 ltpwrap 静态库目标编译（pass A），随后 localize.py
+    # 用 objcopy 把各 wrapper 内部符号本地化成 gen/objs/<fid>.o
+    write_if_changed(os.path.join(GEN, "files-wrappers.txt"),
+                     "".join("gen/wrappers/" + fid + ".c\n"
+                             for fid, kind, rel in entries))
+
+    # ltp 目标直接吃本地化后的 .o（ymake 对 .o 跳过编译直接进链接），
+    # 解决各测试独立二进制遗留的非 static run/setup 等全局符号撞名
+    tests = ["gen/objs/" + fid + ".o\n" for fid, kind, rel in entries]
+    tests += ["ltp/" + rel + "\n" for rel in sorted(helpers)]
+    tests.append("gen/registry.c\n")
+    write_if_changed(os.path.join(GEN, "files-tests.txt"), "".join(tests))
 
     print("struct=%d oldmain=%d helpers=%d total_tests=%d"
           % (len(struct_files), len(main_files), len(helpers), len(entries)))
