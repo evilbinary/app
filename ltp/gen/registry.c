@@ -84,6 +84,102 @@ struct tst_test *ltp_get_confstr_confstr01(void);
 struct tst_test *ltp_get_connect_connect01(void);
 struct tst_test *ltp_get_connect_connect02(void);
 struct tst_test *ltp_get_connect_connect03(void);
+struct tst_test *ltp_get_connectors_pec_event_generator(void);
+int ltp_run_connectors_pec_pec_listener(int argc, char **argv);
+struct tst_test *ltp_get_containers_mountns_mountns01(void);
+struct tst_test *ltp_get_containers_mountns_mountns02(void);
+struct tst_test *ltp_get_containers_mountns_mountns03(void);
+struct tst_test *ltp_get_containers_mountns_mountns04(void);
+struct tst_test *ltp_get_containers_mqns_mqns_01(void);
+struct tst_test *ltp_get_containers_mqns_mqns_02(void);
+struct tst_test *ltp_get_containers_mqns_mqns_03(void);
+struct tst_test *ltp_get_containers_mqns_mqns_04(void);
+struct tst_test *ltp_get_containers_netns_netns_netlink(void);
+struct tst_test *ltp_get_containers_pidns_pidns01(void);
+struct tst_test *ltp_get_containers_pidns_pidns02(void);
+struct tst_test *ltp_get_containers_pidns_pidns03(void);
+struct tst_test *ltp_get_containers_pidns_pidns04(void);
+struct tst_test *ltp_get_containers_pidns_pidns05(void);
+struct tst_test *ltp_get_containers_pidns_pidns06(void);
+struct tst_test *ltp_get_containers_pidns_pidns10(void);
+struct tst_test *ltp_get_containers_pidns_pidns12(void);
+struct tst_test *ltp_get_containers_pidns_pidns13(void);
+struct tst_test *ltp_get_containers_pidns_pidns16(void);
+struct tst_test *ltp_get_containers_pidns_pidns17(void);
+struct tst_test *ltp_get_containers_pidns_pidns20(void);
+struct tst_test *ltp_get_containers_pidns_pidns30(void);
+struct tst_test *ltp_get_containers_pidns_pidns31(void);
+struct tst_test *ltp_get_containers_pidns_pidns32(void);
+struct tst_test *ltp_get_containers_sysvipc_mesgq_nstest(void);
+struct tst_test *ltp_get_containers_sysvipc_msg_comm(void);
+struct tst_test *ltp_get_containers_sysvipc_sem_comm(void);
+struct tst_test *ltp_get_containers_sysvipc_sem_nstest(void);
+struct tst_test *ltp_get_containers_sysvipc_semtest_2ns(void);
+struct tst_test *ltp_get_containers_sysvipc_shm_comm(void);
+struct tst_test *ltp_get_containers_sysvipc_shmem_2nstest(void);
+struct tst_test *ltp_get_containers_sysvipc_shmnstest(void);
+struct tst_test *ltp_get_containers_timens_timens01(void);
+struct tst_test *ltp_get_containers_userns_userns01(void);
+struct tst_test *ltp_get_containers_userns_userns02(void);
+struct tst_test *ltp_get_containers_userns_userns03(void);
+struct tst_test *ltp_get_containers_userns_userns04(void);
+struct tst_test *ltp_get_containers_userns_userns05(void);
+struct tst_test *ltp_get_containers_userns_userns06(void);
+int ltp_run_containers_userns_userns06_capcheck(int argc, char **argv);
+struct tst_test *ltp_get_containers_userns_userns07(void);
+struct tst_test *ltp_get_containers_userns_userns08(void);
+struct tst_test *ltp_get_containers_utsname_utsname01(void);
+struct tst_test *ltp_get_containers_utsname_utsname02(void);
+struct tst_test *ltp_get_containers_utsname_utsname03(void);
+struct tst_test *ltp_get_containers_utsname_utsname04(void);
+struct tst_test *ltp_get_controllers_cgroup_cgroup_core01(void);
+struct tst_test *ltp_get_controllers_cgroup_cgroup_core02(void);
+struct tst_test *ltp_get_controllers_cgroup_cgroup_core03(void);
+int ltp_run_controllers_cgroup_cgroup_regression_fork_processes(int argc, char **argv);
+int ltp_run_controllers_cgroup_cgroup_regression_getdelays(int argc, char **argv);
+int ltp_run_controllers_cgroup_fj_cgroup_fj_proc(int argc, char **argv);
+int ltp_run_controllers_cgroup_xattr_cgroup_xattr(int argc, char **argv);
+int ltp_run_controllers_cpuacct_cpuacct_task(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_def_task01(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_def_task02(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_def_task03(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_def_task04(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_latency_check_task(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_latency_test(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_test01(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_test02(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_test03(int argc, char **argv);
+int ltp_run_controllers_cpuctl_cpuctl_test04(int argc, char **argv);
+int ltp_run_controllers_cpuctl_fj_cpuctl_fj_cpu_hog(int argc, char **argv);
+int ltp_run_controllers_cpuctl_fj_cpuctl_fj_simple_echo(int argc, char **argv);
+int ltp_run_controllers_cpuset_cpuset_hotplug_test_cpuset_list_compute(int argc, char **argv);
+int ltp_run_controllers_cpuset_cpuset_load_balance_test_cpuset_cpu_hog(int argc, char **argv);
+int ltp_run_controllers_cpuset_cpuset_load_balance_test_cpuset_sched_domains_check(int argc, char **argv);
+int ltp_run_controllers_cpuset_cpuset_memory_pressure_test_cpuset_memory_pressure(int argc, char **argv);
+int ltp_run_controllers_cpuset_cpuset_memory_spread_test_cpuset_mem_hog(int argc, char **argv);
+int ltp_run_controllers_cpuset_cpuset_memory_test_cpuset_memory_test(int argc, char **argv);
+int ltp_run_controllers_cpuset_cpuset_syscall_test_cpuset_syscall_test(int argc, char **argv);
+int ltp_run_controllers_freezer_fork_exec_loop(int argc, char **argv);
+int ltp_run_controllers_freezer_timed_forkbomb(int argc, char **argv);
+int ltp_run_controllers_freezer_vfork(int argc, char **argv);
+struct tst_test *ltp_get_controllers_io_io_control01(void);
+int ltp_run_controllers_memcg_control_mem_process(int argc, char **argv);
+int ltp_run_controllers_memcg_functional_memcg_process(int argc, char **argv);
+struct tst_test *ltp_get_controllers_memcg_memcontrol01(void);
+struct tst_test *ltp_get_controllers_memcg_memcontrol02(void);
+struct tst_test *ltp_get_controllers_memcg_memcontrol03(void);
+struct tst_test *ltp_get_controllers_memcg_memcontrol04(void);
+int ltp_run_controllers_memcg_regression_memcg_test_1(int argc, char **argv);
+int ltp_run_controllers_memcg_regression_memcg_test_2(int argc, char **argv);
+struct tst_test *ltp_get_controllers_memcg_regression_memcg_test_3(void);
+int ltp_run_controllers_memcg_regression_memcg_test_4(int argc, char **argv);
+int ltp_run_controllers_memcg_stress_memcg_process_stress(int argc, char **argv);
+int ltp_run_controllers_memctl_memctl_test01(int argc, char **argv);
+int ltp_run_controllers_pids_pids_task1(int argc, char **argv);
+int ltp_run_controllers_pids_pids_task2(int argc, char **argv);
+struct tst_test *ltp_get_coredump_coredump01(void);
+int ltp_run_coredump_coredump01_helper(int argc, char **argv);
+struct tst_test *ltp_get_coredump_coredump02(void);
 struct tst_test *ltp_get_creat_creat01(void);
 struct tst_test *ltp_get_creat_creat03(void);
 struct tst_test *ltp_get_creat_creat04(void);
@@ -93,9 +189,36 @@ struct tst_test *ltp_get_creat_creat07(void);
 int ltp_run_creat_creat07_child(int argc, char **argv);
 struct tst_test *ltp_get_creat_creat08(void);
 struct tst_test *ltp_get_creat_creat09(void);
+struct tst_test *ltp_get_crypto_af_alg01(void);
+struct tst_test *ltp_get_crypto_af_alg02(void);
+struct tst_test *ltp_get_crypto_af_alg03(void);
+struct tst_test *ltp_get_crypto_af_alg04(void);
+struct tst_test *ltp_get_crypto_af_alg05(void);
+struct tst_test *ltp_get_crypto_af_alg06(void);
+struct tst_test *ltp_get_crypto_af_alg07(void);
+struct tst_test *ltp_get_crypto_af_alg08(void);
+struct tst_test *ltp_get_crypto_crypto_user01(void);
+struct tst_test *ltp_get_crypto_crypto_user02(void);
+struct tst_test *ltp_get_crypto_pcrypt_aead01(void);
 struct tst_test *ltp_get_delete_module_delete_module01(void);
 struct tst_test *ltp_get_delete_module_delete_module02(void);
 struct tst_test *ltp_get_delete_module_delete_module03(void);
+int ltp_run_device_drivers_acpi_ltp_acpi(int argc, char **argv);
+int ltp_run_device_drivers_agp_user_space_user_tagp(int argc, char **argv);
+int ltp_run_device_drivers_base_user_base_user_tbase(int argc, char **argv);
+struct tst_test *ltp_get_device_drivers_block_block_dev_user_block_dev(void);
+int ltp_run_device_drivers_cpufreq_cpufreq_boost(int argc, char **argv);
+int ltp_run_device_drivers_dev_sim_framework_user_space_user_tmod(int argc, char **argv);
+int ltp_run_device_drivers_drm_user_space_user_tdrm(int argc, char **argv);
+int ltp_run_device_drivers_include_userBlockInclude(int argc, char **argv);
+int ltp_run_device_drivers_nls_userBlockNLS(int argc, char **argv);
+int ltp_run_device_drivers_pci_tpci_user_tpci(int argc, char **argv);
+int ltp_run_device_drivers_rtc_rtc01(int argc, char **argv);
+struct tst_test *ltp_get_device_drivers_rtc_rtc02(void);
+int ltp_run_device_drivers_tbio_tbio_user_tbio(int argc, char **argv);
+int ltp_run_device_drivers_uaccess_uaccess(int argc, char **argv);
+int ltp_run_device_drivers_usb_user_usb_user_tusb(int argc, char **argv);
+struct tst_test *ltp_get_device_drivers_zram_zram03(void);
 struct tst_test *ltp_get_dup2_dup201(void);
 struct tst_test *ltp_get_dup2_dup202(void);
 struct tst_test *ltp_get_dup2_dup203(void);
@@ -265,6 +388,8 @@ struct tst_test *ltp_get_fgetxattr_fgetxattr01(void);
 struct tst_test *ltp_get_fgetxattr_fgetxattr02(void);
 struct tst_test *ltp_get_fgetxattr_fgetxattr03(void);
 struct tst_test *ltp_get_finit_module_finit_module01(void);
+struct tst_test *ltp_get_firmware_fw_load_fw_load01(void);
+struct tst_test *ltp_get_firmware_fw_load_fw_load02(void);
 struct tst_test *ltp_get_flistxattr_flistxattr01(void);
 struct tst_test *ltp_get_flistxattr_flistxattr02(void);
 struct tst_test *ltp_get_flistxattr_flistxattr03(void);
@@ -289,6 +414,46 @@ struct tst_test *ltp_get_fork_fork_procs(void);
 struct tst_test *ltp_get_fpathconf_fpathconf01(void);
 struct tst_test *ltp_get_fremovexattr_fremovexattr01(void);
 struct tst_test *ltp_get_fremovexattr_fremovexattr02(void);
+struct tst_test *ltp_get_fs_acl_acl_file_ops01(void);
+struct tst_test *ltp_get_fs_acl_acl_inherit01(void);
+struct tst_test *ltp_get_fs_acl_acl_link01(void);
+struct tst_test *ltp_get_fs_acl_acl_mask01(void);
+struct tst_test *ltp_get_fs_acl_acl_other01(void);
+struct tst_test *ltp_get_fs_acl_acl_user_obj01(void);
+int ltp_run_fs_doio_dataascii(int argc, char **argv);
+int ltp_run_fs_doio_databin(int argc, char **argv);
+int ltp_run_fs_doio_datapid(int argc, char **argv);
+int ltp_run_fs_doio_doio(int argc, char **argv);
+int ltp_run_fs_doio_forker(int argc, char **argv);
+int ltp_run_fs_doio_growfiles(int argc, char **argv);
+int ltp_run_fs_doio_iogen(int argc, char **argv);
+int ltp_run_fs_doio_open_flags(int argc, char **argv);
+int ltp_run_fs_fs_di_create_datafile(int argc, char **argv);
+int ltp_run_fs_fs_di_frag(int argc, char **argv);
+struct tst_test *ltp_get_fs_fs_fill_fs_fill(void);
+int ltp_run_fs_fs_perms_fs_perms(int argc, char **argv);
+struct tst_test *ltp_get_fs_fsplough_fsplough(void);
+int ltp_run_fs_fsstress_fsstress(int argc, char **argv);
+struct tst_test *ltp_get_fs_fsx_linux_fsx_linux(void);
+int ltp_run_fs_ftest_ftest01(int argc, char **argv);
+int ltp_run_fs_ftest_ftest02(int argc, char **argv);
+int ltp_run_fs_ftest_ftest03(int argc, char **argv);
+int ltp_run_fs_ftest_ftest04(int argc, char **argv);
+int ltp_run_fs_ftest_ftest05(int argc, char **argv);
+int ltp_run_fs_ftest_ftest06(int argc, char **argv);
+int ltp_run_fs_ftest_ftest07(int argc, char **argv);
+int ltp_run_fs_ftest_ftest08(int argc, char **argv);
+struct tst_test *ltp_get_fs_inode_inode01(void);
+struct tst_test *ltp_get_fs_lftest_lftest(void);
+int ltp_run_fs_openfile_openfile(int argc, char **argv);
+int ltp_run_fs_proc_proc01(int argc, char **argv);
+struct tst_test *ltp_get_fs_read_all_read_all(void);
+struct tst_test *ltp_get_fs_squashfs_squashfs01(void);
+struct tst_test *ltp_get_fs_stream_stream01(void);
+struct tst_test *ltp_get_fs_stream_stream02(void);
+struct tst_test *ltp_get_fs_stream_stream03(void);
+struct tst_test *ltp_get_fs_stream_stream04(void);
+struct tst_test *ltp_get_fs_stream_stream05(void);
 struct tst_test *ltp_get_fsconfig_fsconfig01(void);
 struct tst_test *ltp_get_fsconfig_fsconfig02(void);
 struct tst_test *ltp_get_fsconfig_fsconfig03(void);
@@ -372,6 +537,7 @@ struct tst_test *ltp_get_getxattr_getxattr01(void);
 struct tst_test *ltp_get_getxattr_getxattr02(void);
 struct tst_test *ltp_get_getxattr_getxattr03(void);
 struct tst_test *ltp_get_getxattr_getxattr04(void);
+int ltp_run_hotplug_memory_hotplug_memtoy(int argc, char **argv);
 struct tst_test *ltp_get_init_module_init_module01(void);
 struct tst_test *ltp_get_inotify_init_inotify_init1_01(void);
 struct tst_test *ltp_get_inotify_init_inotify_init1_02(void);
@@ -387,9 +553,27 @@ struct tst_test *ltp_get_input_input03(void);
 struct tst_test *ltp_get_input_input04(void);
 struct tst_test *ltp_get_input_input05(void);
 struct tst_test *ltp_get_input_input06(void);
+int ltp_run_io_aio_aio01(int argc, char **argv);
+struct tst_test *ltp_get_io_aio_aio02(void);
 struct tst_test *ltp_get_io_cancel_io_cancel02(void);
 struct tst_test *ltp_get_io_destroy_io_destroy01(void);
+int ltp_run_io_direct_io_diotest1(int argc, char **argv);
+int ltp_run_io_direct_io_diotest2(int argc, char **argv);
+int ltp_run_io_direct_io_diotest3(int argc, char **argv);
+int ltp_run_io_direct_io_diotest4(int argc, char **argv);
+int ltp_run_io_direct_io_diotest5(int argc, char **argv);
+int ltp_run_io_direct_io_diotest6(int argc, char **argv);
+int ltp_run_io_direct_io_dma_thread_diotest(int argc, char **argv);
 struct tst_test *ltp_get_io_getevents_io_getevents02(void);
+struct tst_test *ltp_get_io_ltp_aiodio_aio_stress(void);
+struct tst_test *ltp_get_io_ltp_aiodio_aiocp(void);
+struct tst_test *ltp_get_io_ltp_aiodio_aiodio_append(void);
+struct tst_test *ltp_get_io_ltp_aiodio_aiodio_sparse(void);
+struct tst_test *ltp_get_io_ltp_aiodio_dio_append(void);
+struct tst_test *ltp_get_io_ltp_aiodio_dio_read(void);
+struct tst_test *ltp_get_io_ltp_aiodio_dio_sparse(void);
+struct tst_test *ltp_get_io_ltp_aiodio_dio_truncate(void);
+int ltp_run_io_ltp_aiodio_dirty(int argc, char **argv);
 struct tst_test *ltp_get_io_pgetevents_io_pgetevents01(void);
 struct tst_test *ltp_get_io_pgetevents_io_pgetevents02(void);
 struct tst_test *ltp_get_io_setup_io_setup01(void);
@@ -397,6 +581,7 @@ struct tst_test *ltp_get_io_submit_io_submit01(void);
 struct tst_test *ltp_get_io_uring_io_uring01(void);
 struct tst_test *ltp_get_io_uring_io_uring02(void);
 struct tst_test *ltp_get_io_uring_io_uring03(void);
+int ltp_run_io_writetest_writetest(int argc, char **argv);
 struct tst_test *ltp_get_ioctl_ioctl01(void);
 struct tst_test *ltp_get_ioctl_ioctl04(void);
 struct tst_test *ltp_get_ioctl_ioctl05(void);
@@ -412,6 +597,9 @@ struct tst_test *ltp_get_ioprio_ioprio_get01(void);
 struct tst_test *ltp_get_ioprio_ioprio_set01(void);
 struct tst_test *ltp_get_ioprio_ioprio_set02(void);
 struct tst_test *ltp_get_ioprio_ioprio_set03(void);
+struct tst_test *ltp_get_ipc_msgstress_msgstress01(void);
+int ltp_run_ipc_pipeio_pipeio(int argc, char **argv);
+struct tst_test *ltp_get_irq_irqbalance01(void);
 struct tst_test *ltp_get_kcmp_kcmp01(void);
 struct tst_test *ltp_get_kcmp_kcmp02(void);
 int ltp_run_kill_kill02(int argc, char **argv);
@@ -446,6 +634,7 @@ struct tst_test *ltp_get_llistxattr_llistxattr03(void);
 struct tst_test *ltp_get_llseek_llseek01(void);
 struct tst_test *ltp_get_llseek_llseek02(void);
 struct tst_test *ltp_get_llseek_llseek03(void);
+struct tst_test *ltp_get_logging_kmsg_kmsg01(void);
 struct tst_test *ltp_get_lremovexattr_lremovexattr01(void);
 struct tst_test *ltp_get_lseek_lseek01(void);
 struct tst_test *ltp_get_lseek_lseek02(void);
@@ -474,6 +663,121 @@ struct tst_test *ltp_get_madvise_madvise12(void);
 struct tst_test *ltp_get_mallinfo_mallinfo01(void);
 struct tst_test *ltp_get_mallinfo_mallinfo02(void);
 struct tst_test *ltp_get_mallopt_mallopt01(void);
+struct tst_test *ltp_get_mem_cpuset_cpuset01(void);
+struct tst_test *ltp_get_mem_cpuset_cpuset02(void);
+struct tst_test *ltp_get_mem_hugetlb_hugefallocate_hugefallocate01(void);
+struct tst_test *ltp_get_mem_hugetlb_hugefallocate_hugefallocate02(void);
+struct tst_test *ltp_get_mem_hugetlb_hugefork_hugefork01(void);
+struct tst_test *ltp_get_mem_hugetlb_hugefork_hugefork02(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap01(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap02(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap04(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap05(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap06(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap07(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap08(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap09(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap10(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap11(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap12(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap13(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap14(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap15(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap16(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap17(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap18(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap19(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap20(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap21(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap22(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap23(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap24(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap25(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap26(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap27(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap28(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap29(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap30(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap31(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap32(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap34(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap35(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap36(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap37(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap38(void);
+struct tst_test *ltp_get_mem_hugetlb_hugemmap_hugemmap41(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmat_hugeshmat01(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmat_hugeshmat02(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmat_hugeshmat03(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmat_hugeshmat04(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmat_hugeshmat05(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmctl_hugeshmctl01(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmctl_hugeshmctl02(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmctl_hugeshmctl03(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmdt_hugeshmdt01(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmget_hugeshmget01(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmget_hugeshmget02(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmget_hugeshmget03(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmget_hugeshmget05(void);
+struct tst_test *ltp_get_mem_hugetlb_hugeshmget_hugeshmget06(void);
+struct tst_test *ltp_get_mem_ksm_ksm01(void);
+struct tst_test *ltp_get_mem_ksm_ksm02(void);
+struct tst_test *ltp_get_mem_ksm_ksm03(void);
+struct tst_test *ltp_get_mem_ksm_ksm04(void);
+struct tst_test *ltp_get_mem_ksm_ksm05(void);
+struct tst_test *ltp_get_mem_ksm_ksm06(void);
+struct tst_test *ltp_get_mem_ksm_ksm07(void);
+int ltp_run_mem_mem_mem02(int argc, char **argv);
+int ltp_run_mem_mmapstress_mmap_corruption01(int argc, char **argv);
+struct tst_test *ltp_get_mem_mmapstress_mmapstress01(void);
+int ltp_run_mem_mmapstress_mmapstress02(int argc, char **argv);
+int ltp_run_mem_mmapstress_mmapstress03(int argc, char **argv);
+struct tst_test *ltp_get_mem_mmapstress_mmapstress04(void);
+int ltp_run_mem_mmapstress_mmapstress05(int argc, char **argv);
+struct tst_test *ltp_get_mem_mmapstress_mmapstress06(void);
+int ltp_run_mem_mmapstress_mmapstress07(int argc, char **argv);
+int ltp_run_mem_mmapstress_mmapstress08(int argc, char **argv);
+int ltp_run_mem_mmapstress_mmapstress09(int argc, char **argv);
+int ltp_run_mem_mmapstress_mmapstress10(int argc, char **argv);
+struct tst_test *ltp_get_mem_mtest01_mtest01(void);
+int ltp_run_mem_mtest05_mmstress(int argc, char **argv);
+int ltp_run_mem_mtest05_mmstress_dummy(int argc, char **argv);
+struct tst_test *ltp_get_mem_mtest06_mmap1(void);
+int ltp_run_mem_mtest06_mmap2(int argc, char **argv);
+struct tst_test *ltp_get_mem_mtest06_mmap3(void);
+int ltp_run_mem_mtest06_shmat1(int argc, char **argv);
+struct tst_test *ltp_get_mem_mtest07_mallocstress(void);
+int ltp_run_mem_mtest07_shm_test(int argc, char **argv);
+struct tst_test *ltp_get_mem_oom_oom01(void);
+struct tst_test *ltp_get_mem_oom_oom02(void);
+struct tst_test *ltp_get_mem_oom_oom03(void);
+struct tst_test *ltp_get_mem_oom_oom04(void);
+struct tst_test *ltp_get_mem_oom_oom05(void);
+int ltp_run_mem_page_page01(int argc, char **argv);
+int ltp_run_mem_page_page02(int argc, char **argv);
+struct tst_test *ltp_get_mem_shmt_shmt02(void);
+struct tst_test *ltp_get_mem_shmt_shmt03(void);
+struct tst_test *ltp_get_mem_shmt_shmt04(void);
+struct tst_test *ltp_get_mem_shmt_shmt05(void);
+struct tst_test *ltp_get_mem_shmt_shmt07(void);
+struct tst_test *ltp_get_mem_shmt_shmt08(void);
+struct tst_test *ltp_get_mem_shmt_shmt09(void);
+struct tst_test *ltp_get_mem_shmt_shmt10(void);
+struct tst_test *ltp_get_mem_swapping_swapping01(void);
+struct tst_test *ltp_get_mem_thp_thp01(void);
+struct tst_test *ltp_get_mem_thp_thp02(void);
+struct tst_test *ltp_get_mem_thp_thp03(void);
+struct tst_test *ltp_get_mem_thp_thp04(void);
+struct tst_test *ltp_get_mem_tunable_max_map_count(void);
+struct tst_test *ltp_get_mem_tunable_min_free_kbytes(void);
+struct tst_test *ltp_get_mem_tunable_overcommit_memory(void);
+int ltp_run_mem_vma_vma01(int argc, char **argv);
+int ltp_run_mem_vma_vma02(int argc, char **argv);
+int ltp_run_mem_vma_vma03(int argc, char **argv);
+int ltp_run_mem_vma_vma04(int argc, char **argv);
+int ltp_run_mem_vma_vma05_vdso(int argc, char **argv);
+int ltp_run_mem_vmtests_data_space(int argc, char **argv);
+int ltp_run_mem_vmtests_stack_space(int argc, char **argv);
 struct tst_test *ltp_get_membarrier_membarrier01(void);
 struct tst_test *ltp_get_memcmp_memcmp01(void);
 struct tst_test *ltp_get_memcpy_memcpy01(void);
@@ -615,6 +919,7 @@ struct tst_test *ltp_get_nice_nice02(void);
 struct tst_test *ltp_get_nice_nice03(void);
 struct tst_test *ltp_get_nice_nice04(void);
 struct tst_test *ltp_get_nice_nice05(void);
+int ltp_run_numa_support_numa(int argc, char **argv);
 struct tst_test *ltp_get_open_by_handle_at_open_by_handle_at01(void);
 struct tst_test *ltp_get_open_open01(void);
 struct tst_test *ltp_get_open_open02(void);
@@ -676,6 +981,9 @@ struct tst_test *ltp_get_poll_poll01(void);
 struct tst_test *ltp_get_poll_poll02(void);
 struct tst_test *ltp_get_poll_poll03(void);
 struct tst_test *ltp_get_poll_poll04(void);
+struct tst_test *ltp_get_power_management_cpufreq_intel(void);
+struct tst_test *ltp_get_power_management_high_freq_hwp_cap_cppc(void);
+struct tst_test *ltp_get_power_management_rfim01(void);
 struct tst_test *ltp_get_ppoll_ppoll01(void);
 struct tst_test *ltp_get_prctl_prctl01(void);
 struct tst_test *ltp_get_pread_pread01(void);
@@ -789,6 +1097,12 @@ struct tst_test *ltp_get_rt_tgsigqueueinfo_rt_tgsigqueueinfo01(void);
 struct tst_test *ltp_get_sbrk_sbrk01(void);
 struct tst_test *ltp_get_sbrk_sbrk02(void);
 struct tst_test *ltp_get_sbrk_sbrk03(void);
+struct tst_test *ltp_get_sched_autogroup_autogroup01(void);
+struct tst_test *ltp_get_sched_cfs_scheduler_cfs_bandwidth01(void);
+int ltp_run_sched_cfs_scheduler_hackbench(int argc, char **argv);
+struct tst_test *ltp_get_sched_cfs_scheduler_starvation(void);
+int ltp_run_sched_clisrv_pthcli(int argc, char **argv);
+int ltp_run_sched_clisrv_pthserv(int argc, char **argv);
 struct tst_test *ltp_get_sched_get_priority_max_sched_get_priority_max02(void);
 struct tst_test *ltp_get_sched_get_priority_min_sched_get_priority_min02(void);
 struct tst_test *ltp_get_sched_getaffinity_sched_getaffinity01(void);
@@ -796,9 +1110,23 @@ struct tst_test *ltp_get_sched_getparam_sched_getparam01(void);
 struct tst_test *ltp_get_sched_getparam_sched_getparam03(void);
 struct tst_test *ltp_get_sched_getscheduler_sched_getscheduler01(void);
 struct tst_test *ltp_get_sched_getscheduler_sched_getscheduler02(void);
+int ltp_run_sched_hyperthreading_ht_affinity_ht_affinity(int argc, char **argv);
+int ltp_run_sched_hyperthreading_ht_enabled_ht_enabled(int argc, char **argv);
+int ltp_run_sched_nptl_nptl01(int argc, char **argv);
+int ltp_run_sched_pthreads_pth_str01(int argc, char **argv);
+int ltp_run_sched_pthreads_pth_str02(int argc, char **argv);
+int ltp_run_sched_pthreads_pth_str03(int argc, char **argv);
 struct tst_test *ltp_get_sched_rr_get_interval_sched_rr_get_interval01(void);
 struct tst_test *ltp_get_sched_rr_get_interval_sched_rr_get_interval02(void);
 struct tst_test *ltp_get_sched_rr_get_interval_sched_rr_get_interval03(void);
+int ltp_run_sched_sched_stress_sched_driver(int argc, char **argv);
+int ltp_run_sched_sched_stress_sched_tc0(int argc, char **argv);
+int ltp_run_sched_sched_stress_sched_tc1(int argc, char **argv);
+int ltp_run_sched_sched_stress_sched_tc2(int argc, char **argv);
+int ltp_run_sched_sched_stress_sched_tc3(int argc, char **argv);
+int ltp_run_sched_sched_stress_sched_tc4(int argc, char **argv);
+int ltp_run_sched_sched_stress_sched_tc5(int argc, char **argv);
+int ltp_run_sched_sched_stress_sched_tc6(int argc, char **argv);
 struct tst_test *ltp_get_sched_setaffinity_sched_setaffinity01(void);
 struct tst_test *ltp_get_sched_setparam_sched_setparam01(void);
 struct tst_test *ltp_get_sched_setparam_sched_setparam02(void);
@@ -808,7 +1136,34 @@ struct tst_test *ltp_get_sched_setparam_sched_setparam05(void);
 struct tst_test *ltp_get_sched_setscheduler_sched_setscheduler01(void);
 struct tst_test *ltp_get_sched_setscheduler_sched_setscheduler02(void);
 struct tst_test *ltp_get_sched_setscheduler_sched_setscheduler03(void);
+struct tst_test *ltp_get_sched_sysctl_proc_sched_rt01(void);
+int ltp_run_sched_tool_time_schedule(int argc, char **argv);
+int ltp_run_sched_tool_trace_sched(int argc, char **argv);
 int ltp_run_sched_yield_sched_yield01(int argc, char **argv);
+struct tst_test *ltp_get_security_aslr_aslr01(void);
+int ltp_run_security_cap_bound_cap_bounds_r(int argc, char **argv);
+int ltp_run_security_cap_bound_cap_bounds_rw(int argc, char **argv);
+int ltp_run_security_cap_bound_cap_bset_inh_bounds(int argc, char **argv);
+int ltp_run_security_cap_bound_check_pe(int argc, char **argv);
+int ltp_run_security_cap_bound_exec_with_inh(int argc, char **argv);
+int ltp_run_security_cap_bound_exec_without_inh(int argc, char **argv);
+struct tst_test *ltp_get_security_dirtyc0w_dirtyc0w(void);
+int ltp_run_security_dirtyc0w_dirtyc0w_child(int argc, char **argv);
+struct tst_test *ltp_get_security_dirtyc0w_shmem_dirtyc0w_shmem(void);
+int ltp_run_security_dirtyc0w_shmem_dirtyc0w_shmem_child(int argc, char **argv);
+struct tst_test *ltp_get_security_dirtypipe_dirtypipe(void);
+int ltp_run_security_filecaps_check_simple_capset(int argc, char **argv);
+int ltp_run_security_filecaps_inh_capped(int argc, char **argv);
+int ltp_run_security_filecaps_print_caps(int argc, char **argv);
+int ltp_run_security_filecaps_verify_caps_exec(int argc, char **argv);
+struct tst_test *ltp_get_security_integrity_ima_src_ima_boot_aggregate(void);
+int ltp_run_security_integrity_ima_src_ima_mmap(int argc, char **argv);
+struct tst_test *ltp_get_security_kallsyms_kallsyms(void);
+int ltp_run_security_prot_hsymlinks_prot_hsymlinks(int argc, char **argv);
+int ltp_run_security_securebits_check_keepcaps(int argc, char **argv);
+int ltp_run_security_smack_smack_notroot(int argc, char **argv);
+int ltp_run_security_smack_smack_set_socket_labels(int argc, char **argv);
+struct tst_test *ltp_get_security_umip_umip_basic_test(void);
 struct tst_test *ltp_get_semctl_semctl01(void);
 struct tst_test *ltp_get_semctl_semctl02(void);
 struct tst_test *ltp_get_semctl_semctl03(void);
@@ -958,6 +1313,35 @@ struct tst_test *ltp_get_syncfs_syncfs01(void);
 struct tst_test *ltp_get_syscall_syscall01(void);
 struct tst_test *ltp_get_syscall_syscall02(void);
 int ltp_run_sysconf_sysconf01(int argc, char **argv);
+struct tst_test *ltp_get_sysfs_block_sys_block_loop01(void);
+struct tst_test *ltp_get_sysfs_block_sys_block_queue01(void);
+struct tst_test *ltp_get_sysfs_block_sys_block_size01(void);
+struct tst_test *ltp_get_sysfs_class_ata_device_sys_ata01(void);
+struct tst_test *ltp_get_sysfs_class_bdi_sys_bdi01(void);
+struct tst_test *ltp_get_sysfs_class_hwmon_sys_hwmon01(void);
+struct tst_test *ltp_get_sysfs_class_leds_sys_leds01(void);
+struct tst_test *ltp_get_sysfs_class_net_sys_net01(void);
+struct tst_test *ltp_get_sysfs_class_net_sys_net02(void);
+struct tst_test *ltp_get_sysfs_class_net_sys_net03(void);
+struct tst_test *ltp_get_sysfs_class_net_sys_net04(void);
+struct tst_test *ltp_get_sysfs_class_rtc_sys_rtc01(void);
+struct tst_test *ltp_get_sysfs_class_thermal_sys_thermal01(void);
+struct tst_test *ltp_get_sysfs_class_wakeup_sys_wakeup01(void);
+struct tst_test *ltp_get_sysfs_devices_system_clockevents_sys_clockevents01(void);
+struct tst_test *ltp_get_sysfs_devices_system_clocksource_sys_clocksource01(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_cache01(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_smt01(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_topology01(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_topology02(void);
+struct tst_test *ltp_get_sysfs_devices_system_cpu_sys_cpu_vulnerabilities01(void);
+struct tst_test *ltp_get_sysfs_devices_system_node_sys_node01(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_hugepages_sys_hugepages01(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_hugepages_sys_hugepages02(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_ksm_sys_ksm01(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_swap_sys_mm_swap01(void);
+struct tst_test *ltp_get_sysfs_kernel_mm_transparent_hugepage_sys_thp01(void);
+struct tst_test *ltp_get_sysfs_kernel_sys_kernel01(void);
+struct tst_test *ltp_get_sysfs_power_sys_power01(void);
 struct tst_test *ltp_get_sysinfo_sysinfo01(void);
 struct tst_test *ltp_get_sysinfo_sysinfo02(void);
 struct tst_test *ltp_get_syslog_syslog11(void);
@@ -965,6 +1349,7 @@ struct tst_test *ltp_get_syslog_syslog12(void);
 struct tst_test *ltp_get_tgkill_tgkill01(void);
 struct tst_test *ltp_get_tgkill_tgkill02(void);
 struct tst_test *ltp_get_tgkill_tgkill03(void);
+struct tst_test *ltp_get_thermal_thermal_interrupt_events(void);
 struct tst_test *ltp_get_time_time01(void);
 struct tst_test *ltp_get_timer_create_timer_create02(void);
 struct tst_test *ltp_get_timer_delete_timer_delete01(void);
@@ -984,8 +1369,12 @@ struct tst_test *ltp_get_times_times01(void);
 struct tst_test *ltp_get_times_times03(void);
 struct tst_test *ltp_get_tkill_tkill01(void);
 struct tst_test *ltp_get_tkill_tkill02(void);
+struct tst_test *ltp_get_tracing_pt_test_pt_test(void);
 struct tst_test *ltp_get_truncate_truncate02(void);
 struct tst_test *ltp_get_truncate_truncate03(void);
+struct tst_test *ltp_get_uevents_uevent01(void);
+struct tst_test *ltp_get_uevents_uevent02(void);
+struct tst_test *ltp_get_uevents_uevent03(void);
 struct tst_test *ltp_get_ulimit_ulimit01(void);
 struct tst_test *ltp_get_umask_umask01(void);
 int ltp_run_umount2_umount2_01(int argc, char **argv);
@@ -1043,6 +1432,15 @@ struct tst_test *ltp_get_waitpid_waitpid10(void);
 struct tst_test *ltp_get_waitpid_waitpid11(void);
 struct tst_test *ltp_get_waitpid_waitpid12(void);
 struct tst_test *ltp_get_waitpid_waitpid13(void);
+struct tst_test *ltp_get_watchqueue_wqueue01(void);
+struct tst_test *ltp_get_watchqueue_wqueue02(void);
+struct tst_test *ltp_get_watchqueue_wqueue03(void);
+struct tst_test *ltp_get_watchqueue_wqueue04(void);
+struct tst_test *ltp_get_watchqueue_wqueue05(void);
+struct tst_test *ltp_get_watchqueue_wqueue06(void);
+struct tst_test *ltp_get_watchqueue_wqueue07(void);
+struct tst_test *ltp_get_watchqueue_wqueue08(void);
+struct tst_test *ltp_get_watchqueue_wqueue09(void);
 struct tst_test *ltp_get_write_write01(void);
 struct tst_test *ltp_get_write_write02(void);
 struct tst_test *ltp_get_write_write03(void);
@@ -1139,6 +1537,102 @@ const ltp_entry_t ltp_tests[] = {
   {"connect_connect01", ltp_get_connect_connect01, 0},
   {"connect_connect02", ltp_get_connect_connect02, 0},
   {"connect_connect03", ltp_get_connect_connect03, 0},
+  {"connectors_pec_event_generator", ltp_get_connectors_pec_event_generator, 0},
+  {"connectors_pec_pec_listener", 0, ltp_run_connectors_pec_pec_listener},
+  {"containers_mountns_mountns01", ltp_get_containers_mountns_mountns01, 0},
+  {"containers_mountns_mountns02", ltp_get_containers_mountns_mountns02, 0},
+  {"containers_mountns_mountns03", ltp_get_containers_mountns_mountns03, 0},
+  {"containers_mountns_mountns04", ltp_get_containers_mountns_mountns04, 0},
+  {"containers_mqns_mqns_01", ltp_get_containers_mqns_mqns_01, 0},
+  {"containers_mqns_mqns_02", ltp_get_containers_mqns_mqns_02, 0},
+  {"containers_mqns_mqns_03", ltp_get_containers_mqns_mqns_03, 0},
+  {"containers_mqns_mqns_04", ltp_get_containers_mqns_mqns_04, 0},
+  {"containers_netns_netns_netlink", ltp_get_containers_netns_netns_netlink, 0},
+  {"containers_pidns_pidns01", ltp_get_containers_pidns_pidns01, 0},
+  {"containers_pidns_pidns02", ltp_get_containers_pidns_pidns02, 0},
+  {"containers_pidns_pidns03", ltp_get_containers_pidns_pidns03, 0},
+  {"containers_pidns_pidns04", ltp_get_containers_pidns_pidns04, 0},
+  {"containers_pidns_pidns05", ltp_get_containers_pidns_pidns05, 0},
+  {"containers_pidns_pidns06", ltp_get_containers_pidns_pidns06, 0},
+  {"containers_pidns_pidns10", ltp_get_containers_pidns_pidns10, 0},
+  {"containers_pidns_pidns12", ltp_get_containers_pidns_pidns12, 0},
+  {"containers_pidns_pidns13", ltp_get_containers_pidns_pidns13, 0},
+  {"containers_pidns_pidns16", ltp_get_containers_pidns_pidns16, 0},
+  {"containers_pidns_pidns17", ltp_get_containers_pidns_pidns17, 0},
+  {"containers_pidns_pidns20", ltp_get_containers_pidns_pidns20, 0},
+  {"containers_pidns_pidns30", ltp_get_containers_pidns_pidns30, 0},
+  {"containers_pidns_pidns31", ltp_get_containers_pidns_pidns31, 0},
+  {"containers_pidns_pidns32", ltp_get_containers_pidns_pidns32, 0},
+  {"containers_sysvipc_mesgq_nstest", ltp_get_containers_sysvipc_mesgq_nstest, 0},
+  {"containers_sysvipc_msg_comm", ltp_get_containers_sysvipc_msg_comm, 0},
+  {"containers_sysvipc_sem_comm", ltp_get_containers_sysvipc_sem_comm, 0},
+  {"containers_sysvipc_sem_nstest", ltp_get_containers_sysvipc_sem_nstest, 0},
+  {"containers_sysvipc_semtest_2ns", ltp_get_containers_sysvipc_semtest_2ns, 0},
+  {"containers_sysvipc_shm_comm", ltp_get_containers_sysvipc_shm_comm, 0},
+  {"containers_sysvipc_shmem_2nstest", ltp_get_containers_sysvipc_shmem_2nstest, 0},
+  {"containers_sysvipc_shmnstest", ltp_get_containers_sysvipc_shmnstest, 0},
+  {"containers_timens_timens01", ltp_get_containers_timens_timens01, 0},
+  {"containers_userns_userns01", ltp_get_containers_userns_userns01, 0},
+  {"containers_userns_userns02", ltp_get_containers_userns_userns02, 0},
+  {"containers_userns_userns03", ltp_get_containers_userns_userns03, 0},
+  {"containers_userns_userns04", ltp_get_containers_userns_userns04, 0},
+  {"containers_userns_userns05", ltp_get_containers_userns_userns05, 0},
+  {"containers_userns_userns06", ltp_get_containers_userns_userns06, 0},
+  {"containers_userns_userns06_capcheck", 0, ltp_run_containers_userns_userns06_capcheck},
+  {"containers_userns_userns07", ltp_get_containers_userns_userns07, 0},
+  {"containers_userns_userns08", ltp_get_containers_userns_userns08, 0},
+  {"containers_utsname_utsname01", ltp_get_containers_utsname_utsname01, 0},
+  {"containers_utsname_utsname02", ltp_get_containers_utsname_utsname02, 0},
+  {"containers_utsname_utsname03", ltp_get_containers_utsname_utsname03, 0},
+  {"containers_utsname_utsname04", ltp_get_containers_utsname_utsname04, 0},
+  {"controllers_cgroup_cgroup_core01", ltp_get_controllers_cgroup_cgroup_core01, 0},
+  {"controllers_cgroup_cgroup_core02", ltp_get_controllers_cgroup_cgroup_core02, 0},
+  {"controllers_cgroup_cgroup_core03", ltp_get_controllers_cgroup_cgroup_core03, 0},
+  {"controllers_cgroup_cgroup_regression_fork_processes", 0, ltp_run_controllers_cgroup_cgroup_regression_fork_processes},
+  {"controllers_cgroup_cgroup_regression_getdelays", 0, ltp_run_controllers_cgroup_cgroup_regression_getdelays},
+  {"controllers_cgroup_fj_cgroup_fj_proc", 0, ltp_run_controllers_cgroup_fj_cgroup_fj_proc},
+  {"controllers_cgroup_xattr_cgroup_xattr", 0, ltp_run_controllers_cgroup_xattr_cgroup_xattr},
+  {"controllers_cpuacct_cpuacct_task", 0, ltp_run_controllers_cpuacct_cpuacct_task},
+  {"controllers_cpuctl_cpuctl_def_task01", 0, ltp_run_controllers_cpuctl_cpuctl_def_task01},
+  {"controllers_cpuctl_cpuctl_def_task02", 0, ltp_run_controllers_cpuctl_cpuctl_def_task02},
+  {"controllers_cpuctl_cpuctl_def_task03", 0, ltp_run_controllers_cpuctl_cpuctl_def_task03},
+  {"controllers_cpuctl_cpuctl_def_task04", 0, ltp_run_controllers_cpuctl_cpuctl_def_task04},
+  {"controllers_cpuctl_cpuctl_latency_check_task", 0, ltp_run_controllers_cpuctl_cpuctl_latency_check_task},
+  {"controllers_cpuctl_cpuctl_latency_test", 0, ltp_run_controllers_cpuctl_cpuctl_latency_test},
+  {"controllers_cpuctl_cpuctl_test01", 0, ltp_run_controllers_cpuctl_cpuctl_test01},
+  {"controllers_cpuctl_cpuctl_test02", 0, ltp_run_controllers_cpuctl_cpuctl_test02},
+  {"controllers_cpuctl_cpuctl_test03", 0, ltp_run_controllers_cpuctl_cpuctl_test03},
+  {"controllers_cpuctl_cpuctl_test04", 0, ltp_run_controllers_cpuctl_cpuctl_test04},
+  {"controllers_cpuctl_fj_cpuctl_fj_cpu_hog", 0, ltp_run_controllers_cpuctl_fj_cpuctl_fj_cpu_hog},
+  {"controllers_cpuctl_fj_cpuctl_fj_simple_echo", 0, ltp_run_controllers_cpuctl_fj_cpuctl_fj_simple_echo},
+  {"controllers_cpuset_cpuset_hotplug_test_cpuset_list_compute", 0, ltp_run_controllers_cpuset_cpuset_hotplug_test_cpuset_list_compute},
+  {"controllers_cpuset_cpuset_load_balance_test_cpuset_cpu_hog", 0, ltp_run_controllers_cpuset_cpuset_load_balance_test_cpuset_cpu_hog},
+  {"controllers_cpuset_cpuset_load_balance_test_cpuset_sched_domains_check", 0, ltp_run_controllers_cpuset_cpuset_load_balance_test_cpuset_sched_domains_check},
+  {"controllers_cpuset_cpuset_memory_pressure_test_cpuset_memory_pressure", 0, ltp_run_controllers_cpuset_cpuset_memory_pressure_test_cpuset_memory_pressure},
+  {"controllers_cpuset_cpuset_memory_spread_test_cpuset_mem_hog", 0, ltp_run_controllers_cpuset_cpuset_memory_spread_test_cpuset_mem_hog},
+  {"controllers_cpuset_cpuset_memory_test_cpuset_memory_test", 0, ltp_run_controllers_cpuset_cpuset_memory_test_cpuset_memory_test},
+  {"controllers_cpuset_cpuset_syscall_test_cpuset_syscall_test", 0, ltp_run_controllers_cpuset_cpuset_syscall_test_cpuset_syscall_test},
+  {"controllers_freezer_fork_exec_loop", 0, ltp_run_controllers_freezer_fork_exec_loop},
+  {"controllers_freezer_timed_forkbomb", 0, ltp_run_controllers_freezer_timed_forkbomb},
+  {"controllers_freezer_vfork", 0, ltp_run_controllers_freezer_vfork},
+  {"controllers_io_io_control01", ltp_get_controllers_io_io_control01, 0},
+  {"controllers_memcg_control_mem_process", 0, ltp_run_controllers_memcg_control_mem_process},
+  {"controllers_memcg_functional_memcg_process", 0, ltp_run_controllers_memcg_functional_memcg_process},
+  {"controllers_memcg_memcontrol01", ltp_get_controllers_memcg_memcontrol01, 0},
+  {"controllers_memcg_memcontrol02", ltp_get_controllers_memcg_memcontrol02, 0},
+  {"controllers_memcg_memcontrol03", ltp_get_controllers_memcg_memcontrol03, 0},
+  {"controllers_memcg_memcontrol04", ltp_get_controllers_memcg_memcontrol04, 0},
+  {"controllers_memcg_regression_memcg_test_1", 0, ltp_run_controllers_memcg_regression_memcg_test_1},
+  {"controllers_memcg_regression_memcg_test_2", 0, ltp_run_controllers_memcg_regression_memcg_test_2},
+  {"controllers_memcg_regression_memcg_test_3", ltp_get_controllers_memcg_regression_memcg_test_3, 0},
+  {"controllers_memcg_regression_memcg_test_4", 0, ltp_run_controllers_memcg_regression_memcg_test_4},
+  {"controllers_memcg_stress_memcg_process_stress", 0, ltp_run_controllers_memcg_stress_memcg_process_stress},
+  {"controllers_memctl_memctl_test01", 0, ltp_run_controllers_memctl_memctl_test01},
+  {"controllers_pids_pids_task1", 0, ltp_run_controllers_pids_pids_task1},
+  {"controllers_pids_pids_task2", 0, ltp_run_controllers_pids_pids_task2},
+  {"coredump_coredump01", ltp_get_coredump_coredump01, 0},
+  {"coredump_coredump01_helper", 0, ltp_run_coredump_coredump01_helper},
+  {"coredump_coredump02", ltp_get_coredump_coredump02, 0},
   {"creat_creat01", ltp_get_creat_creat01, 0},
   {"creat_creat03", ltp_get_creat_creat03, 0},
   {"creat_creat04", ltp_get_creat_creat04, 0},
@@ -1148,9 +1642,36 @@ const ltp_entry_t ltp_tests[] = {
   {"creat_creat07_child", 0, ltp_run_creat_creat07_child},
   {"creat_creat08", ltp_get_creat_creat08, 0},
   {"creat_creat09", ltp_get_creat_creat09, 0},
+  {"crypto_af_alg01", ltp_get_crypto_af_alg01, 0},
+  {"crypto_af_alg02", ltp_get_crypto_af_alg02, 0},
+  {"crypto_af_alg03", ltp_get_crypto_af_alg03, 0},
+  {"crypto_af_alg04", ltp_get_crypto_af_alg04, 0},
+  {"crypto_af_alg05", ltp_get_crypto_af_alg05, 0},
+  {"crypto_af_alg06", ltp_get_crypto_af_alg06, 0},
+  {"crypto_af_alg07", ltp_get_crypto_af_alg07, 0},
+  {"crypto_af_alg08", ltp_get_crypto_af_alg08, 0},
+  {"crypto_crypto_user01", ltp_get_crypto_crypto_user01, 0},
+  {"crypto_crypto_user02", ltp_get_crypto_crypto_user02, 0},
+  {"crypto_pcrypt_aead01", ltp_get_crypto_pcrypt_aead01, 0},
   {"delete_module_delete_module01", ltp_get_delete_module_delete_module01, 0},
   {"delete_module_delete_module02", ltp_get_delete_module_delete_module02, 0},
   {"delete_module_delete_module03", ltp_get_delete_module_delete_module03, 0},
+  {"device_drivers_acpi_ltp_acpi", 0, ltp_run_device_drivers_acpi_ltp_acpi},
+  {"device_drivers_agp_user_space_user_tagp", 0, ltp_run_device_drivers_agp_user_space_user_tagp},
+  {"device_drivers_base_user_base_user_tbase", 0, ltp_run_device_drivers_base_user_base_user_tbase},
+  {"device_drivers_block_block_dev_user_block_dev", ltp_get_device_drivers_block_block_dev_user_block_dev, 0},
+  {"device_drivers_cpufreq_cpufreq_boost", 0, ltp_run_device_drivers_cpufreq_cpufreq_boost},
+  {"device_drivers_dev_sim_framework_user_space_user_tmod", 0, ltp_run_device_drivers_dev_sim_framework_user_space_user_tmod},
+  {"device_drivers_drm_user_space_user_tdrm", 0, ltp_run_device_drivers_drm_user_space_user_tdrm},
+  {"device_drivers_include_userBlockInclude", 0, ltp_run_device_drivers_include_userBlockInclude},
+  {"device_drivers_nls_userBlockNLS", 0, ltp_run_device_drivers_nls_userBlockNLS},
+  {"device_drivers_pci_tpci_user_tpci", 0, ltp_run_device_drivers_pci_tpci_user_tpci},
+  {"device_drivers_rtc_rtc01", 0, ltp_run_device_drivers_rtc_rtc01},
+  {"device_drivers_rtc_rtc02", ltp_get_device_drivers_rtc_rtc02, 0},
+  {"device_drivers_tbio_tbio_user_tbio", 0, ltp_run_device_drivers_tbio_tbio_user_tbio},
+  {"device_drivers_uaccess_uaccess", 0, ltp_run_device_drivers_uaccess_uaccess},
+  {"device_drivers_usb_user_usb_user_tusb", 0, ltp_run_device_drivers_usb_user_usb_user_tusb},
+  {"device_drivers_zram_zram03", ltp_get_device_drivers_zram_zram03, 0},
   {"dup2_dup201", ltp_get_dup2_dup201, 0},
   {"dup2_dup202", ltp_get_dup2_dup202, 0},
   {"dup2_dup203", ltp_get_dup2_dup203, 0},
@@ -1320,6 +1841,8 @@ const ltp_entry_t ltp_tests[] = {
   {"fgetxattr_fgetxattr02", ltp_get_fgetxattr_fgetxattr02, 0},
   {"fgetxattr_fgetxattr03", ltp_get_fgetxattr_fgetxattr03, 0},
   {"finit_module_finit_module01", ltp_get_finit_module_finit_module01, 0},
+  {"firmware_fw_load_fw_load01", ltp_get_firmware_fw_load_fw_load01, 0},
+  {"firmware_fw_load_fw_load02", ltp_get_firmware_fw_load_fw_load02, 0},
   {"flistxattr_flistxattr01", ltp_get_flistxattr_flistxattr01, 0},
   {"flistxattr_flistxattr02", ltp_get_flistxattr_flistxattr02, 0},
   {"flistxattr_flistxattr03", ltp_get_flistxattr_flistxattr03, 0},
@@ -1344,6 +1867,46 @@ const ltp_entry_t ltp_tests[] = {
   {"fpathconf_fpathconf01", ltp_get_fpathconf_fpathconf01, 0},
   {"fremovexattr_fremovexattr01", ltp_get_fremovexattr_fremovexattr01, 0},
   {"fremovexattr_fremovexattr02", ltp_get_fremovexattr_fremovexattr02, 0},
+  {"fs_acl_acl_file_ops01", ltp_get_fs_acl_acl_file_ops01, 0},
+  {"fs_acl_acl_inherit01", ltp_get_fs_acl_acl_inherit01, 0},
+  {"fs_acl_acl_link01", ltp_get_fs_acl_acl_link01, 0},
+  {"fs_acl_acl_mask01", ltp_get_fs_acl_acl_mask01, 0},
+  {"fs_acl_acl_other01", ltp_get_fs_acl_acl_other01, 0},
+  {"fs_acl_acl_user_obj01", ltp_get_fs_acl_acl_user_obj01, 0},
+  {"fs_doio_dataascii", 0, ltp_run_fs_doio_dataascii},
+  {"fs_doio_databin", 0, ltp_run_fs_doio_databin},
+  {"fs_doio_datapid", 0, ltp_run_fs_doio_datapid},
+  {"fs_doio_doio", 0, ltp_run_fs_doio_doio},
+  {"fs_doio_forker", 0, ltp_run_fs_doio_forker},
+  {"fs_doio_growfiles", 0, ltp_run_fs_doio_growfiles},
+  {"fs_doio_iogen", 0, ltp_run_fs_doio_iogen},
+  {"fs_doio_open_flags", 0, ltp_run_fs_doio_open_flags},
+  {"fs_fs_di_create_datafile", 0, ltp_run_fs_fs_di_create_datafile},
+  {"fs_fs_di_frag", 0, ltp_run_fs_fs_di_frag},
+  {"fs_fs_fill_fs_fill", ltp_get_fs_fs_fill_fs_fill, 0},
+  {"fs_fs_perms_fs_perms", 0, ltp_run_fs_fs_perms_fs_perms},
+  {"fs_fsplough_fsplough", ltp_get_fs_fsplough_fsplough, 0},
+  {"fs_fsstress_fsstress", 0, ltp_run_fs_fsstress_fsstress},
+  {"fs_fsx_linux_fsx_linux", ltp_get_fs_fsx_linux_fsx_linux, 0},
+  {"fs_ftest_ftest01", 0, ltp_run_fs_ftest_ftest01},
+  {"fs_ftest_ftest02", 0, ltp_run_fs_ftest_ftest02},
+  {"fs_ftest_ftest03", 0, ltp_run_fs_ftest_ftest03},
+  {"fs_ftest_ftest04", 0, ltp_run_fs_ftest_ftest04},
+  {"fs_ftest_ftest05", 0, ltp_run_fs_ftest_ftest05},
+  {"fs_ftest_ftest06", 0, ltp_run_fs_ftest_ftest06},
+  {"fs_ftest_ftest07", 0, ltp_run_fs_ftest_ftest07},
+  {"fs_ftest_ftest08", 0, ltp_run_fs_ftest_ftest08},
+  {"fs_inode_inode01", ltp_get_fs_inode_inode01, 0},
+  {"fs_lftest_lftest", ltp_get_fs_lftest_lftest, 0},
+  {"fs_openfile_openfile", 0, ltp_run_fs_openfile_openfile},
+  {"fs_proc_proc01", 0, ltp_run_fs_proc_proc01},
+  {"fs_read_all_read_all", ltp_get_fs_read_all_read_all, 0},
+  {"fs_squashfs_squashfs01", ltp_get_fs_squashfs_squashfs01, 0},
+  {"fs_stream_stream01", ltp_get_fs_stream_stream01, 0},
+  {"fs_stream_stream02", ltp_get_fs_stream_stream02, 0},
+  {"fs_stream_stream03", ltp_get_fs_stream_stream03, 0},
+  {"fs_stream_stream04", ltp_get_fs_stream_stream04, 0},
+  {"fs_stream_stream05", ltp_get_fs_stream_stream05, 0},
   {"fsconfig_fsconfig01", ltp_get_fsconfig_fsconfig01, 0},
   {"fsconfig_fsconfig02", ltp_get_fsconfig_fsconfig02, 0},
   {"fsconfig_fsconfig03", ltp_get_fsconfig_fsconfig03, 0},
@@ -1427,6 +1990,7 @@ const ltp_entry_t ltp_tests[] = {
   {"getxattr_getxattr02", ltp_get_getxattr_getxattr02, 0},
   {"getxattr_getxattr03", ltp_get_getxattr_getxattr03, 0},
   {"getxattr_getxattr04", ltp_get_getxattr_getxattr04, 0},
+  {"hotplug_memory_hotplug_memtoy", 0, ltp_run_hotplug_memory_hotplug_memtoy},
   {"init_module_init_module01", ltp_get_init_module_init_module01, 0},
   {"inotify_init_inotify_init1_01", ltp_get_inotify_init_inotify_init1_01, 0},
   {"inotify_init_inotify_init1_02", ltp_get_inotify_init_inotify_init1_02, 0},
@@ -1442,9 +2006,27 @@ const ltp_entry_t ltp_tests[] = {
   {"input_input04", ltp_get_input_input04, 0},
   {"input_input05", ltp_get_input_input05, 0},
   {"input_input06", ltp_get_input_input06, 0},
+  {"io_aio_aio01", 0, ltp_run_io_aio_aio01},
+  {"io_aio_aio02", ltp_get_io_aio_aio02, 0},
   {"io_cancel_io_cancel02", ltp_get_io_cancel_io_cancel02, 0},
   {"io_destroy_io_destroy01", ltp_get_io_destroy_io_destroy01, 0},
+  {"io_direct_io_diotest1", 0, ltp_run_io_direct_io_diotest1},
+  {"io_direct_io_diotest2", 0, ltp_run_io_direct_io_diotest2},
+  {"io_direct_io_diotest3", 0, ltp_run_io_direct_io_diotest3},
+  {"io_direct_io_diotest4", 0, ltp_run_io_direct_io_diotest4},
+  {"io_direct_io_diotest5", 0, ltp_run_io_direct_io_diotest5},
+  {"io_direct_io_diotest6", 0, ltp_run_io_direct_io_diotest6},
+  {"io_direct_io_dma_thread_diotest", 0, ltp_run_io_direct_io_dma_thread_diotest},
   {"io_getevents_io_getevents02", ltp_get_io_getevents_io_getevents02, 0},
+  {"io_ltp_aiodio_aio_stress", ltp_get_io_ltp_aiodio_aio_stress, 0},
+  {"io_ltp_aiodio_aiocp", ltp_get_io_ltp_aiodio_aiocp, 0},
+  {"io_ltp_aiodio_aiodio_append", ltp_get_io_ltp_aiodio_aiodio_append, 0},
+  {"io_ltp_aiodio_aiodio_sparse", ltp_get_io_ltp_aiodio_aiodio_sparse, 0},
+  {"io_ltp_aiodio_dio_append", ltp_get_io_ltp_aiodio_dio_append, 0},
+  {"io_ltp_aiodio_dio_read", ltp_get_io_ltp_aiodio_dio_read, 0},
+  {"io_ltp_aiodio_dio_sparse", ltp_get_io_ltp_aiodio_dio_sparse, 0},
+  {"io_ltp_aiodio_dio_truncate", ltp_get_io_ltp_aiodio_dio_truncate, 0},
+  {"io_ltp_aiodio_dirty", 0, ltp_run_io_ltp_aiodio_dirty},
   {"io_pgetevents_io_pgetevents01", ltp_get_io_pgetevents_io_pgetevents01, 0},
   {"io_pgetevents_io_pgetevents02", ltp_get_io_pgetevents_io_pgetevents02, 0},
   {"io_setup_io_setup01", ltp_get_io_setup_io_setup01, 0},
@@ -1452,6 +2034,7 @@ const ltp_entry_t ltp_tests[] = {
   {"io_uring_io_uring01", ltp_get_io_uring_io_uring01, 0},
   {"io_uring_io_uring02", ltp_get_io_uring_io_uring02, 0},
   {"io_uring_io_uring03", ltp_get_io_uring_io_uring03, 0},
+  {"io_writetest_writetest", 0, ltp_run_io_writetest_writetest},
   {"ioctl_ioctl01", ltp_get_ioctl_ioctl01, 0},
   {"ioctl_ioctl04", ltp_get_ioctl_ioctl04, 0},
   {"ioctl_ioctl05", ltp_get_ioctl_ioctl05, 0},
@@ -1467,6 +2050,9 @@ const ltp_entry_t ltp_tests[] = {
   {"ioprio_ioprio_set01", ltp_get_ioprio_ioprio_set01, 0},
   {"ioprio_ioprio_set02", ltp_get_ioprio_ioprio_set02, 0},
   {"ioprio_ioprio_set03", ltp_get_ioprio_ioprio_set03, 0},
+  {"ipc_msgstress_msgstress01", ltp_get_ipc_msgstress_msgstress01, 0},
+  {"ipc_pipeio_pipeio", 0, ltp_run_ipc_pipeio_pipeio},
+  {"irq_irqbalance01", ltp_get_irq_irqbalance01, 0},
   {"kcmp_kcmp01", ltp_get_kcmp_kcmp01, 0},
   {"kcmp_kcmp02", ltp_get_kcmp_kcmp02, 0},
   {"kill_kill02", 0, ltp_run_kill_kill02},
@@ -1501,6 +2087,7 @@ const ltp_entry_t ltp_tests[] = {
   {"llseek_llseek01", ltp_get_llseek_llseek01, 0},
   {"llseek_llseek02", ltp_get_llseek_llseek02, 0},
   {"llseek_llseek03", ltp_get_llseek_llseek03, 0},
+  {"logging_kmsg_kmsg01", ltp_get_logging_kmsg_kmsg01, 0},
   {"lremovexattr_lremovexattr01", ltp_get_lremovexattr_lremovexattr01, 0},
   {"lseek_lseek01", ltp_get_lseek_lseek01, 0},
   {"lseek_lseek02", ltp_get_lseek_lseek02, 0},
@@ -1529,6 +2116,121 @@ const ltp_entry_t ltp_tests[] = {
   {"mallinfo_mallinfo01", ltp_get_mallinfo_mallinfo01, 0},
   {"mallinfo_mallinfo02", ltp_get_mallinfo_mallinfo02, 0},
   {"mallopt_mallopt01", ltp_get_mallopt_mallopt01, 0},
+  {"mem_cpuset_cpuset01", ltp_get_mem_cpuset_cpuset01, 0},
+  {"mem_cpuset_cpuset02", ltp_get_mem_cpuset_cpuset02, 0},
+  {"mem_hugetlb_hugefallocate_hugefallocate01", ltp_get_mem_hugetlb_hugefallocate_hugefallocate01, 0},
+  {"mem_hugetlb_hugefallocate_hugefallocate02", ltp_get_mem_hugetlb_hugefallocate_hugefallocate02, 0},
+  {"mem_hugetlb_hugefork_hugefork01", ltp_get_mem_hugetlb_hugefork_hugefork01, 0},
+  {"mem_hugetlb_hugefork_hugefork02", ltp_get_mem_hugetlb_hugefork_hugefork02, 0},
+  {"mem_hugetlb_hugemmap_hugemmap01", ltp_get_mem_hugetlb_hugemmap_hugemmap01, 0},
+  {"mem_hugetlb_hugemmap_hugemmap02", ltp_get_mem_hugetlb_hugemmap_hugemmap02, 0},
+  {"mem_hugetlb_hugemmap_hugemmap04", ltp_get_mem_hugetlb_hugemmap_hugemmap04, 0},
+  {"mem_hugetlb_hugemmap_hugemmap05", ltp_get_mem_hugetlb_hugemmap_hugemmap05, 0},
+  {"mem_hugetlb_hugemmap_hugemmap06", ltp_get_mem_hugetlb_hugemmap_hugemmap06, 0},
+  {"mem_hugetlb_hugemmap_hugemmap07", ltp_get_mem_hugetlb_hugemmap_hugemmap07, 0},
+  {"mem_hugetlb_hugemmap_hugemmap08", ltp_get_mem_hugetlb_hugemmap_hugemmap08, 0},
+  {"mem_hugetlb_hugemmap_hugemmap09", ltp_get_mem_hugetlb_hugemmap_hugemmap09, 0},
+  {"mem_hugetlb_hugemmap_hugemmap10", ltp_get_mem_hugetlb_hugemmap_hugemmap10, 0},
+  {"mem_hugetlb_hugemmap_hugemmap11", ltp_get_mem_hugetlb_hugemmap_hugemmap11, 0},
+  {"mem_hugetlb_hugemmap_hugemmap12", ltp_get_mem_hugetlb_hugemmap_hugemmap12, 0},
+  {"mem_hugetlb_hugemmap_hugemmap13", ltp_get_mem_hugetlb_hugemmap_hugemmap13, 0},
+  {"mem_hugetlb_hugemmap_hugemmap14", ltp_get_mem_hugetlb_hugemmap_hugemmap14, 0},
+  {"mem_hugetlb_hugemmap_hugemmap15", ltp_get_mem_hugetlb_hugemmap_hugemmap15, 0},
+  {"mem_hugetlb_hugemmap_hugemmap16", ltp_get_mem_hugetlb_hugemmap_hugemmap16, 0},
+  {"mem_hugetlb_hugemmap_hugemmap17", ltp_get_mem_hugetlb_hugemmap_hugemmap17, 0},
+  {"mem_hugetlb_hugemmap_hugemmap18", ltp_get_mem_hugetlb_hugemmap_hugemmap18, 0},
+  {"mem_hugetlb_hugemmap_hugemmap19", ltp_get_mem_hugetlb_hugemmap_hugemmap19, 0},
+  {"mem_hugetlb_hugemmap_hugemmap20", ltp_get_mem_hugetlb_hugemmap_hugemmap20, 0},
+  {"mem_hugetlb_hugemmap_hugemmap21", ltp_get_mem_hugetlb_hugemmap_hugemmap21, 0},
+  {"mem_hugetlb_hugemmap_hugemmap22", ltp_get_mem_hugetlb_hugemmap_hugemmap22, 0},
+  {"mem_hugetlb_hugemmap_hugemmap23", ltp_get_mem_hugetlb_hugemmap_hugemmap23, 0},
+  {"mem_hugetlb_hugemmap_hugemmap24", ltp_get_mem_hugetlb_hugemmap_hugemmap24, 0},
+  {"mem_hugetlb_hugemmap_hugemmap25", ltp_get_mem_hugetlb_hugemmap_hugemmap25, 0},
+  {"mem_hugetlb_hugemmap_hugemmap26", ltp_get_mem_hugetlb_hugemmap_hugemmap26, 0},
+  {"mem_hugetlb_hugemmap_hugemmap27", ltp_get_mem_hugetlb_hugemmap_hugemmap27, 0},
+  {"mem_hugetlb_hugemmap_hugemmap28", ltp_get_mem_hugetlb_hugemmap_hugemmap28, 0},
+  {"mem_hugetlb_hugemmap_hugemmap29", ltp_get_mem_hugetlb_hugemmap_hugemmap29, 0},
+  {"mem_hugetlb_hugemmap_hugemmap30", ltp_get_mem_hugetlb_hugemmap_hugemmap30, 0},
+  {"mem_hugetlb_hugemmap_hugemmap31", ltp_get_mem_hugetlb_hugemmap_hugemmap31, 0},
+  {"mem_hugetlb_hugemmap_hugemmap32", ltp_get_mem_hugetlb_hugemmap_hugemmap32, 0},
+  {"mem_hugetlb_hugemmap_hugemmap34", ltp_get_mem_hugetlb_hugemmap_hugemmap34, 0},
+  {"mem_hugetlb_hugemmap_hugemmap35", ltp_get_mem_hugetlb_hugemmap_hugemmap35, 0},
+  {"mem_hugetlb_hugemmap_hugemmap36", ltp_get_mem_hugetlb_hugemmap_hugemmap36, 0},
+  {"mem_hugetlb_hugemmap_hugemmap37", ltp_get_mem_hugetlb_hugemmap_hugemmap37, 0},
+  {"mem_hugetlb_hugemmap_hugemmap38", ltp_get_mem_hugetlb_hugemmap_hugemmap38, 0},
+  {"mem_hugetlb_hugemmap_hugemmap41", ltp_get_mem_hugetlb_hugemmap_hugemmap41, 0},
+  {"mem_hugetlb_hugeshmat_hugeshmat01", ltp_get_mem_hugetlb_hugeshmat_hugeshmat01, 0},
+  {"mem_hugetlb_hugeshmat_hugeshmat02", ltp_get_mem_hugetlb_hugeshmat_hugeshmat02, 0},
+  {"mem_hugetlb_hugeshmat_hugeshmat03", ltp_get_mem_hugetlb_hugeshmat_hugeshmat03, 0},
+  {"mem_hugetlb_hugeshmat_hugeshmat04", ltp_get_mem_hugetlb_hugeshmat_hugeshmat04, 0},
+  {"mem_hugetlb_hugeshmat_hugeshmat05", ltp_get_mem_hugetlb_hugeshmat_hugeshmat05, 0},
+  {"mem_hugetlb_hugeshmctl_hugeshmctl01", ltp_get_mem_hugetlb_hugeshmctl_hugeshmctl01, 0},
+  {"mem_hugetlb_hugeshmctl_hugeshmctl02", ltp_get_mem_hugetlb_hugeshmctl_hugeshmctl02, 0},
+  {"mem_hugetlb_hugeshmctl_hugeshmctl03", ltp_get_mem_hugetlb_hugeshmctl_hugeshmctl03, 0},
+  {"mem_hugetlb_hugeshmdt_hugeshmdt01", ltp_get_mem_hugetlb_hugeshmdt_hugeshmdt01, 0},
+  {"mem_hugetlb_hugeshmget_hugeshmget01", ltp_get_mem_hugetlb_hugeshmget_hugeshmget01, 0},
+  {"mem_hugetlb_hugeshmget_hugeshmget02", ltp_get_mem_hugetlb_hugeshmget_hugeshmget02, 0},
+  {"mem_hugetlb_hugeshmget_hugeshmget03", ltp_get_mem_hugetlb_hugeshmget_hugeshmget03, 0},
+  {"mem_hugetlb_hugeshmget_hugeshmget05", ltp_get_mem_hugetlb_hugeshmget_hugeshmget05, 0},
+  {"mem_hugetlb_hugeshmget_hugeshmget06", ltp_get_mem_hugetlb_hugeshmget_hugeshmget06, 0},
+  {"mem_ksm_ksm01", ltp_get_mem_ksm_ksm01, 0},
+  {"mem_ksm_ksm02", ltp_get_mem_ksm_ksm02, 0},
+  {"mem_ksm_ksm03", ltp_get_mem_ksm_ksm03, 0},
+  {"mem_ksm_ksm04", ltp_get_mem_ksm_ksm04, 0},
+  {"mem_ksm_ksm05", ltp_get_mem_ksm_ksm05, 0},
+  {"mem_ksm_ksm06", ltp_get_mem_ksm_ksm06, 0},
+  {"mem_ksm_ksm07", ltp_get_mem_ksm_ksm07, 0},
+  {"mem_mem_mem02", 0, ltp_run_mem_mem_mem02},
+  {"mem_mmapstress_mmap_corruption01", 0, ltp_run_mem_mmapstress_mmap_corruption01},
+  {"mem_mmapstress_mmapstress01", ltp_get_mem_mmapstress_mmapstress01, 0},
+  {"mem_mmapstress_mmapstress02", 0, ltp_run_mem_mmapstress_mmapstress02},
+  {"mem_mmapstress_mmapstress03", 0, ltp_run_mem_mmapstress_mmapstress03},
+  {"mem_mmapstress_mmapstress04", ltp_get_mem_mmapstress_mmapstress04, 0},
+  {"mem_mmapstress_mmapstress05", 0, ltp_run_mem_mmapstress_mmapstress05},
+  {"mem_mmapstress_mmapstress06", ltp_get_mem_mmapstress_mmapstress06, 0},
+  {"mem_mmapstress_mmapstress07", 0, ltp_run_mem_mmapstress_mmapstress07},
+  {"mem_mmapstress_mmapstress08", 0, ltp_run_mem_mmapstress_mmapstress08},
+  {"mem_mmapstress_mmapstress09", 0, ltp_run_mem_mmapstress_mmapstress09},
+  {"mem_mmapstress_mmapstress10", 0, ltp_run_mem_mmapstress_mmapstress10},
+  {"mem_mtest01_mtest01", ltp_get_mem_mtest01_mtest01, 0},
+  {"mem_mtest05_mmstress", 0, ltp_run_mem_mtest05_mmstress},
+  {"mem_mtest05_mmstress_dummy", 0, ltp_run_mem_mtest05_mmstress_dummy},
+  {"mem_mtest06_mmap1", ltp_get_mem_mtest06_mmap1, 0},
+  {"mem_mtest06_mmap2", 0, ltp_run_mem_mtest06_mmap2},
+  {"mem_mtest06_mmap3", ltp_get_mem_mtest06_mmap3, 0},
+  {"mem_mtest06_shmat1", 0, ltp_run_mem_mtest06_shmat1},
+  {"mem_mtest07_mallocstress", ltp_get_mem_mtest07_mallocstress, 0},
+  {"mem_mtest07_shm_test", 0, ltp_run_mem_mtest07_shm_test},
+  {"mem_oom_oom01", ltp_get_mem_oom_oom01, 0},
+  {"mem_oom_oom02", ltp_get_mem_oom_oom02, 0},
+  {"mem_oom_oom03", ltp_get_mem_oom_oom03, 0},
+  {"mem_oom_oom04", ltp_get_mem_oom_oom04, 0},
+  {"mem_oom_oom05", ltp_get_mem_oom_oom05, 0},
+  {"mem_page_page01", 0, ltp_run_mem_page_page01},
+  {"mem_page_page02", 0, ltp_run_mem_page_page02},
+  {"mem_shmt_shmt02", ltp_get_mem_shmt_shmt02, 0},
+  {"mem_shmt_shmt03", ltp_get_mem_shmt_shmt03, 0},
+  {"mem_shmt_shmt04", ltp_get_mem_shmt_shmt04, 0},
+  {"mem_shmt_shmt05", ltp_get_mem_shmt_shmt05, 0},
+  {"mem_shmt_shmt07", ltp_get_mem_shmt_shmt07, 0},
+  {"mem_shmt_shmt08", ltp_get_mem_shmt_shmt08, 0},
+  {"mem_shmt_shmt09", ltp_get_mem_shmt_shmt09, 0},
+  {"mem_shmt_shmt10", ltp_get_mem_shmt_shmt10, 0},
+  {"mem_swapping_swapping01", ltp_get_mem_swapping_swapping01, 0},
+  {"mem_thp_thp01", ltp_get_mem_thp_thp01, 0},
+  {"mem_thp_thp02", ltp_get_mem_thp_thp02, 0},
+  {"mem_thp_thp03", ltp_get_mem_thp_thp03, 0},
+  {"mem_thp_thp04", ltp_get_mem_thp_thp04, 0},
+  {"mem_tunable_max_map_count", ltp_get_mem_tunable_max_map_count, 0},
+  {"mem_tunable_min_free_kbytes", ltp_get_mem_tunable_min_free_kbytes, 0},
+  {"mem_tunable_overcommit_memory", ltp_get_mem_tunable_overcommit_memory, 0},
+  {"mem_vma_vma01", 0, ltp_run_mem_vma_vma01},
+  {"mem_vma_vma02", 0, ltp_run_mem_vma_vma02},
+  {"mem_vma_vma03", 0, ltp_run_mem_vma_vma03},
+  {"mem_vma_vma04", 0, ltp_run_mem_vma_vma04},
+  {"mem_vma_vma05_vdso", 0, ltp_run_mem_vma_vma05_vdso},
+  {"mem_vmtests_data_space", 0, ltp_run_mem_vmtests_data_space},
+  {"mem_vmtests_stack_space", 0, ltp_run_mem_vmtests_stack_space},
   {"membarrier_membarrier01", ltp_get_membarrier_membarrier01, 0},
   {"memcmp_memcmp01", ltp_get_memcmp_memcmp01, 0},
   {"memcpy_memcpy01", ltp_get_memcpy_memcpy01, 0},
@@ -1670,6 +2372,7 @@ const ltp_entry_t ltp_tests[] = {
   {"nice_nice03", ltp_get_nice_nice03, 0},
   {"nice_nice04", ltp_get_nice_nice04, 0},
   {"nice_nice05", ltp_get_nice_nice05, 0},
+  {"numa_support_numa", 0, ltp_run_numa_support_numa},
   {"open_by_handle_at_open_by_handle_at01", ltp_get_open_by_handle_at_open_by_handle_at01, 0},
   {"open_open01", ltp_get_open_open01, 0},
   {"open_open02", ltp_get_open_open02, 0},
@@ -1731,6 +2434,9 @@ const ltp_entry_t ltp_tests[] = {
   {"poll_poll02", ltp_get_poll_poll02, 0},
   {"poll_poll03", ltp_get_poll_poll03, 0},
   {"poll_poll04", ltp_get_poll_poll04, 0},
+  {"power_management_cpufreq_intel", ltp_get_power_management_cpufreq_intel, 0},
+  {"power_management_high_freq_hwp_cap_cppc", ltp_get_power_management_high_freq_hwp_cap_cppc, 0},
+  {"power_management_rfim01", ltp_get_power_management_rfim01, 0},
   {"ppoll_ppoll01", ltp_get_ppoll_ppoll01, 0},
   {"prctl_prctl01", ltp_get_prctl_prctl01, 0},
   {"pread_pread01", ltp_get_pread_pread01, 0},
@@ -1844,6 +2550,12 @@ const ltp_entry_t ltp_tests[] = {
   {"sbrk_sbrk01", ltp_get_sbrk_sbrk01, 0},
   {"sbrk_sbrk02", ltp_get_sbrk_sbrk02, 0},
   {"sbrk_sbrk03", ltp_get_sbrk_sbrk03, 0},
+  {"sched_autogroup_autogroup01", ltp_get_sched_autogroup_autogroup01, 0},
+  {"sched_cfs_scheduler_cfs_bandwidth01", ltp_get_sched_cfs_scheduler_cfs_bandwidth01, 0},
+  {"sched_cfs_scheduler_hackbench", 0, ltp_run_sched_cfs_scheduler_hackbench},
+  {"sched_cfs_scheduler_starvation", ltp_get_sched_cfs_scheduler_starvation, 0},
+  {"sched_clisrv_pthcli", 0, ltp_run_sched_clisrv_pthcli},
+  {"sched_clisrv_pthserv", 0, ltp_run_sched_clisrv_pthserv},
   {"sched_get_priority_max_sched_get_priority_max02", ltp_get_sched_get_priority_max_sched_get_priority_max02, 0},
   {"sched_get_priority_min_sched_get_priority_min02", ltp_get_sched_get_priority_min_sched_get_priority_min02, 0},
   {"sched_getaffinity_sched_getaffinity01", ltp_get_sched_getaffinity_sched_getaffinity01, 0},
@@ -1851,9 +2563,23 @@ const ltp_entry_t ltp_tests[] = {
   {"sched_getparam_sched_getparam03", ltp_get_sched_getparam_sched_getparam03, 0},
   {"sched_getscheduler_sched_getscheduler01", ltp_get_sched_getscheduler_sched_getscheduler01, 0},
   {"sched_getscheduler_sched_getscheduler02", ltp_get_sched_getscheduler_sched_getscheduler02, 0},
+  {"sched_hyperthreading_ht_affinity_ht_affinity", 0, ltp_run_sched_hyperthreading_ht_affinity_ht_affinity},
+  {"sched_hyperthreading_ht_enabled_ht_enabled", 0, ltp_run_sched_hyperthreading_ht_enabled_ht_enabled},
+  {"sched_nptl_nptl01", 0, ltp_run_sched_nptl_nptl01},
+  {"sched_pthreads_pth_str01", 0, ltp_run_sched_pthreads_pth_str01},
+  {"sched_pthreads_pth_str02", 0, ltp_run_sched_pthreads_pth_str02},
+  {"sched_pthreads_pth_str03", 0, ltp_run_sched_pthreads_pth_str03},
   {"sched_rr_get_interval_sched_rr_get_interval01", ltp_get_sched_rr_get_interval_sched_rr_get_interval01, 0},
   {"sched_rr_get_interval_sched_rr_get_interval02", ltp_get_sched_rr_get_interval_sched_rr_get_interval02, 0},
   {"sched_rr_get_interval_sched_rr_get_interval03", ltp_get_sched_rr_get_interval_sched_rr_get_interval03, 0},
+  {"sched_sched_stress_sched_driver", 0, ltp_run_sched_sched_stress_sched_driver},
+  {"sched_sched_stress_sched_tc0", 0, ltp_run_sched_sched_stress_sched_tc0},
+  {"sched_sched_stress_sched_tc1", 0, ltp_run_sched_sched_stress_sched_tc1},
+  {"sched_sched_stress_sched_tc2", 0, ltp_run_sched_sched_stress_sched_tc2},
+  {"sched_sched_stress_sched_tc3", 0, ltp_run_sched_sched_stress_sched_tc3},
+  {"sched_sched_stress_sched_tc4", 0, ltp_run_sched_sched_stress_sched_tc4},
+  {"sched_sched_stress_sched_tc5", 0, ltp_run_sched_sched_stress_sched_tc5},
+  {"sched_sched_stress_sched_tc6", 0, ltp_run_sched_sched_stress_sched_tc6},
   {"sched_setaffinity_sched_setaffinity01", ltp_get_sched_setaffinity_sched_setaffinity01, 0},
   {"sched_setparam_sched_setparam01", ltp_get_sched_setparam_sched_setparam01, 0},
   {"sched_setparam_sched_setparam02", ltp_get_sched_setparam_sched_setparam02, 0},
@@ -1863,7 +2589,34 @@ const ltp_entry_t ltp_tests[] = {
   {"sched_setscheduler_sched_setscheduler01", ltp_get_sched_setscheduler_sched_setscheduler01, 0},
   {"sched_setscheduler_sched_setscheduler02", ltp_get_sched_setscheduler_sched_setscheduler02, 0},
   {"sched_setscheduler_sched_setscheduler03", ltp_get_sched_setscheduler_sched_setscheduler03, 0},
+  {"sched_sysctl_proc_sched_rt01", ltp_get_sched_sysctl_proc_sched_rt01, 0},
+  {"sched_tool_time_schedule", 0, ltp_run_sched_tool_time_schedule},
+  {"sched_tool_trace_sched", 0, ltp_run_sched_tool_trace_sched},
   {"sched_yield_sched_yield01", 0, ltp_run_sched_yield_sched_yield01},
+  {"security_aslr_aslr01", ltp_get_security_aslr_aslr01, 0},
+  {"security_cap_bound_cap_bounds_r", 0, ltp_run_security_cap_bound_cap_bounds_r},
+  {"security_cap_bound_cap_bounds_rw", 0, ltp_run_security_cap_bound_cap_bounds_rw},
+  {"security_cap_bound_cap_bset_inh_bounds", 0, ltp_run_security_cap_bound_cap_bset_inh_bounds},
+  {"security_cap_bound_check_pe", 0, ltp_run_security_cap_bound_check_pe},
+  {"security_cap_bound_exec_with_inh", 0, ltp_run_security_cap_bound_exec_with_inh},
+  {"security_cap_bound_exec_without_inh", 0, ltp_run_security_cap_bound_exec_without_inh},
+  {"security_dirtyc0w_dirtyc0w", ltp_get_security_dirtyc0w_dirtyc0w, 0},
+  {"security_dirtyc0w_dirtyc0w_child", 0, ltp_run_security_dirtyc0w_dirtyc0w_child},
+  {"security_dirtyc0w_shmem_dirtyc0w_shmem", ltp_get_security_dirtyc0w_shmem_dirtyc0w_shmem, 0},
+  {"security_dirtyc0w_shmem_dirtyc0w_shmem_child", 0, ltp_run_security_dirtyc0w_shmem_dirtyc0w_shmem_child},
+  {"security_dirtypipe_dirtypipe", ltp_get_security_dirtypipe_dirtypipe, 0},
+  {"security_filecaps_check_simple_capset", 0, ltp_run_security_filecaps_check_simple_capset},
+  {"security_filecaps_inh_capped", 0, ltp_run_security_filecaps_inh_capped},
+  {"security_filecaps_print_caps", 0, ltp_run_security_filecaps_print_caps},
+  {"security_filecaps_verify_caps_exec", 0, ltp_run_security_filecaps_verify_caps_exec},
+  {"security_integrity_ima_src_ima_boot_aggregate", ltp_get_security_integrity_ima_src_ima_boot_aggregate, 0},
+  {"security_integrity_ima_src_ima_mmap", 0, ltp_run_security_integrity_ima_src_ima_mmap},
+  {"security_kallsyms_kallsyms", ltp_get_security_kallsyms_kallsyms, 0},
+  {"security_prot_hsymlinks_prot_hsymlinks", 0, ltp_run_security_prot_hsymlinks_prot_hsymlinks},
+  {"security_securebits_check_keepcaps", 0, ltp_run_security_securebits_check_keepcaps},
+  {"security_smack_smack_notroot", 0, ltp_run_security_smack_smack_notroot},
+  {"security_smack_smack_set_socket_labels", 0, ltp_run_security_smack_smack_set_socket_labels},
+  {"security_umip_umip_basic_test", ltp_get_security_umip_umip_basic_test, 0},
   {"semctl_semctl01", ltp_get_semctl_semctl01, 0},
   {"semctl_semctl02", ltp_get_semctl_semctl02, 0},
   {"semctl_semctl03", ltp_get_semctl_semctl03, 0},
@@ -2013,6 +2766,35 @@ const ltp_entry_t ltp_tests[] = {
   {"syscall_syscall01", ltp_get_syscall_syscall01, 0},
   {"syscall_syscall02", ltp_get_syscall_syscall02, 0},
   {"sysconf_sysconf01", 0, ltp_run_sysconf_sysconf01},
+  {"sysfs_block_sys_block_loop01", ltp_get_sysfs_block_sys_block_loop01, 0},
+  {"sysfs_block_sys_block_queue01", ltp_get_sysfs_block_sys_block_queue01, 0},
+  {"sysfs_block_sys_block_size01", ltp_get_sysfs_block_sys_block_size01, 0},
+  {"sysfs_class_ata_device_sys_ata01", ltp_get_sysfs_class_ata_device_sys_ata01, 0},
+  {"sysfs_class_bdi_sys_bdi01", ltp_get_sysfs_class_bdi_sys_bdi01, 0},
+  {"sysfs_class_hwmon_sys_hwmon01", ltp_get_sysfs_class_hwmon_sys_hwmon01, 0},
+  {"sysfs_class_leds_sys_leds01", ltp_get_sysfs_class_leds_sys_leds01, 0},
+  {"sysfs_class_net_sys_net01", ltp_get_sysfs_class_net_sys_net01, 0},
+  {"sysfs_class_net_sys_net02", ltp_get_sysfs_class_net_sys_net02, 0},
+  {"sysfs_class_net_sys_net03", ltp_get_sysfs_class_net_sys_net03, 0},
+  {"sysfs_class_net_sys_net04", ltp_get_sysfs_class_net_sys_net04, 0},
+  {"sysfs_class_rtc_sys_rtc01", ltp_get_sysfs_class_rtc_sys_rtc01, 0},
+  {"sysfs_class_thermal_sys_thermal01", ltp_get_sysfs_class_thermal_sys_thermal01, 0},
+  {"sysfs_class_wakeup_sys_wakeup01", ltp_get_sysfs_class_wakeup_sys_wakeup01, 0},
+  {"sysfs_devices_system_clockevents_sys_clockevents01", ltp_get_sysfs_devices_system_clockevents_sys_clockevents01, 0},
+  {"sysfs_devices_system_clocksource_sys_clocksource01", ltp_get_sysfs_devices_system_clocksource_sys_clocksource01, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_cache01", ltp_get_sysfs_devices_system_cpu_sys_cpu_cache01, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_smt01", ltp_get_sysfs_devices_system_cpu_sys_cpu_smt01, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_topology01", ltp_get_sysfs_devices_system_cpu_sys_cpu_topology01, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_topology02", ltp_get_sysfs_devices_system_cpu_sys_cpu_topology02, 0},
+  {"sysfs_devices_system_cpu_sys_cpu_vulnerabilities01", ltp_get_sysfs_devices_system_cpu_sys_cpu_vulnerabilities01, 0},
+  {"sysfs_devices_system_node_sys_node01", ltp_get_sysfs_devices_system_node_sys_node01, 0},
+  {"sysfs_kernel_mm_hugepages_sys_hugepages01", ltp_get_sysfs_kernel_mm_hugepages_sys_hugepages01, 0},
+  {"sysfs_kernel_mm_hugepages_sys_hugepages02", ltp_get_sysfs_kernel_mm_hugepages_sys_hugepages02, 0},
+  {"sysfs_kernel_mm_ksm_sys_ksm01", ltp_get_sysfs_kernel_mm_ksm_sys_ksm01, 0},
+  {"sysfs_kernel_mm_swap_sys_mm_swap01", ltp_get_sysfs_kernel_mm_swap_sys_mm_swap01, 0},
+  {"sysfs_kernel_mm_transparent_hugepage_sys_thp01", ltp_get_sysfs_kernel_mm_transparent_hugepage_sys_thp01, 0},
+  {"sysfs_kernel_sys_kernel01", ltp_get_sysfs_kernel_sys_kernel01, 0},
+  {"sysfs_power_sys_power01", ltp_get_sysfs_power_sys_power01, 0},
   {"sysinfo_sysinfo01", ltp_get_sysinfo_sysinfo01, 0},
   {"sysinfo_sysinfo02", ltp_get_sysinfo_sysinfo02, 0},
   {"syslog_syslog11", ltp_get_syslog_syslog11, 0},
@@ -2020,6 +2802,7 @@ const ltp_entry_t ltp_tests[] = {
   {"tgkill_tgkill01", ltp_get_tgkill_tgkill01, 0},
   {"tgkill_tgkill02", ltp_get_tgkill_tgkill02, 0},
   {"tgkill_tgkill03", ltp_get_tgkill_tgkill03, 0},
+  {"thermal_thermal_interrupt_events", ltp_get_thermal_thermal_interrupt_events, 0},
   {"time_time01", ltp_get_time_time01, 0},
   {"timer_create_timer_create02", ltp_get_timer_create_timer_create02, 0},
   {"timer_delete_timer_delete01", ltp_get_timer_delete_timer_delete01, 0},
@@ -2039,8 +2822,12 @@ const ltp_entry_t ltp_tests[] = {
   {"times_times03", ltp_get_times_times03, 0},
   {"tkill_tkill01", ltp_get_tkill_tkill01, 0},
   {"tkill_tkill02", ltp_get_tkill_tkill02, 0},
+  {"tracing_pt_test_pt_test", ltp_get_tracing_pt_test_pt_test, 0},
   {"truncate_truncate02", ltp_get_truncate_truncate02, 0},
   {"truncate_truncate03", ltp_get_truncate_truncate03, 0},
+  {"uevents_uevent01", ltp_get_uevents_uevent01, 0},
+  {"uevents_uevent02", ltp_get_uevents_uevent02, 0},
+  {"uevents_uevent03", ltp_get_uevents_uevent03, 0},
   {"ulimit_ulimit01", ltp_get_ulimit_ulimit01, 0},
   {"umask_umask01", ltp_get_umask_umask01, 0},
   {"umount2_umount2_01", 0, ltp_run_umount2_umount2_01},
@@ -2098,6 +2885,15 @@ const ltp_entry_t ltp_tests[] = {
   {"waitpid_waitpid11", ltp_get_waitpid_waitpid11, 0},
   {"waitpid_waitpid12", ltp_get_waitpid_waitpid12, 0},
   {"waitpid_waitpid13", ltp_get_waitpid_waitpid13, 0},
+  {"watchqueue_wqueue01", ltp_get_watchqueue_wqueue01, 0},
+  {"watchqueue_wqueue02", ltp_get_watchqueue_wqueue02, 0},
+  {"watchqueue_wqueue03", ltp_get_watchqueue_wqueue03, 0},
+  {"watchqueue_wqueue04", ltp_get_watchqueue_wqueue04, 0},
+  {"watchqueue_wqueue05", ltp_get_watchqueue_wqueue05, 0},
+  {"watchqueue_wqueue06", ltp_get_watchqueue_wqueue06, 0},
+  {"watchqueue_wqueue07", ltp_get_watchqueue_wqueue07, 0},
+  {"watchqueue_wqueue08", ltp_get_watchqueue_wqueue08, 0},
+  {"watchqueue_wqueue09", ltp_get_watchqueue_wqueue09, 0},
   {"write_write01", ltp_get_write_write01, 0},
   {"write_write02", ltp_get_write_write02, 0},
   {"write_write03", ltp_get_write_write03, 0},
@@ -2112,4 +2908,4 @@ const ltp_entry_t ltp_tests[] = {
   {"writev_writev07", ltp_get_writev_writev07, 0},
   {"zrepro_zrepro01", 0, ltp_run_zrepro_zrepro01},
 };
-const int ltp_test_count = 1053;
+const int ltp_test_count = 1451;

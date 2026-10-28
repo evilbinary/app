@@ -1,0 +1,10 @@
+
+Module under test: linux/block/genhd.c
+
+  Function                    | Declared in   | Tested in
+ -----------------------------+---------------+---------------
+  register_blkdev()           | linux/fs.h    | ltp_block_dev.c
+  unregister_blkdev()         | linux/fs.h    | ltp_block_dev.c
+
+For possible test results please see "A POSIX compliant test framework" at
+https://www.gnu.org/software/dejagnu/manual/A-POSIX-Conforming-Test-Framework.html

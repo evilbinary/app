@@ -1,0 +1,29 @@
+Testcase 06
+-----------
+
+It's been found that sometimes onlining and offlining CPUs confuse some
+of the various system tools.  We found it caused top to
+crash.  This test case seeks to exercise this known error cases and
+verify that they behave correctly now.
+
+Algorithm - Top
+===============
+Given a CPU to test that exists
+
+Make sure the specified cpu is online
+
+Loop until done:
+  Start up top and give it a little time to run
+
+  Offline the specified CPU
+
+  Wait a little time for top to notice the CPU is gone
+
+  Now check that top hasn't crashed by verifying its PID is still
+  being reported by ps.
+
+When exiting:
+  Kill the top process
+  Restore all CPUs to their initial state
+
+

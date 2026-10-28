@@ -1,0 +1,29 @@
+Testcase 05
+-----------
+
+It's been found that sometimes onlining and offlining CPUs confuse some
+of the various system tools.  We found that sar wouldn't register the change
+in newly available cpus that weren't there when it started. This
+test case seeks to exercise this known error cases and verify that
+they behave correctly now.
+
+Algorithm - Sar
+===============
+Given a CPU to test that exists
+
+Make sure the specified cpu is offline
+
+Loop until done:
+  Start up sar writing to a temp log and give it a little time to run
+
+  Verify that SAR has correctly displayed all fields of CPU statistics
+  as '0.00' for the offlined CPU or just not displayed it in its tmp log
+
+  Online the specified cpu
+
+  Take another timestamp and another count of offlined CPUs
+
+  Verify SAR registered the change in CPU online/offline states
+
+When exiting:
+  Kill the sar process

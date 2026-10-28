@@ -1,0 +1,5 @@
+TESTS to check consistency between O_DIRECT reads/writes and buffered
+reads/writes and truncate.
+
+The large file passed should be at least 25M to properly stress AIO & DIO. A
+suggestion would be a tarred version of the gcc package.

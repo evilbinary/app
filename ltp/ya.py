@@ -13,6 +13,15 @@ import os.path as _p
 
 _here = _p.abspath(os.scriptdir())
 
+# 测试私有头（hugetlb.h / numa_helper.h / kvm_test.h / dataascii.h …）都在
+# 各自测试目录里、且按 "xxx.h" 相对包含。wrapper 在 gen/wrappers 下展开，
+# 相对包含失效 ⇒ 把这些目录全部加进 include 搜索路径。
+_osmod = __import__("os")
+_tst_incdirs = []
+for _root, _dn, _fn in _osmod.walk(_p.join(_here, "ltp", "testcases")):
+    if any(_x.endswith(".h") for _x in _fn):
+        _tst_incdirs.append(_root)
+
 # ---------- libltp 静态库 ----------
 target("ltpcore")
 set_kind("static")
@@ -39,7 +48,8 @@ if _batch:
 add_includedirs(_here, _p.join(_here, "ltp/include"),
                 _p.join(_here, "ltp/include/old"),
                 _p.join(_here, "ltp/lib"),
-                _p.join(_here, "compat"))
+                _p.join(_here, "compat"),
+                *_tst_incdirs)
 add_cflags("-include", "%s/config.h" % _here,
            "-Wno-unused-parameter", "-Wno-sign-compare",
            "-Wno-implicit-function-declaration")
@@ -75,7 +85,8 @@ if _batch:
 add_includedirs(_here, _p.join(_here, "ltp/include"),
                 _p.join(_here, "ltp/include/old"),
                 _p.join(_here, "ltp/lib"),
-                _p.join(_here, "compat"))
+                _p.join(_here, "compat"),
+                *_tst_incdirs)
 add_cflags("-include", "%s/config.h" % _here,
            "-Wno-unused-parameter", "-Wno-sign-compare",
            "-Wno-implicit-function-declaration")
@@ -103,7 +114,8 @@ add_files("runner.c")
 add_includedirs(_here, _p.join(_here, "ltp/include"),
                 _p.join(_here, "ltp/include/old"),
                 _p.join(_here, "ltp/lib"),
-                _p.join(_here, "compat"))
+                _p.join(_here, "compat"),
+                *_tst_incdirs)
 add_cflags("-include", "%s/config.h" % _here,
            "-Wno-unused-parameter", "-Wno-sign-compare",
            "-Wno-implicit-function-declaration")

@@ -61,12 +61,25 @@ def main():
 
     # 扫描根：(目录, id 前缀)。syscalls 是历史主目录（无前缀）；
     # pty 来自 LTP full 包迁移（testcases/kernel/pty，id 前缀 pty_）。
-    scan_roots = [
-        (SYSCALLS, ""),
-        (os.path.join(LTP, "testcases", "kernel", "pty"), "pty"),
-        # /dev/input/eventN + uinput 的 evdev 测试（input01-06）
-        (os.path.join(LTP, "testcases", "kernel", "input"), "input"),
-    ]
+    # 扫描 testcases/kernel 下【全部】测试目录：syscalls 用裸名（历史 id），
+    # 其它目录用目录名做前缀避免重名（fs_readahead01、mem_oom01 …）。
+    # include/ 只有头文件；lib/ 是测试私有辅助库（无测试入口）。
+    # 整目录跳过：
+    #   kvm / mce-test   —— x86 专属（vmx/svm、机器检查），aarch64 上不可运行；
+    #   sound            —— 需要 <sound/asound.h>（alsa-lib 开发包）
+    # 子目录跳过：device-drivers/v4l（V4L2 大 uapi + 真实摄像头）、fs/xfs（xfsprogs 头）
+    SKIP_ROOT_NAMES = ("kvm", "mce-test", "sound")
+    SKIP_REL_PREFIXES = ("v4l/", "xfs/")
+
+    scan_roots = [(SYSCALLS, "")]
+    kernel_dir = os.path.join(LTP, "testcases", "kernel")
+    for name in sorted(os.listdir(kernel_dir)):
+        sub = os.path.join(kernel_dir, name)
+        if not os.path.isdir(sub) or name in ("syscalls", "include", "lib"):
+            continue
+        if name in SKIP_ROOT_NAMES:
+            continue
+        scan_roots.append((sub, name))
 
     for scan_root, scan_prefix in scan_roots:
         if not os.path.isdir(scan_root):
@@ -79,6 +92,8 @@ def main():
                 full = os.path.join(dirpath, fn)
                 rel = os.path.relpath(full, LTP)
                 rel_root = os.path.relpath(full, scan_root)
+                if rel_root.startswith(SKIP_REL_PREFIXES):
+                    continue
                 key = (scan_prefix + "/" + rel_root) if scan_prefix else rel_root
                 if key in excluded:
                     continue
@@ -86,7 +101,9 @@ def main():
                     src = fh.read()
                 has_struct = "static struct tst_test test" in src
                 has_main = re.search(r"\bint\s+main\s*\(", src) is not None
-                fid = key.replace("/", "_")[:-2]  # fork/fork01.c -> fork_fork01
+                # 标识符只保留 [A-Za-z0-9_]：LTP 里有 cpuctl_fj_cpu-hog.c
+                # 这类带 '-' 的文件名，直接拼进 C 标识符会语法错。
+                fid = re.sub(r"[^A-Za-z0-9_]+", "_", key[:-2])
                 if has_struct:
                     struct_files.append((fid, rel))
                 elif has_main:
@@ -162,6 +179,20 @@ def main():
         for fn in sorted(os.listdir(os.path.join(LTP, "lib"))):
             if fn.endswith(".c") and ("lib/" + fn) not in excluded:
                 fh.write("ltp/lib/" + fn + "\n")
+        # per-dir 辅助库（libs/<name>/*.c）：LTP 的 tse_*.h 的实现体，
+        # 例如 libs/uinput 提供 open_uinput()/create_input_device()。
+        libs_dir = os.path.join(LTP, "libs")
+        if os.path.isdir(libs_dir):
+            for name in sorted(os.listdir(libs_dir)):
+                sub = os.path.join(libs_dir, name)
+                if not os.path.isdir(sub):
+                    continue
+                for fn in sorted(os.listdir(sub)):
+                    if not fn.endswith(".c"):
+                        continue
+                    rel = "libs/" + name + "/" + fn
+                    if rel not in excluded:
+                        fh.write("ltp/" + rel + "\n")
         # 构建期生成物/被排除文件的兼容实现
         for c in ("compat/tst_umount.c", "compat/tst_syscall.c",
                   "compat/tst_device_shim.c", "compat/tst_wallclock_shim.c",

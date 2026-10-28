@@ -4,6 +4,11 @@
 #ifndef LTP_CONFIG_H__
 #define LTP_CONFIG_H__
 
+/* 这个头被 -include 注入到每个 TU 的最前面。LTP 的 lapi/*.h 直接用
+ * __u8/__u32/__u64 等内核类型（Debian 上靠 glibc 的 <linux/types.h> 间接
+ * 带进来），本环境没有那条链，这里显式带入 compat 版。 */
+#include <linux/types.h>
+
 #define HAVE_GNU_SOURCE 1
 
 /* 原子操作：GCC __atomic 内建可用 */

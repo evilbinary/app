@@ -60,4 +60,14 @@ typedef unsigned int __kernel_nlink_t;
 typedef long __kernel_daddr_t2;
 typedef unsigned short __kernel_ipc_pid_t;
 typedef long long __kernel_time64_t;
+
+/* 内核内部常用别名（部分 lapi/xfs 头直接引用） */
+typedef __kernel_loff_t loff_t;
+typedef __kernel_size_t size_t_kernel;
+#ifndef __kernel_fsid_t
+typedef struct {
+	int val[2];
+} __kernel_fsid_t;
+#endif
+
 #endif
