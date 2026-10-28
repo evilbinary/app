@@ -204,8 +204,6 @@ gen/wrappers/device_drivers_base_user_base_user_tbase.c
 gen/wrappers/device_drivers_block_block_dev_user_block_dev.c
 gen/wrappers/device_drivers_cpufreq_cpufreq_boost.c
 gen/wrappers/device_drivers_dev_sim_framework_user_space_user_tmod.c
-gen/wrappers/device_drivers_drm_user_space_user_tdrm.c
-gen/wrappers/device_drivers_include_userBlockInclude.c
 gen/wrappers/device_drivers_nls_userBlockNLS.c
 gen/wrappers/device_drivers_pci_tpci_user_tpci.c
 gen/wrappers/device_drivers_rtc_rtc01.c
@@ -418,7 +416,6 @@ gen/wrappers/fs_acl_acl_user_obj01.c
 gen/wrappers/fs_doio_dataascii.c
 gen/wrappers/fs_doio_databin.c
 gen/wrappers/fs_doio_datapid.c
-gen/wrappers/fs_doio_doio.c
 gen/wrappers/fs_doio_forker.c
 gen/wrappers/fs_doio_growfiles.c
 gen/wrappers/fs_doio_iogen.c
@@ -428,7 +425,6 @@ gen/wrappers/fs_fs_di_frag.c
 gen/wrappers/fs_fs_fill_fs_fill.c
 gen/wrappers/fs_fs_perms_fs_perms.c
 gen/wrappers/fs_fsplough_fsplough.c
-gen/wrappers/fs_fsstress_fsstress.c
 gen/wrappers/fs_fsx_linux_fsx_linux.c
 gen/wrappers/fs_ftest_ftest01.c
 gen/wrappers/fs_ftest_ftest02.c
@@ -1121,7 +1117,6 @@ gen/wrappers/sched_sched_stress_sched_tc2.c
 gen/wrappers/sched_sched_stress_sched_tc3.c
 gen/wrappers/sched_sched_stress_sched_tc4.c
 gen/wrappers/sched_sched_stress_sched_tc5.c
-gen/wrappers/sched_sched_stress_sched_tc6.c
 gen/wrappers/sched_setaffinity_sched_setaffinity01.c
 gen/wrappers/sched_setparam_sched_setparam01.c
 gen/wrappers/sched_setparam_sched_setparam02.c

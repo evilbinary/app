@@ -4,12 +4,29 @@
 #ifndef LTP_CONFIG_H__
 #define LTP_CONFIG_H__
 
+/* 必须在所有头之前：musl 靠它开 caddr_t/strdupa/u_short 等 BSD/GNU 名字，
+ * 否则一批老测试报 "unknown type name 'caddr_t'"。 */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
+
 /* 这个头被 -include 注入到每个 TU 的最前面。LTP 的 lapi/*.h 直接用
  * __u8/__u32/__u64 等内核类型（Debian 上靠 glibc 的 <linux/types.h> 间接
  * 带进来），本环境没有那条链，这里显式带入 compat 版。 */
 #include <linux/types.h>
 
 #define HAVE_GNU_SOURCE 1
+
+/* uapi 头的可用性（configure 探测结果）：compat/linux 下已补齐这些头，
+ * LTP 的 lapi/*.h 只有看到对应 HAVE_ 宏才会 include 并启用封装。 */
+#define HAVE_LINUX_KEYCTL_H 1
+#define HAVE_LINUX_NETLINK_H 1
+#define HAVE_LINUX_RTNETLINK_H 1
+#define HAVE_LINUX_GENETLINK_H 1
+#define HAVE_LINUX_IF_TUN_H 1
+#define HAVE_LINUX_LOOP_H 1
+#define HAVE_LINUX_RTC_H 1
+#define HAVE_LINUX_IF_H 1
 
 /* 原子操作：GCC __atomic 内建可用 */
 #define HAVE_ATOMIC_MEMORY_MODEL 1
@@ -19,7 +36,8 @@
 #define HAVE_EPOLL_PWAIT 1
 #define HAVE_STRUCT_FANOTIFY_EVENT_INFO_HEADER 1
 #define HAVE_STRUCT_FANOTIFY_EVENT_INFO_FID 1
-#define HAVE_STRUCT_SCHED_ATTR 1
+/* HAVE_STRUCT_SCHED_ATTR 故意不定义：本环境没有系统 struct sched_attr，
+ * LTP 的 lapi/sched.h 会在未定义时自带一份定义。 */
 #define HAVE_GETRANDOM 1
 #define HAVE_SETNS 1
 #define HAVE_TIMERFD_CREATE 1
@@ -29,7 +47,8 @@
 #define HAVE_EPOLL_PWAIT 1
 #define HAVE_STRUCT_FANOTIFY_EVENT_INFO_HEADER 1
 #define HAVE_STRUCT_FANOTIFY_EVENT_INFO_FID 1
-#define HAVE_STRUCT_SCHED_ATTR 1
+/* HAVE_STRUCT_SCHED_ATTR 故意不定义：本环境没有系统 struct sched_attr，
+ * LTP 的 lapi/sched.h 会在未定义时自带一份定义。 */
 #define HAVE_GETRANDOM 1
 #define HAVE_SETNS 1
 #define HAVE_TIMERFD_CREATE 1
@@ -60,7 +79,6 @@
 #define HAVE_SYS_TIMERFD_H 1
 #define HAVE_SYS_FANOTIFY_H 0
 #define HAVE_SYS_QUOTA_H 0
-#define HAVE_LINUX_GENETLINK_H 0
 
 #define HAVE_UNISTD_H 1
 #define HAVE_FCNTL_H 1
@@ -146,6 +164,27 @@
 #define HAVE_UTIMENSAT 1
 #define HAVE_FUTIMESAT 1
 #define HAVE_GETTID 1
+
+/* musl 的 <sys/prctl.h> 已提供 struct prctl_mm_map */
+#define HAVE_STRUCT_PRCTL_MM_MAP 1
+/* musl 的 <sys/socket.h>（_GNU_SOURCE 下）已提供 struct mmsghdr */
+#define HAVE_STRUCT_MMSGHDR 1
+/* musl 已声明 splice()/tee()/vmsplice() */
+#define HAVE_SPLICE 1
+#define HAVE_TEE 1
+#define HAVE_VMSPLICE 1
+
+/* configure 探测到"无 NUMA 支持"时给的走 TCONF 的提示串 */
+#define NUMA_ERROR_MSG "NUMA support is not available"
+
+/* BSD 风格辅助宏：部分老测试直接用（musl 的 sys/param.h 只给 NBBY） */
+#ifndef NBPW
+#define NBPW (8 * sizeof(int))
+#endif
+
+/* musl 只在 _GNU_SOURCE 下给 caddr_t；少数测试没带 sys/types.h 就用它 */
+#include <sys/types.h>
+typedef char *caddr_t;
 
 /* 结构/特性探测（configure 才能测的，先给保守值） */
 #define HAVE_STRUCT_SIGACTION_SA_SIGACTION 1

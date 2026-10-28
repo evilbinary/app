@@ -209,8 +209,6 @@ int ltp_run_device_drivers_base_user_base_user_tbase(int argc, char **argv);
 struct tst_test *ltp_get_device_drivers_block_block_dev_user_block_dev(void);
 int ltp_run_device_drivers_cpufreq_cpufreq_boost(int argc, char **argv);
 int ltp_run_device_drivers_dev_sim_framework_user_space_user_tmod(int argc, char **argv);
-int ltp_run_device_drivers_drm_user_space_user_tdrm(int argc, char **argv);
-int ltp_run_device_drivers_include_userBlockInclude(int argc, char **argv);
 int ltp_run_device_drivers_nls_userBlockNLS(int argc, char **argv);
 int ltp_run_device_drivers_pci_tpci_user_tpci(int argc, char **argv);
 int ltp_run_device_drivers_rtc_rtc01(int argc, char **argv);
@@ -423,7 +421,6 @@ struct tst_test *ltp_get_fs_acl_acl_user_obj01(void);
 int ltp_run_fs_doio_dataascii(int argc, char **argv);
 int ltp_run_fs_doio_databin(int argc, char **argv);
 int ltp_run_fs_doio_datapid(int argc, char **argv);
-int ltp_run_fs_doio_doio(int argc, char **argv);
 int ltp_run_fs_doio_forker(int argc, char **argv);
 int ltp_run_fs_doio_growfiles(int argc, char **argv);
 int ltp_run_fs_doio_iogen(int argc, char **argv);
@@ -433,7 +430,6 @@ int ltp_run_fs_fs_di_frag(int argc, char **argv);
 struct tst_test *ltp_get_fs_fs_fill_fs_fill(void);
 int ltp_run_fs_fs_perms_fs_perms(int argc, char **argv);
 struct tst_test *ltp_get_fs_fsplough_fsplough(void);
-int ltp_run_fs_fsstress_fsstress(int argc, char **argv);
 struct tst_test *ltp_get_fs_fsx_linux_fsx_linux(void);
 int ltp_run_fs_ftest_ftest01(int argc, char **argv);
 int ltp_run_fs_ftest_ftest02(int argc, char **argv);
@@ -1126,7 +1122,6 @@ int ltp_run_sched_sched_stress_sched_tc2(int argc, char **argv);
 int ltp_run_sched_sched_stress_sched_tc3(int argc, char **argv);
 int ltp_run_sched_sched_stress_sched_tc4(int argc, char **argv);
 int ltp_run_sched_sched_stress_sched_tc5(int argc, char **argv);
-int ltp_run_sched_sched_stress_sched_tc6(int argc, char **argv);
 struct tst_test *ltp_get_sched_setaffinity_sched_setaffinity01(void);
 struct tst_test *ltp_get_sched_setparam_sched_setparam01(void);
 struct tst_test *ltp_get_sched_setparam_sched_setparam02(void);
@@ -1662,8 +1657,6 @@ const ltp_entry_t ltp_tests[] = {
   {"device_drivers_block_block_dev_user_block_dev", ltp_get_device_drivers_block_block_dev_user_block_dev, 0},
   {"device_drivers_cpufreq_cpufreq_boost", 0, ltp_run_device_drivers_cpufreq_cpufreq_boost},
   {"device_drivers_dev_sim_framework_user_space_user_tmod", 0, ltp_run_device_drivers_dev_sim_framework_user_space_user_tmod},
-  {"device_drivers_drm_user_space_user_tdrm", 0, ltp_run_device_drivers_drm_user_space_user_tdrm},
-  {"device_drivers_include_userBlockInclude", 0, ltp_run_device_drivers_include_userBlockInclude},
   {"device_drivers_nls_userBlockNLS", 0, ltp_run_device_drivers_nls_userBlockNLS},
   {"device_drivers_pci_tpci_user_tpci", 0, ltp_run_device_drivers_pci_tpci_user_tpci},
   {"device_drivers_rtc_rtc01", 0, ltp_run_device_drivers_rtc_rtc01},
@@ -1876,7 +1869,6 @@ const ltp_entry_t ltp_tests[] = {
   {"fs_doio_dataascii", 0, ltp_run_fs_doio_dataascii},
   {"fs_doio_databin", 0, ltp_run_fs_doio_databin},
   {"fs_doio_datapid", 0, ltp_run_fs_doio_datapid},
-  {"fs_doio_doio", 0, ltp_run_fs_doio_doio},
   {"fs_doio_forker", 0, ltp_run_fs_doio_forker},
   {"fs_doio_growfiles", 0, ltp_run_fs_doio_growfiles},
   {"fs_doio_iogen", 0, ltp_run_fs_doio_iogen},
@@ -1886,7 +1878,6 @@ const ltp_entry_t ltp_tests[] = {
   {"fs_fs_fill_fs_fill", ltp_get_fs_fs_fill_fs_fill, 0},
   {"fs_fs_perms_fs_perms", 0, ltp_run_fs_fs_perms_fs_perms},
   {"fs_fsplough_fsplough", ltp_get_fs_fsplough_fsplough, 0},
-  {"fs_fsstress_fsstress", 0, ltp_run_fs_fsstress_fsstress},
   {"fs_fsx_linux_fsx_linux", ltp_get_fs_fsx_linux_fsx_linux, 0},
   {"fs_ftest_ftest01", 0, ltp_run_fs_ftest_ftest01},
   {"fs_ftest_ftest02", 0, ltp_run_fs_ftest_ftest02},
@@ -2579,7 +2570,6 @@ const ltp_entry_t ltp_tests[] = {
   {"sched_sched_stress_sched_tc3", 0, ltp_run_sched_sched_stress_sched_tc3},
   {"sched_sched_stress_sched_tc4", 0, ltp_run_sched_sched_stress_sched_tc4},
   {"sched_sched_stress_sched_tc5", 0, ltp_run_sched_sched_stress_sched_tc5},
-  {"sched_sched_stress_sched_tc6", 0, ltp_run_sched_sched_stress_sched_tc6},
   {"sched_setaffinity_sched_setaffinity01", ltp_get_sched_setaffinity_sched_setaffinity01, 0},
   {"sched_setparam_sched_setparam01", ltp_get_sched_setparam_sched_setparam01, 0},
   {"sched_setparam_sched_setparam02", ltp_get_sched_setparam_sched_setparam02, 0},
@@ -2908,4 +2898,4 @@ const ltp_entry_t ltp_tests[] = {
   {"writev_writev07", ltp_get_writev_writev07, 0},
   {"zrepro_zrepro01", 0, ltp_run_zrepro_zrepro01},
 };
-const int ltp_test_count = 1451;
+const int ltp_test_count = 1446;

@@ -69,7 +69,9 @@ def main():
     #   sound            —— 需要 <sound/asound.h>（alsa-lib 开发包）
     # 子目录跳过：device-drivers/v4l（V4L2 大 uapi + 真实摄像头）、fs/xfs（xfsprogs 头）
     SKIP_ROOT_NAMES = ("kvm", "mce-test", "sound")
-    SKIP_REL_PREFIXES = ("v4l/", "xfs/")
+    #   include/         —— device-drivers/include 下是"被 #include 的片段"，
+    #                       不是独立 TU（单独编译必然语法错）
+    SKIP_REL_PREFIXES = ("v4l/", "xfs/", "include/")
 
     scan_roots = [(SYSCALLS, "")]
     kernel_dir = os.path.join(LTP, "testcases", "kernel")

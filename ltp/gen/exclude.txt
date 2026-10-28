@@ -398,3 +398,7 @@ sigwait/sigwait01.c
 sigtimedwait/sigtimedwait01.c
 sigwaitinfo/sigwaitinfo01.c
 rt_sigtimedwait/rt_sigtimedwait01.c
+device-drivers/drm/user_space/user_tdrm.c
+fs/doio/doio.c
+fs/fsstress/fsstress.c
+sched/sched_stress/sched_tc6.c

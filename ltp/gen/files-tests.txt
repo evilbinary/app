@@ -204,8 +204,6 @@ gen/objs/device_drivers_base_user_base_user_tbase.o
 gen/objs/device_drivers_block_block_dev_user_block_dev.o
 gen/objs/device_drivers_cpufreq_cpufreq_boost.o
 gen/objs/device_drivers_dev_sim_framework_user_space_user_tmod.o
-gen/objs/device_drivers_drm_user_space_user_tdrm.o
-gen/objs/device_drivers_include_userBlockInclude.o
 gen/objs/device_drivers_nls_userBlockNLS.o
 gen/objs/device_drivers_pci_tpci_user_tpci.o
 gen/objs/device_drivers_rtc_rtc01.o
@@ -418,7 +416,6 @@ gen/objs/fs_acl_acl_user_obj01.o
 gen/objs/fs_doio_dataascii.o
 gen/objs/fs_doio_databin.o
 gen/objs/fs_doio_datapid.o
-gen/objs/fs_doio_doio.o
 gen/objs/fs_doio_forker.o
 gen/objs/fs_doio_growfiles.o
 gen/objs/fs_doio_iogen.o
@@ -428,7 +425,6 @@ gen/objs/fs_fs_di_frag.o
 gen/objs/fs_fs_fill_fs_fill.o
 gen/objs/fs_fs_perms_fs_perms.o
 gen/objs/fs_fsplough_fsplough.o
-gen/objs/fs_fsstress_fsstress.o
 gen/objs/fs_fsx_linux_fsx_linux.o
 gen/objs/fs_ftest_ftest01.o
 gen/objs/fs_ftest_ftest02.o
@@ -1121,7 +1117,6 @@ gen/objs/sched_sched_stress_sched_tc2.o
 gen/objs/sched_sched_stress_sched_tc3.o
 gen/objs/sched_sched_stress_sched_tc4.o
 gen/objs/sched_sched_stress_sched_tc5.o
-gen/objs/sched_sched_stress_sched_tc6.o
 gen/objs/sched_setaffinity_sched_setaffinity01.o
 gen/objs/sched_setparam_sched_setparam01.o
 gen/objs/sched_setparam_sched_setparam02.o
@@ -1465,7 +1460,6 @@ ltp/testcases/kernel/device-drivers/dev_sim_framework/kernel_space/tmod.c
 ltp/testcases/kernel/device-drivers/dev_sim_framework/kernel_space/tmod.mod.c
 ltp/testcases/kernel/device-drivers/dev_sim_framework/user_space/tmod_ki.c
 ltp/testcases/kernel/device-drivers/drm/kernel_space/tdrm.c
-ltp/testcases/kernel/device-drivers/include/includeTest.c
 ltp/testcases/kernel/device-drivers/misc_modules/per_cpu_allocator_module/test_per_cpu_allocator_module.c
 ltp/testcases/kernel/device-drivers/misc_modules/per_cpu_atomic_operations_vs_interrupt_disabling_module/test-cmpxchg-nolock.c
 ltp/testcases/kernel/device-drivers/nls/nlsTest.c

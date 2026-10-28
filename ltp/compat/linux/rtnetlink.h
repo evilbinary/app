@@ -54,6 +54,20 @@ struct prefixmsg {
 	unsigned char prefix_pad3;
 };
 
+/* multicast 组（socket bind 的 nl_groups） */
+#define RTMGRP_LINK 1
+#define RTMGRP_NOTIFY 2
+#define RTMGRP_NEIGH 4
+#define RTMGRP_TC 8
+#define RTMGRP_IPV4_IFADDR 0x10
+#define RTMGRP_IPV4_MROUTE 0x20
+#define RTMGRP_IPV4_ROUTE 0x40
+#define RTMGRP_IPV4_RULE 0x80
+#define RTMGRP_IPV6_IFADDR 0x100
+#define RTMGRP_IPV6_MROUTE 0x200
+#define RTMGRP_IPV6_ROUTE 0x400
+#define RTMGRP_IPV6_IFINFO 0x800
+
 /* 消息类型 */
 #define RTM_BASE 16
 #define RTM_NEWLINK (RTM_BASE + 0)

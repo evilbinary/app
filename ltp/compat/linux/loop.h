@@ -42,12 +42,7 @@ struct loop_info64 {
 	__u64 lo_init[2];
 };
 
-struct loop_config {
-	__u32 fd;
-	__u32 block_size;
-	struct loop_info64 info;
-	__u64 __reserved[8];
-};
+/* struct loop_config 由 LTP 的 lapi/loop.h 自行定义（避免重复定义） */
 
 #define LO_FLAGS_READ_ONLY 1
 #define LO_FLAGS_AUTOCLEAR 4

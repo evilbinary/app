@@ -204,8 +204,6 @@ device_drivers_base_user_base_user_tbase testcases/kernel/device-drivers/base/us
 device_drivers_block_block_dev_user_block_dev testcases/kernel/device-drivers/block/block_dev_user/block_dev.c
 device_drivers_cpufreq_cpufreq_boost testcases/kernel/device-drivers/cpufreq/cpufreq_boost.c
 device_drivers_dev_sim_framework_user_space_user_tmod testcases/kernel/device-drivers/dev_sim_framework/user_space/user_tmod.c
-device_drivers_drm_user_space_user_tdrm testcases/kernel/device-drivers/drm/user_space/user_tdrm.c
-device_drivers_include_userBlockInclude testcases/kernel/device-drivers/include/userBlockInclude.c
 device_drivers_nls_userBlockNLS testcases/kernel/device-drivers/nls/userBlockNLS.c
 device_drivers_pci_tpci_user_tpci testcases/kernel/device-drivers/pci/tpci_user/tpci.c
 device_drivers_rtc_rtc01 testcases/kernel/device-drivers/rtc/rtc01.c
@@ -418,7 +416,6 @@ fs_acl_acl_user_obj01 testcases/kernel/fs/acl/acl_user_obj01.c
 fs_doio_dataascii testcases/kernel/fs/doio/dataascii.c
 fs_doio_databin testcases/kernel/fs/doio/databin.c
 fs_doio_datapid testcases/kernel/fs/doio/datapid.c
-fs_doio_doio testcases/kernel/fs/doio/doio.c
 fs_doio_forker testcases/kernel/fs/doio/forker.c
 fs_doio_growfiles testcases/kernel/fs/doio/growfiles.c
 fs_doio_iogen testcases/kernel/fs/doio/iogen.c
@@ -428,7 +425,6 @@ fs_fs_di_frag testcases/kernel/fs/fs_di/frag.c
 fs_fs_fill_fs_fill testcases/kernel/fs/fs_fill/fs_fill.c
 fs_fs_perms_fs_perms testcases/kernel/fs/fs_perms/fs_perms.c
 fs_fsplough_fsplough testcases/kernel/fs/fsplough/fsplough.c
-fs_fsstress_fsstress testcases/kernel/fs/fsstress/fsstress.c
 fs_fsx_linux_fsx_linux testcases/kernel/fs/fsx-linux/fsx-linux.c
 fs_ftest_ftest01 testcases/kernel/fs/ftest/ftest01.c
 fs_ftest_ftest02 testcases/kernel/fs/ftest/ftest02.c
@@ -1121,7 +1117,6 @@ sched_sched_stress_sched_tc2 testcases/kernel/sched/sched_stress/sched_tc2.c
 sched_sched_stress_sched_tc3 testcases/kernel/sched/sched_stress/sched_tc3.c
 sched_sched_stress_sched_tc4 testcases/kernel/sched/sched_stress/sched_tc4.c
 sched_sched_stress_sched_tc5 testcases/kernel/sched/sched_stress/sched_tc5.c
-sched_sched_stress_sched_tc6 testcases/kernel/sched/sched_stress/sched_tc6.c
 sched_setaffinity_sched_setaffinity01 testcases/kernel/syscalls/sched_setaffinity/sched_setaffinity01.c
 sched_setparam_sched_setparam01 testcases/kernel/syscalls/sched_setparam/sched_setparam01.c
 sched_setparam_sched_setparam02 testcases/kernel/syscalls/sched_setparam/sched_setparam02.c
