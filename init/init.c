@@ -70,6 +70,34 @@ void mem_info_command() { syscall0(SYS_MEMINFO); }
 void pre_launch();
 void build_env(char** env);
 
+/* 会话级环境变量。
+ *
+ * 本系统没有 logind / 会话管理器，这些变量由 init 统一给出，exec 时作为
+ * envp 传给所有程序：
+ *   PATH             —— 命令查找路径
+ *   HOME             —— 起始目录
+ *   XDG_RUNTIME_DIR  —— XDG 规范的用户私有运行时目录。wayland 服务端把它
+ *                       当作 unix socket 所在目录（wl_display_add_socket），
+ *                       客户端与服务端之间的 wl_shm 缓冲也在这里落文件
+ *                       （weston 的 os_create_anonymous_file 取这个变量）。
+ *                       没有它 weston 会直接 fatal，客户端建 buffer 也会 ENOENT。
+ */
+static char* init_env_storage[] = {
+    "PATH=/bin:/app/",
+    "HOME=/",
+    "XDG_RUNTIME_DIR=/tmp",
+    NULL,
+};
+
+void build_env(char** env) {
+  int i = 0;
+  while (init_env_storage[i] != NULL) {
+    env[i] = init_env_storage[i];
+    i++;
+  }
+  env[i] = NULL;
+}
+
 extern int module_ready;
 
 // STM32F4XX不使用fork，使用线程
@@ -324,7 +352,9 @@ void do_init_thread(void) {
   }
   syscall1(SYS_CHDIR, "/");
 
-  char** env = NULL;
+  char* env_buf[4];
+  char** env = env_buf;
+  build_env(env);
   pre_launch();
 
   /* 一次 read 尽可能多取：以前每次只 read 1 字节，粘贴一条长命令时
