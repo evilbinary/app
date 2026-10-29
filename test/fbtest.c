@@ -139,9 +139,10 @@ int main(int argc, char** argv) {
   else
     TFAIL("fb_fix_screeninfo size %d != 80", (int)sizeof(fix));
 
-  /* 关键偏移：错一个字段，内核写进来的值就会串到别的字段上 */
+  /* 关键偏移：错一个字段，内核写进来的值就会串到别的字段上
+   * （rotate=136 / colorspace=140：reserved[4] 之前只剩这两个字段） */
   if (FB_VAR_OFF(bits_per_pixel) == 24 && FB_VAR_OFF(red) == 32 &&
-      FB_VAR_OFF(nonstd) == 80 && FB_VAR_OFF(rotate) == 140)
+      FB_VAR_OFF(nonstd) == 80 && FB_VAR_OFF(rotate) == 136)
     TPASS("fb_var_screeninfo field offsets ok");
   else
     TFAIL("fb_var_screeninfo field offsets wrong");
