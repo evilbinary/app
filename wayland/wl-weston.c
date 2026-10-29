@@ -592,10 +592,26 @@ int main(int argc, char **argv) {
     }
   }
 
-  /* 本内核只实现了 SIGKILL 的杀进程语义（其余信号一律忽略），
-   * 用 SIGTERM 收尾会永久卡在 waitpid。 */
-  kill(pid, SIGKILL);
-  waitpid(pid, &st, 0);
+  /* 收尾：先 SIGTERM（验证内核"默认动作=终止"是否生效），200ms 内没退出
+   * 再补 SIGKILL 兜底（否则会永久卡在 waitpid）。 */
+  {
+    int waited = 0;
+    int k;
+
+    kill(pid, SIGTERM);
+    for (k = 0; k < 20; k++) {
+      if (waitpid(pid, &st, WNOHANG) == pid) {
+        waited = 1;
+        break;
+      }
+      usleep(10 * 1000);
+    }
+    if (!waited) {
+      kill(pid, SIGKILL);
+      waitpid(pid, &st, 0);
+      printf("TINFO: SIGTERM 未终止 server，已用 SIGKILL 兜底\n");
+    }
+  }
   server_rc = WIFEXITED(st) ? WEXITSTATUS(st) : 1;
 
   check(client_rc == 0, "client 阶段全部检查完成");
