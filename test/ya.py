@@ -233,3 +233,11 @@ add_deps("input")
 add_files(
    'libinput-test.c'
 )
+
+# /dev/fb0 标准 fbdev 兼容层验收（linux/fb.h ABI + ioctl + mmap）。
+# 跑法：python3 tools/ltp_batch.py --timeout 30 /bin/fbtest
+target("fbtest")
+set_type("cli")
+add_files(
+   'fbtest.c'
+)
