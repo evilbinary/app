@@ -42,8 +42,9 @@ add_files(
 )
 
 target("weston-bin")
-# 动态链接：可执行文件带 PT_INTERP=/lib/ld-musl-aarch64.so.1，内核 loader 起
-# musl 的 ldso；后端/shell 模块用 dlopen 加载，符号由本程序（-rdynamic）提供。
+# 动态链接：可执行文件带 PT_INTERP=/lib/ld-musl-<arch>.so.1（按平台取名字，
+# 见 xenv/support.py 的 musl_ldso_path），内核 loader 起 musl 的 ldso；
+# 后端/shell 模块用 dlopen 加载，符号由本程序（-export-dynamic）提供。
 set_type("cli", dynamic=True)
 # 目标名叫 weston-bin（库已经占了 "weston" 这个名字），产物文件名仍叫 weston
 set_filename("weston")
@@ -64,11 +65,84 @@ add_files(
     '../../eggs/weston/frontend/main.c',
     '../../eggs/weston/frontend/executable.c',
     '../../eggs/weston/frontend/config-helpers.c',
-    '../../eggs/weston/frontend/text-backend.c',
     '../../eggs/weston/frontend/weston-screenshooter.c',
-    # ---- kiosk shell（上游源码，入口 wet_shell_init）----
-    '../../eggs/weston/kiosk-shell/kiosk-shell.c',
-    '../../eggs/weston/kiosk-shell/kiosk-shell-grab.c',
-    # ---- 静态模块表：dlopen("kiosk-shell.so") 之类的进程内解析 ----
-    '../../eggs/weston/ya-loader.c',
+    # 注：frontend/text-backend.c（desktop-shell 的输入法/文本面板后端）没编进来，
+    # 它依赖 input-method 协议对象，而 kiosk-shell 不用这条路径。
 )
+
+# ---- weston 模块（.so）：上游做法是运行期 dlopen 加载，这里照做 ----
+# 本系统的 dlopen 来自 musl 的 ldso（libc.so），所以模块就是普通共享库：
+# 只编 -fPIC 源码、链成 .so，符号（libweston / frontend 的）留给运行期解析，
+# 由 weston 可执行文件的 -export-dynamic 导出。
+def weston_module(name, files):
+    target(name)
+    set_kind("shared")
+    set_filename(name)
+    add_deps("gcc")
+    add_packages(get_config('default_libc'))
+    # include 路径与 NEEDED 都来自这些依赖；libweston.so 就是模块的上游库
+    add_deps("weston", "wayland", "pixman", "xkbcommon", "evdev")
+    add_cflags(
+        '-fPIC',
+        '-DDUCK -DDLIBC_POSIX',
+        '-D__LIB_MUSL__',
+        '-nostdlib',
+        '-nostdinc',
+        '-include eggs/weston/weston-config.h',
+    )
+    # ymake 的 shared 分支直接用 ld，-shared 必须自己给
+    add_ldflags('-shared')
+    add_includedirs(
+        '../../eggs/weston',
+        '../../eggs/weston/frontend',
+        '../../eggs/weston/shared',
+        '../../eggs/weston/include',
+        '../../eggs/weston/libweston',
+        '../../eggs/weston/compat',
+        '../../eggs/wayland-protocols/gen',
+    )
+    add_files(*files)
+
+weston_module(
+    "kiosk-shell",
+    [
+        '../../eggs/weston/kiosk-shell/kiosk-shell.c',
+        '../../eggs/weston/kiosk-shell/kiosk-shell-grab.c',
+    ],
+)
+
+weston_module(
+    "headless-backend",
+    [
+        '../../eggs/weston/libweston/backend-headless/headless.c',
+        # decorated 模式下 headless 后端会引用 shared/frame.c 的窗口装饰函数，
+        # 那套实现依赖 cairo。本系统 decorate=false，这些函数不会被调用，
+        # 用同签名的空实现顶上（编进模块自身，免得可执行文件里没人引用而被
+        # 链接器丢弃）。
+        '../../eggs/weston/compat/frame-stubs.c',
+    ],
+)
+
+# ---- 运行时布局：把共享库/模块摆到镜像里 weston 期望的路径 ----
+#   /lib/libweston.so                       （可执行文件与模块的 NEEDED）
+#   /usr/lib/libweston-16/headless-backend.so   （LIBWESTON_MODULEDIR）
+#   /usr/lib/weston/kiosk-shell.so              （MODULEDIR）
+import os as _os
+import shutil as _shutil
+
+_bdir = _os.path.join('build', str(get_plat()), str(get_arch()),
+                      str(get_config('mode')))
+_deploy = [
+    ('libweston.so', 'app/resource/lib/libweston.so'),
+    ('libkiosk-shell.so', 'app/resource/usr/lib/weston/kiosk-shell.so'),
+    ('libheadless-backend.so',
+     'app/resource/usr/lib/libweston-16/headless-backend.so'),
+]
+for _src_name, _dst in _deploy:
+    _src = _os.path.join(_bdir, _src_name)
+    if not _os.path.exists(_src):
+        continue
+    _os.makedirs(_os.path.dirname(_dst), exist_ok=True)
+    if (not _os.path.exists(_dst) or
+            _os.path.getmtime(_src) > _os.path.getmtime(_dst)):
+        _shutil.copyfile(_src, _dst)
