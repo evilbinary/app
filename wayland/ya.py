@@ -27,6 +27,26 @@ add_files(
     'wl-weston.c',
 )
 
+# 上游自带的简单客户端：xdg-shell 顶层级 + wl_shm 缓冲，用来验证
+# "客户端 surface 经 kiosk-shell 上屏"（weston 用 `-- /bin/wl-simple-shm` 托管启动）。
+target("wl-simple-shm")
+set_type("cli")
+add_deps("wayland")
+# 只为 <linux/input.h>（KEY_F11 那个快捷键分支）
+add_deps("evdev")
+add_cflags('-include eggs/weston/weston-config.h')
+add_includedirs(
+    '../../eggs/weston',          # simple-shm 里写的是 "shared/os-compatibility.h"
+    '../../eggs/weston/shared',
+    '../../eggs/weston/include',
+    '../../eggs/wayland-protocols/gen',
+)
+add_files(
+    '../../eggs/weston/clients/simple-shm.c',
+    '../../eggs/weston/shared/os-compatibility.c',
+    '../../eggs/wayland-protocols/gen/xdg-shell-protocol.c',
+)
+
 target("weston-bin")
 set_type("cli")
 add_deps("wayland", "weston", "pixman", "xkbcommon")
