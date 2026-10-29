@@ -111,6 +111,17 @@ weston_module(
     ],
 )
 
+# YiYiYa 补丁：fbdev 后端。上游只有 drm/headless/x11/wayland/... 没有 fbdev，
+# 我们的平台只有内核 /dev/fb0（无 DRM/KMS），所以补一个最小后端：
+# pixman 直接把画面渲染进 /dev/fb0 的 mmap 内存（零拷贝）。
+# 用法：weston --backend=fbdev-backend.so --shell=kiosk-shell.so ...
+weston_module(
+    "fbdev-backend",
+    [
+        '../../eggs/weston/compat/backend-fbdev.c',
+    ],
+)
+
 weston_module(
     "headless-backend",
     [
@@ -137,6 +148,8 @@ _deploy = [
     ('libkiosk-shell.so', 'app/resource/usr/lib/weston/kiosk-shell.so'),
     ('libheadless-backend.so',
      'app/resource/usr/lib/libweston-16/headless-backend.so'),
+    ('libfbdev-backend.so',
+     'app/resource/usr/lib/libweston-16/fbdev-backend.so'),
 ]
 for _src_name, _dst in _deploy:
     _src = _os.path.join(_bdir, _src_name)
