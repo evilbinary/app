@@ -18,7 +18,7 @@
 #define TAGLEN 8
 #define POOL_SIZE 8192
 
-static int do_child(int sock) {
+static int do_child(int sock, int inherit_fd) {
   char ctl[CMSG_SPACE(sizeof(int))];
   char buf[32];
   struct iovec iov;
@@ -28,6 +28,23 @@ static int do_child(int sock) {
   ssize_t n;
   unsigned char* p;
   int fail = 0;
+
+  /* 阶段 1（最直接的判定）：fork 继承的同一个 fd 再 mmap，能否看到父进程
+   * 写进映射的标记。这一步不涉及 fd 传递，只验证"同一 memfd ⇒ 同一份物理
+   * 页"，是 wl_shm 共享像素的最小充分条件。 */
+  p = mmap(NULL, POOL_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, inherit_fd, 0);
+  if (p == MAP_FAILED) {
+    fail = 1;
+    printf("TFAIL: child(inherit) mmap errno=%d\n", errno);
+  } else {
+    if (memcmp(p, TAG, TAGLEN) == 0) {
+      printf("TPASS: child(inherit) mmap read [%.8s]\n", p);
+    } else {
+      fail = 1;
+      printf("TFAIL: child(inherit) mmap read mismatch: %.8s\n", p);
+    }
+    munmap(p, POOL_SIZE);
+  }
 
   memset(ctl, 0, sizeof(ctl));
   iov.iov_base = buf;
@@ -106,7 +123,7 @@ int main(int argc, char* argv[]) {
   pid = fork();
   if (pid == 0) {
     close(sv[0]);
-    return do_child(sv[1]);
+    return do_child(sv[1], fd);
   }
   close(sv[1]);
   memset(ctl, 0, sizeof(ctl));
