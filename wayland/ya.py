@@ -220,9 +220,11 @@ weston_module(
 # WESTON_MODULE_MAP 指过去（LIBEXECDIR 默认 /usr/libexec）。
 # 只依赖 cairo，不含 pango（cairo-util.c 里 pango 分支靠 HAVE_PANGO 关掉，
 # 文字走 cairo toy API）。
-def toytoolkit_client(name, main_src, extra_files=()):
+def toytoolkit_client(name, main_src, extra_files=(), install_type="cli"):
     target(name)
-    set_type("cli")
+    # install_type="libexec"：装到镜像 /usr/libexec（shell 按 LIBEXECDIR 绝对
+    # 路径 fork 的辅助客户端），而不是 /bin —— 见 xenv/env.py 的 set_type()。
+    set_type(install_type)
     add_deps("wayland", "cairo", "evdev", "xkbcommon")
     add_cflags('-include eggs/weston/weston-config.h')
     # 注意【不要】加 '../../eggs/weston/compat'：那目录里有个 cairo.h 垫片
@@ -271,10 +273,24 @@ def toytoolkit_client(name, main_src, extra_files=()):
     )
 
 if has_config("wayland-desktop"):
+    # 下面三个都是 shell 拉起的辅助客户端，必须装到镜像 /usr/libexec
+    # （frontend 按 LIBEXECDIR 的绝对路径 fork 它们），所以 install_type
+    # 用 "libexec" —— 不再往 /bin 里放一份。
+
     # 官方桌面客户端（desktop-shell 的视觉部分：背景、面板、时钟、启动器）
     toytoolkit_client(
         "weston-desktop-shell",
         '../../eggs/weston/clients/desktop-shell.c',
+        install_type="libexec",
+    )
+
+    # 输入法面板：frontend 初始化 input-method 时会按 LIBEXECDIR 把它拉起来
+    # （见 main.c 的 launch_input_method / wet_client_start），缺了它只会反复打
+    # "Couldn't launch client '/usr/libexec/weston-keyboard'"，不影响桌面本体。
+    toytoolkit_client(
+        "weston-keyboard",
+        '../../eggs/weston/clients/keyboard.c',
+        install_type="libexec",
     )
 
     # ivi-shell 的配套 UI 客户端（背景 + 面板 + 应用启动器），
@@ -286,6 +302,7 @@ if has_config("wayland-desktop"):
             '../../eggs/wayland-protocols/gen/ivi-application-protocol.c',
             '../../eggs/wayland-protocols/gen/ivi-hmi-controller-protocol.c',
         ],
+        install_type="libexec",
     )
 
 # ---- 运行时布局：把共享库/模块摆到镜像里 weston 期望的路径 ----
@@ -307,15 +324,25 @@ _deploy = [
 ]
 if has_config("wayland-desktop"):
     # 图形套的模块与客户端：不开 --wayland-desktop 时连编译都没有，别去找文件
+    # 辅助客户端不在这里：它们用 set_type("libexec") 自己装到 usr/libexec
     _deploy += [
         ('libdesktop-shell.so', 'app/resource/usr/lib/weston/desktop-shell.so'),
         ('libivi-shell.so', 'app/resource/usr/lib/weston/ivi-shell.so'),
     ]
-for _src_name, _dst in _deploy:
-    _src = _os.path.join(_bdir, _src_name)
-    if not _os.path.exists(_src):
-        continue
-    _os.makedirs(_os.path.dirname(_dst), exist_ok=True)
-    if (not _os.path.exists(_dst) or
-            _os.path.getmtime(_src) > _os.path.getmtime(_dst)):
-        _shutil.copyfile(_src, _dst)
+def _deploy_runtime_layout(target=None):
+    """把 _deploy 表里的产物同步到 app/resource（镜像里的运行时路径）。
+
+    幂等：源比目标新才拷。既在配置阶段调一次（上次构建留下的产物立刻落地），
+    也挂到 after_build（本轮刚编出来的当轮就落地，不用再跑一次构建）。
+    """
+    for _src_name, _dst in _deploy:
+        _src = _os.path.join(_bdir, _src_name)
+        if not _os.path.exists(_src):
+            continue
+        _os.makedirs(_os.path.dirname(_dst), exist_ok=True)
+        if (not _os.path.exists(_dst) or
+                _os.path.getmtime(_src) > _os.path.getmtime(_dst)):
+            _shutil.copyfile(_src, _dst)
+
+_deploy_runtime_layout()
+after_build(_deploy_runtime_layout)
