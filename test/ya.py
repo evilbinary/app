@@ -251,3 +251,12 @@ add_deps("foot")
 add_files(
    'test-foot.c'
 )
+
+# foot capability（阶段 4）回归：窗口申请、越权拒绝、派生只减权、撤销失效。
+# 跑法：python3 tools/ltp_batch.py --timeout 60 /bin/test-cap
+target("test-cap")
+set_type("cli")
+add_deps("foot")
+add_files(
+   'test-cap.c'
+)
