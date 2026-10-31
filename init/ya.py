@@ -9,6 +9,12 @@ import sys
 target("kernel.elf")
 set_kind("binary")
 
+# 【内核禁用浮点/SIMD】与 duck/ya.py 同一条理由：用户线程的 q0-q31 现场在
+# 线程切换时才搬运（thread_fp.h / cpu_fp_switch），内核一旦自己用 SIMD 就会
+# 把用户现场冲掉。本目录的 pre_launch()/test_ioctl() 实测都被 GCC 生成了
+# q 寄存器访问（pre_launch 直接 ldp q0,q1 + stp q0,q1 做 32 字节拷贝）。
+add_cflags('-mgeneral-regs-only')
+
 arch=get_arch()
 arch_type=get_arch_type()
 plat=get_plat()
