@@ -241,3 +241,13 @@ set_type("cli")
 add_files(
    'fbtest.c'
 )
+
+# foot 服务框架回归测试（注册/发现、往返参数、连续调用、超时、超时后恢复）。
+# 需要 /dev/foot（内核 foot 模块）。跑法：
+#   python3 tools/ltp_batch.py --timeout 60 /bin/test-foot
+target("test-foot")
+set_type("cli")
+add_deps("foot")
+add_files(
+   'test-foot.c'
+)
