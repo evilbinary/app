@@ -298,22 +298,35 @@ static void test_pty(int rounds) {
     p.revents = 0;
     errno = 0;
     r = poll(&p, 1, 3000);
-    if (r != 1) {
-      wrong = 1;
-      if (badcnt == 0) {
-        printf("TINFO: pty #%d poll ret=%d (fd=%d) revents=0x%x\n", i, r, m,
-               p.revents);
+    {
+      /* FIONREAD：poll 说可读时主端 in 缓冲实际有多少字节。
+       * poll>0 但 avail==0 ⇒ 就绪判定与 read 条件不一致（虚假就绪）。 */
+      int avail = -1;
+      ioctl(m, 0x541Bu, &avail);
+      if (r != 1 || avail <= 0) {
+        printf("TINFO: pty #%d poll ret=%d avail=%d (fd=%d) revents=0x%x\n", i,
+               r, avail, m, p.revents);
         fflush(stdout);
       }
+    }
+    if (r != 1) {
+      wrong = 1;
     }
     memset(buf, 0, sizeof(buf));
     errno = 0;
     n = read(m, buf, sizeof(buf) - 1);
-    if (n != 5 || memcmp(buf, "hello", 5) != 0) {
-      wrong = 1;
-      if (badcnt == 0) {
-        printf("TINFO: pty #%d read ret=%d data=[%s] (fd=%d)\n", i, n, buf, m);
-        fflush(stdout);
+    {
+      int e = errno;
+      int avail2 = -1;
+      ioctl(m, 0x541Bu, &avail2);
+      if (n != 5 || memcmp(buf, "hello", 5) != 0) {
+        wrong = 1;
+        if (badcnt == 0) {
+          printf("TINFO: pty #%d read ret=%d errno=%d data=[%s] avail_after=%d "
+                 "(fd=%d)\n",
+                 i, n, e, buf, avail2, m);
+          fflush(stdout);
+        }
       }
     }
     close(m);

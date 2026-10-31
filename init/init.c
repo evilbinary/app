@@ -417,8 +417,19 @@ void try_run(char* cmd, char** argv, char** env) {
 }
 
 void load_config() {
+  /* 【必须把会话环境传给 /bin/config】/bin/config 是这条链的父进程：
+   *   init → /bin/config → (fork+execv) /bin/weston-desktop
+   * execv 继承的是 config 自己的 environ，而 environ 就是这里 envp 传下去的
+   * 那一份。以前传 NULL ⇒ config 的环境为空 ⇒ 它拉起的 weston 起来后报
+   *   libwayland: error: XDG_RUNTIME_DIR is invalid or not set in the environment
+   *   fatal: environment variable XDG_RUNTIME_DIR is not set.
+   * 直接退出（wayland socket / wl_shm 匿名文件都要这个目录）。
+   * PATH/HOME 同理：没有 PATH 时 execvp 类和库里的查找都会退化。 */
+  char* env_buf[4];
+  char** env = env_buf;
+  build_env(env);
   char* config_argv[] = {"config", NULL};
-  try_run("config", config_argv, NULL);
+  try_run("config", config_argv, env);
 
 
   // char* gmenu_argv[] = {"gmenu", NULL};
