@@ -39,6 +39,16 @@ add_deps("wayland")
 # 只为 <linux/input.h>（KEY_F11 那个快捷键分支）
 add_deps("evdev")
 add_cflags('-include eggs/weston/weston-config.h')
+# 【必须 -fPIC】下面编的 shared/os-compatibility.c 与 libweston.so（eggs/weston
+# 的 target weston，shared 类型、-fPIC）是同一个源文件，而 ymake 的中间产物是
+# 按"源文件路径"唯一命名的（build/.../objs/eggs/weston/shared/os-compatibility.o），
+# 不带目标名。两处编译参数不一致时，后写的那份会覆盖前者：
+# 可执行文件（无 -fPIC）后编 ⇒ libweston.so 链接时报
+#   relocation R_AARCH64_ADR_PREL_PG_HI21 against symbol `stderr' ...
+#   recompile with -fPIC
+# （raspi5 首次全量构建时在 shared/config-parser.o 上炸过。）
+# 统一按 -fPIC 编，可执行文件用 PIC 目标文件链接是非 PIE 也完全没问题。
+add_cflags('-fPIC')
 add_includedirs(
     '../../eggs/weston',          # simple-shm 里写的是 "shared/os-compatibility.h"
     '../../eggs/weston/shared',
@@ -225,8 +235,15 @@ def toytoolkit_client(name, main_src, extra_files=(), install_type="cli"):
     # install_type="libexec"：装到镜像 /usr/libexec（shell 按 LIBEXECDIR 绝对
     # 路径 fork 的辅助客户端），而不是 /bin —— 见 xenv/env.py 的 set_type()。
     set_type(install_type)
-    add_deps("wayland", "cairo", "evdev", "xkbcommon")
-    add_cflags('-include eggs/weston/weston-config.h')
+    # pixman：cairo 静态链已经带进来了，这里显式列出来只为拿到它的
+    # include 路径（desktop-shell.c 的诊断探针直接调 pixman）。
+    add_deps("wayland", "cairo", "pixman", "evdev", "xkbcommon")
+    # 【必须 -fPIC】这里编的 shared/config-parser.c / file-util.c /
+    # process-util.c / matrix.c 与 libweston.so 共用同一份 .o（见 wl-simple-shm
+    # 处的说明）。不加 -fPIC 时这些 .o 会被本目标覆盖成非 PIC 版，下一次
+    # libweston.so 链接就报 relocation R_AARCH64_ADR_PREL_PG_HI21 ... 需要
+    # recompile with -fPIC（raspi5 首次全量构建就是这样炸的）。
+    add_cflags('-fPIC', '-include eggs/weston/weston-config.h')
     # 注意【不要】加 '../../eggs/weston/compat'：那目录里有个 cairo.h 垫片
     # （给 renderer-borders 用的空声明），会把真的 <cairo.h> 顶掉，症状是
     # cairo_matrix_t / CAIRO_OPERATOR_OVER 全都"未声明"。evdev 依赖则提供
@@ -329,6 +346,37 @@ if has_config("wayland-desktop"):
         ('libdesktop-shell.so', 'app/resource/usr/lib/weston/desktop-shell.so'),
         ('libivi-shell.so', 'app/resource/usr/lib/weston/ivi-shell.so'),
     ]
+# ---- weston 运行期数据文件（DATADIR=/usr/share）----
+# shared/file-util.c 的 file_name_with_datadir() 拼的是
+# "<DATADIR>/weston/<名>"，即镜像里的 /usr/share/weston/。这些 png 不是
+# 编译产物，但运行时找不到就会出问题：
+#   terminal.png      panel 没有 [launcher] 配置时的默认启动器图标 —— 缺了
+#                     load_icon_or_fallback() 会画一个"方框叉"，看着像渲染坏了
+#   pattern.png       background-color=0 时的背景图案
+#   sign_*.png        客户端窗口装饰按钮（toytoolkit frame_draw 用）
+#   wayland.png       窗口/任务栏图标
+#   icon_ivi_*.png    ivi-shell-user-interface 的启动器图标
+# 命中时走上面那条 file_name_with_datadir 路径，所以目录固定是 weston/。
+_weston_data_src = _os.path.join('eggs', 'weston', 'data')
+_weston_data_dst = _os.path.join('app', 'resource', 'usr', 'share', 'weston')
+
+def _deploy_weston_data():
+    """把 eggs/weston/data 下的 png 同步到镜像的 /usr/share/weston。
+
+    只拷 .png（COPYING/meson.build/svg 运行时用不到）。幂等：源比目标新才拷。
+    """
+    if not _os.path.isdir(_weston_data_src):
+        return
+    for _name in _os.listdir(_weston_data_src):
+        if not _name.endswith('.png'):
+            continue
+        _src = _os.path.join(_weston_data_src, _name)
+        _dst = _os.path.join(_weston_data_dst, _name)
+        if (not _os.path.exists(_dst) or
+                _os.path.getmtime(_src) > _os.path.getmtime(_dst)):
+            _os.makedirs(_weston_data_dst, exist_ok=True)
+            _shutil.copyfile(_src, _dst)
+
 def _deploy_runtime_layout(target=None):
     """把 _deploy 表里的产物同步到 app/resource（镜像里的运行时路径）。
 
@@ -343,6 +391,7 @@ def _deploy_runtime_layout(target=None):
         if (not _os.path.exists(_dst) or
                 _os.path.getmtime(_src) > _os.path.getmtime(_dst)):
             _shutil.copyfile(_src, _dst)
+    _deploy_weston_data()
 
 _deploy_runtime_layout()
 after_build(_deploy_runtime_layout)
