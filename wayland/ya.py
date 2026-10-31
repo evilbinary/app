@@ -322,6 +322,47 @@ if has_config("wayland-desktop"):
         install_type="libexec",
     )
 
+    # ---- 桌面上能用的常驻客户端（装到镜像 /bin，panel 的 launcher 直接点）----
+    # 都是 toytoolkit 客户端，只依赖 cairo：不需要 pango / EGL / gbm。
+    # 上游 clients/meson.build 里分类是 "tools" + "demo-clients"，这里按名字
+    # 对齐（weston-<basename>），方便和上游文档对照。
+
+    # 终端：pty 走 /dev/ptmx（本内核已有 pty，见 app/x11/xterm.c 同一套链路）。
+    # terminal.c 用 shared/option-parser.c 的 parse_options()（上游是靠
+    # dep_libshared 顺带链进来的），这里显式补上。
+    toytoolkit_client(
+        "weston-terminal",
+        '../../eggs/weston/clients/terminal.c',
+        ['../../eggs/weston/shared/option-parser.c'],
+    )
+
+    # 看图：用的是 shared/image-loader.c + cairo 的 png 解码（已编入 png/zlib）
+    # image.c 与 eventdemo.c 也用 parse_options()，同样要补 option-parser.c。
+    _option_parser = ['../../eggs/weston/shared/option-parser.c']
+
+    toytoolkit_client(
+        "weston-image",
+        '../../eggs/weston/clients/image.c',
+        _option_parser,
+    )
+
+    # 演示类客户端：窗口里画各自的效果，主要用来验证合成/输入/动画链路
+    for _demo in ("flower", "clickdot", "eventdemo", "transformed",
+                  "stacking", "fullscreen", "smoke", "resizor"):
+        toytoolkit_client(
+            "weston-" + _demo,
+            '../../eggs/weston/clients/%s.c' % _demo,
+            _option_parser if _demo == "eventdemo" else (),
+        )
+
+    # 协议演示：约束（pointer-constraints）与缩放（viewporter）——
+    # 这两个协议对象已经在 toytoolkit_client 的公共文件列表里
+    for _proto_demo in ("constraints", "scaler", "tablet"):
+        toytoolkit_client(
+            "weston-" + _proto_demo,
+            '../../eggs/weston/clients/%s.c' % _proto_demo,
+        )
+
 # ---- 运行时布局：把共享库/模块摆到镜像里 weston 期望的路径 ----
 #   /lib/libweston.so                       （可执行文件与模块的 NEEDED）
 #   /usr/lib/libweston-16/headless-backend.so   （LIBWESTON_MODULEDIR）
