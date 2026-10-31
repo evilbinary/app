@@ -6,6 +6,10 @@
  *   4) 伪造句柄失效；撤销父 cap 后派生出的子句柄同时失效
  *   5) 裸 sys_thread_map 映射窗口外物理地址被内核拒绝（收权生效）
  *   6) 撤销后槽位可复用（cap 表没有泄漏）
+ *   7) OBJ_FRAME：申请物理页对象、映射读写、越界/未对齐拒绝、
+ *      该页让裸 sys_thread_map 放行、派生掉 FRAME_MAP 后不能映射
+ *   8) OBJ_ENDPOINT：空队列/无 GRANT 拒绝；fork 后父投递一条带能力的消息，
+ *      子进程取到新句柄并能直接拿来映射（跨进程能力转授）
  *
  * 跑法（设备端）：/bin/test-cap
  *   主机侧：python3 tools/ltp_batch.py --timeout 60 /bin/test-cap
@@ -187,28 +191,27 @@ int main(int argc, char* argv[]) {
   char rbuf[64];
   unsigned long rlen = 0;
   foot_cap_t got = FOOT_CAP_NONE;
-  CHECK(foot_cap_ep_recv(ep, rbuf, sizeof(rbuf), &rlen, &got) == -1,
-        "recv on empty endpoint rejected");
+  CHECK(foot_cap_ep_try_recv(ep, rbuf, sizeof(rbuf), &rlen, &got) == -1,
+        "non-blocking recv on empty endpoint rejected");
 
   foot_cap_t xfer = foot_cap_get_mmio("dwc2");
   CHECK(xfer != FOOT_CAP_NONE, "acquire cap to transfer");
   foot_cap_t no_grant = foot_cap_derive(xfer, CAP_RIGHT_LOAD);
   CHECK(no_grant != FOOT_CAP_NONE, "mint cap without GRANT");
-  CHECK(foot_cap_ep_send(ep, "x", 1, no_grant) == -1,
+  CHECK(foot_cap_ep_try_send(ep, "x", 1, no_grant) == -1,
         "cannot transfer cap without GRANT");
   foot_cap_revoke(no_grant);
 
-  /* fork 之后父子共享同一个 endpoint：父投递 + 附带能力，子取走并直接使用 */
+  /* fork 之后父子共享同一个 endpoint：父投递 + 附带能力，子取走并直接使用。
+   * 子进程用【阻塞】recv —— 它挂起在等待表上，由父进程的 send 唤醒。 */
   pid_t ep_pid = fork();
   if (ep_pid == 0) {
     int fails = 0;
     char cbuf[64];
     unsigned long clen = 0;
     foot_cap_t cgot = FOOT_CAP_NONE;
-    for (int i = 0; i < 500 && cgot == FOOT_CAP_NONE; i++) {
-      if (foot_cap_ep_recv(ep, cbuf, sizeof(cbuf), &clen, &cgot) != 0) {
-        usleep(1000);
-      }
+    if (foot_cap_ep_recv(ep, cbuf, sizeof(cbuf), &clen, &cgot) != 0) {
+      fails++;
     }
     if (cgot == FOOT_CAP_NONE) {
       fails++; /* 没收到消息/能力 */
@@ -246,6 +249,52 @@ int main(int argc, char* argv[]) {
         "sender cap survives transfer (object refcount)");
   foot_cap_revoke(xfer);
   foot_cap_revoke(ep);
+
+  /* 队列满（8 条）时阻塞 send：子进程挂在 send 上，父取走一条后被唤醒入队 */
+  foot_cap_t ep2 = foot_cap_ep_create();
+  CHECK(ep2 != FOOT_CAP_NONE, "create endpoint for blocking send");
+  char one[2] = {'A', 0};
+  int filled = 0;
+  for (int i = 0; i < 8; i++) {
+    one[0] = (char)('A' + i);
+    if (foot_cap_ep_try_send(ep2, one, 1, FOOT_CAP_NONE) == 0) {
+      filled++;
+    }
+  }
+  CHECK(filled == 8, "fill endpoint queue to capacity");
+  CHECK(foot_cap_ep_try_send(ep2, "x", 1, FOOT_CAP_NONE) == -1,
+        "non-blocking send on full queue rejected");
+
+  pid_t bpid = fork();
+  if (bpid == 0) {
+    /* 队列已满 ⇒ 这里挂起，直到父进程取走一条 */
+    _exit(foot_cap_ep_send(ep2, "wake", 4, FOOT_CAP_NONE) == 0 ? 0 : 1);
+  }
+  usleep(20000);
+  unsigned long blen = 0;
+  int got_one = foot_cap_ep_try_recv(ep2, rbuf, sizeof(rbuf), &blen, NULL);
+  CHECK(got_one == 0 && blen == 1 && rbuf[0] == 'A',
+        "receive one message to free a slot");
+  usleep(30000);
+  int bst = 0;
+  waitpid(bpid, &bst, 0);
+  CHECK(WIFEXITED(bst) && WEXITSTATUS(bst) == 0,
+        "blocked sender woken by receiver");
+
+  /* 取出剩下 7 条 + 被唤醒那条，最后应是 wake（FIFO 尾插） */
+  int tail_ok = 0;
+  for (int i = 0; i < 8; i++) {
+    char tb[16];
+    unsigned long tl = 0;
+    if (foot_cap_ep_try_recv(ep2, tb, sizeof(tb), &tl, NULL) != 0) {
+      break;
+    }
+    if (i == 7 && tl == 4 && memcmp(tb, "wake", 4) == 0) {
+      tail_ok = 1;
+    }
+  }
+  CHECK(tail_ok, "woken sender's message lands at queue tail");
+  foot_cap_revoke(ep2);
 
   printf("=== test-cap: pass=%d fail=%d ===\n", g_pass, g_fail);
   return g_fail == 0 ? 0 : 1;
