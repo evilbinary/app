@@ -252,6 +252,15 @@ add_files(
    'test-foot.c'
 )
 
+# 阻塞唤醒返回值回归（fork / unix socket / pty / poll 短超时）。
+# 复现"唤醒发生在登记→切出窗口里，返回值写错帧"导致 syscall 返回参数值。
+# 跑法：python3 tools/ltp_batch.py --timeout 180 /bin/test-wake
+target("test-wake")
+set_type("cli")
+add_files(
+   'test-wake.c'
+)
+
 # foot capability（阶段 4）回归：窗口申请、越权拒绝、派生只减权、撤销失效。
 # 跑法：python3 tools/ltp_batch.py --timeout 60 /bin/test-cap
 target("test-cap")
