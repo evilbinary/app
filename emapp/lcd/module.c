@@ -173,8 +173,8 @@ void modules_init(void) {
   REGISTER_MODULE(ewok);
 #endif
 
-#ifdef GAGA_MODULE
-  REGISTER_MODULE(gaga);
+#ifdef FOOT_MODULE
+  REGISTER_MODULE(foot);
 #endif
 
 #ifdef TRACE_MODULE
