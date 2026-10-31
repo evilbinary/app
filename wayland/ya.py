@@ -230,7 +230,8 @@ weston_module(
 # WESTON_MODULE_MAP 指过去（LIBEXECDIR 默认 /usr/libexec）。
 # 只依赖 cairo，不含 pango（cairo-util.c 里 pango 分支靠 HAVE_PANGO 关掉，
 # 文字走 cairo toy API）。
-def toytoolkit_client(name, main_src, extra_files=(), install_type="cli"):
+def toytoolkit_client(name, main_src, extra_files=(), install_type="cli",
+                      extra_incdirs=()):
     target(name)
     # install_type="libexec"：装到镜像 /usr/libexec（shell 按 LIBEXECDIR 绝对
     # 路径 fork 的辅助客户端），而不是 /bin —— 见 xenv/env.py 的 set_type()。
@@ -254,6 +255,7 @@ def toytoolkit_client(name, main_src, extra_files=(), install_type="cli"):
         '../../eggs/weston/shared',
         '../../eggs/weston/include',
         '../../eggs/wayland-protocols/gen',
+        *extra_incdirs,
     )
     add_files(
         main_src,
@@ -344,6 +346,24 @@ if has_config("wayland-desktop"):
         "weston-image",
         '../../eggs/weston/clients/image.c',
         _option_parser,
+    )
+
+    # 文本编辑器：上游 clients/editor.c 唯一的重依赖是 pangocairo + gobject
+    # （clients/meson.build 里 editor 的 deps），本平台 cairo 是手工配置的
+    # （CAIRO_HAS_FC_FONT=0），没有 pango/glib 可选。这里把
+    # eggs/weston/compat/pango-shim 加进 include path：它只实现 editor.c 用到的
+    # 那一小撮 pango API（布局按 '\n' 断行、用 cairo toy 字体量宽度），
+    # 于是上游源码零改动就能编出 /bin/weston-editor。
+    # 【注意】只把 pango-shim 目录加进来，不要加 eggs/weston/compat 本身：
+    # 那目录有 cairo.h 空垫片，会把真的 <cairo.h> 顶掉。
+    toytoolkit_client(
+        "weston-editor",
+        '../../eggs/weston/clients/editor.c',
+        [
+            '../../eggs/weston/compat/pango-shim/pango-shim.c',
+            '../../eggs/weston/shared/option-parser.c',
+        ],
+        extra_incdirs=['../../eggs/weston/compat/pango-shim'],
     )
 
     # 演示类客户端：窗口里画各自的效果，主要用来验证合成/输入/动画链路
