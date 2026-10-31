@@ -11,6 +11,7 @@
  *   主机侧：python3 tools/ltp_batch.py --timeout 60 /bin/test-cap
  ********************************************************************/
 #include <stdio.h>
+#include <string.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -139,6 +140,112 @@ int main(int argc, char* argv[]) {
         "parent cap survives child exit (object refcount)");
   CHECK(geteuid() == 0, "parent creds unaffected by child setuid");
   foot_cap_revoke(hi);
+
+  /* ===================== OBJ_FRAME（物理页对象） =====================
+   * 帧对象让"普通内存页"也能被授权：以前 sys_thread_map 只认设备窗口，
+   * 任何一块 RAM 物理页都无法用能力描述，用户态拿着 PA 就能映射。 */
+  unsigned int fpa = 0, fsz = 0;
+  foot_cap_t fr = foot_cap_alloc_frame(0, 0, 0, &fpa, &fsz);
+  CHECK(fr != FOOT_CAP_NONE, "alloc frame object");
+  CHECK(fsz == 4096, "frame is one page by default");
+  CHECK(fpa != 0 && (fpa & 0xfff) == 0, "frame pa is page aligned");
+
+  unsigned char* fva = (unsigned char*)0x68000000UL;
+  CHECK(foot_cap_map(fr, fva, 0, 4096) == 0, "map frame into user va");
+  fva[0] = 0x5a;
+  fva[4095] = 0xa5;
+  CHECK(fva[0] == 0x5a && fva[4095] == 0xa5, "frame page is writable");
+
+  CHECK(foot_cap_map(fr, fva + 0x2000, 4096, 4096) == -1,
+        "map beyond frame rejected");
+  CHECK(foot_cap_map(fr, fva + 0x100, 0, 4096) == -1,
+        "map unaligned va rejected");
+  CHECK(foot_cap_map(fr, fva + 0x1000, 0, 0x3000) == -1,
+        "map length beyond frame rejected");
+
+  /* 帧能力让裸 sys_thread_map 放行（映射授权闭环） */
+  ret = syscall(SYS_THREAD_MAP, (long)gettid(), (long)0x68004000UL, (long)fpa,
+                (long)0x1000, (long)3);
+  CHECK(ret == 0, "raw SYS_THREAD_MAP accepted for granted frame");
+
+  /* 派生不带 FRAME_MAP ⇒ 能拿句柄但映射被拒（不增原则） */
+  foot_cap_t ro2 = foot_cap_derive(fr, CAP_RIGHT_LOAD);
+  CHECK(ro2 != FOOT_CAP_NONE, "mint frame cap without map right");
+  CHECK(foot_cap_map(ro2, fva + 0x3000, 0, 4096) == -1,
+        "minted cap without FRAME_MAP cannot map");
+
+  CHECK(foot_cap_unmap(fr) == 0, "unmap frame");
+  foot_cap_revoke(ro2);
+  foot_cap_revoke(fr);
+  CHECK(foot_cap_info(fr, &pa, &size, &rights) == -1,
+        "frame handle dead after revoke");
+
+  /* ===================== OBJ_ENDPOINT（IPC 携带能力） ===================== */
+  foot_cap_t ep = foot_cap_ep_create();
+  CHECK(ep != FOOT_CAP_NONE, "create endpoint");
+
+  char rbuf[64];
+  unsigned long rlen = 0;
+  foot_cap_t got = FOOT_CAP_NONE;
+  CHECK(foot_cap_ep_recv(ep, rbuf, sizeof(rbuf), &rlen, &got) == -1,
+        "recv on empty endpoint rejected");
+
+  foot_cap_t xfer = foot_cap_get_mmio("dwc2");
+  CHECK(xfer != FOOT_CAP_NONE, "acquire cap to transfer");
+  foot_cap_t no_grant = foot_cap_derive(xfer, CAP_RIGHT_LOAD);
+  CHECK(no_grant != FOOT_CAP_NONE, "mint cap without GRANT");
+  CHECK(foot_cap_ep_send(ep, "x", 1, no_grant) == -1,
+        "cannot transfer cap without GRANT");
+  foot_cap_revoke(no_grant);
+
+  /* fork 之后父子共享同一个 endpoint：父投递 + 附带能力，子取走并直接使用 */
+  pid_t ep_pid = fork();
+  if (ep_pid == 0) {
+    int fails = 0;
+    char cbuf[64];
+    unsigned long clen = 0;
+    foot_cap_t cgot = FOOT_CAP_NONE;
+    for (int i = 0; i < 500 && cgot == FOOT_CAP_NONE; i++) {
+      if (foot_cap_ep_recv(ep, cbuf, sizeof(cbuf), &clen, &cgot) != 0) {
+        usleep(1000);
+      }
+    }
+    if (cgot == FOOT_CAP_NONE) {
+      fails++; /* 没收到消息/能力 */
+    } else {
+      if (clen != 7 || memcmp(cbuf, "withcap", 7) != 0) {
+        fails++; /* 消息体不对 */
+      }
+      unsigned int gp = 0, gs = 0, gr = 0;
+      if (foot_cap_info(cgot, &gp, &gs, &gr) != 0) {
+        fails++; /* 收到的句柄在子进程 CSpace 里不可用 */
+      }
+      if (gs != 0x10000) {
+        fails++; /* 应是 dwc2 窗口大小 */
+      }
+      if ((gr & (CAP_RIGHT_GRANT | CAP_RIGHT_MINT | CAP_RIGHT_REVOKE)) != 0) {
+        fails++; /* 转授不能顺带把分发权给出去 */
+      }
+      if (foot_cap_map(cgot, (void*)(unsigned long)gp, 0, 0x1000) != 0) {
+        fails++; /* 收到的能力必须能直接拿来映射 */
+      }
+    }
+    _exit(fails == 0 ? 0 : 1);
+  }
+
+  usleep(20000);
+  CHECK(foot_cap_ep_send(ep, "withcap", 7, xfer) == 0,
+        "send message carrying a cap");
+  int est = 0;
+  waitpid(ep_pid, &est, 0);
+  CHECK(WIFEXITED(est) && WEXITSTATUS(est) == 0,
+        "child received message and usable cap over endpoint");
+
+  /* 父这边队列已空，能力引用随之转移（父仍然持有自己的 xfer） */
+  CHECK(foot_cap_info(xfer, &pa, &size, &rights) == 0,
+        "sender cap survives transfer (object refcount)");
+  foot_cap_revoke(xfer);
+  foot_cap_revoke(ep);
 
   printf("=== test-cap: pass=%d fail=%d ===\n", g_pass, g_fail);
   return g_fail == 0 ? 0 : 1;
