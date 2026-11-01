@@ -138,7 +138,9 @@ int main(void) {
     unsigned int pa = 0, size = 0;
     unsigned long bo_bytes = (unsigned long)BO_W * BO_H * BO_CPP;
     foot_cap_t cap = foot_cap_alloc_frame(bo_bytes, 0, 0, &pa, &size);
-    CHECK(cap != FOOT_CAP_NONE, "alloc BO frame (%lu bytes)", bo_bytes);
+    printf("alloc BO frame: %lu bytes -> cap=%lx pa=0x%08x size=%u\n", bo_bytes,
+           (unsigned long)cap, pa, size);
+    CHECK(cap != FOOT_CAP_NONE, "alloc BO frame");
 
     if (cap != FOOT_CAP_NONE &&
         foot_cap_map(cap, (void*)BO_VA, 0, size) == 0) {
