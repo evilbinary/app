@@ -269,3 +269,13 @@ add_deps("foot")
 add_files(
    'test-cap.c'
 )
+
+# v3dd（V3D GPU 服务）客户端回归：INFO / IDENT / FILL（四象限填色）。
+# 需先启动 /bin/v3dd。跑法：
+#   python3 tools/ltp_batch.py --timeout 60 /bin/test-v3d
+target("test-v3d")
+set_type("cli")
+add_deps("foot")
+add_files(
+   'test-v3d.c'
+)
