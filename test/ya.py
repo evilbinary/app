@@ -279,3 +279,46 @@ add_deps("foot")
 add_files(
    'test-gpu.c'
 )
+
+target("test-mesa")
+set_type("cli")
+add_deps("foot")
+add_deps("mesa")
+add_deps("drm")
+add_files(
+   'test-mesa.c'
+)
+
+target("test-v3d")
+set_type("cli")
+add_deps("foot")
+# 静态链接顺序：per-version 库（引用 _mesa_* 工具符号）排在主库之前，
+# 单趟扫描时主库才能补上它们的未定义符号。
+add_deps("mesa-v42")
+add_deps("mesa-v71")
+add_deps("mesa")
+add_deps("drm")
+add_files(
+   'test-v3d.c'
+)
+add_cflags(
+   ' -DV3D_VERSION=71 -D_GNU_SOURCE -D__linux__ '
+   ' -DHAVE_SYSCONF -DHAVE_GETRANDOM -DHAVE_GETENTROPY '
+   ' -DHAVE_MALLOC_USABLE_SIZE -DHAVE_CLOCK_GETTIME -DHAVE_TIMESPEC_GET '
+   ' -DHAVE_STRTOD_L -DHAVE_MEMFD_CREATE '
+)
+
+# Mesa 的全局宏（libmesa 的 add_defines 不外传，这里显式补）
+add_defines(
+   'HAVE_PTHREAD=1',
+   'HAVE_STRUCT_TIMESPEC=1',
+   'HAVE_V3D=1',
+   'GALLIUM_V3D=1',
+   'USE_V3D_SIMULATOR=0',
+   'HAVE_ENDIAN_H=1',
+   'HAVE_SYS_MMAN_H=1',
+   'UTIL_ARCH_LITTLE_ENDIAN=1',
+   'UTIL_ARCH_BIG_ENDIAN=0',
+   'PACKAGE_VERSION="24.0-foot"',
+   'MESA_LLVM_VERSION_STRING="0"',
+)
