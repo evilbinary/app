@@ -270,12 +270,12 @@ add_files(
    'test-cap.c'
 )
 
-# GPU 服务（gpud）客户端回归：QUERY / FILL（四象限填色）。
+# GPU 服务（gpud）客户端回归：QUERY / FILL / BO / SUBMIT_TFU。
 # 自包含：fork + exec /bin/gpud 启动服务端。跑法：
-#   python3 tools/ltp_batch.py --timeout 90 /bin/test-v3d
-target("test-v3d")
+#   python3 tools/ltp_batch.py --timeout 90 /bin/test-gpu
+target("test-gpu")
 set_type("cli")
 add_deps("foot")
 add_files(
-   'test-v3d.c'
+   'test-gpu.c'
 )
