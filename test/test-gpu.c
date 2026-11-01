@@ -137,10 +137,15 @@ int main(void) {
   {
     unsigned int pa = 0, size = 0;
     unsigned long bo_bytes = (unsigned long)BO_W * BO_H * BO_CPP;
-    foot_cap_t cap = foot_cap_alloc_frame(bo_bytes, 0, 0, &pa, &size);
-    printf("alloc BO frame: %lu bytes -> cap=%lx pa=0x%08x size=%u\n", bo_bytes,
+    /* 【必须用 arena，不能用 frame】cap_frame 逐页分配后要求【物理恰好连续】
+     * （cap_frame.c:159 的 "frame: not contiguous" 检查），页池碎片化后
+     * 32KB 经常拿不到连续页而失败。OBJ_ARENA 走 phy_alloc_aligment，一次
+     * 拿物理连续块 —— 这也正是 GPU BO 的语义要求（v3d_bo_create 按
+     * pa + i*4K 逐页映射，物理必须连续）。 */
+    foot_cap_t cap = foot_cap_alloc_arena(bo_bytes, 0, 0, &pa, &size);
+    printf("alloc BO arena: %lu bytes -> cap=%lx pa=0x%08x size=%u\n", bo_bytes,
            (unsigned long)cap, pa, size);
-    CHECK(cap != FOOT_CAP_NONE, "alloc BO frame");
+    CHECK(cap != FOOT_CAP_NONE, "alloc BO arena");
 
     if (cap != FOOT_CAP_NONE &&
         foot_cap_map(cap, (void*)BO_VA, 0, size) == 0) {
