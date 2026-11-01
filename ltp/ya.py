@@ -52,7 +52,10 @@ add_includedirs(_here, _p.join(_here, "ltp/include"),
                 *_tst_incdirs)
 add_cflags("-include", "%s/config.h" % _here,
            "-Wno-unused-parameter", "-Wno-sign-compare",
-           "-Wno-implicit-function-declaration")
+           "-Wno-implicit-function-declaration",
+           # 上游 lib/Makefile 就这么编：tst_tmpdir.h 在未定义 LTPLIB 时把
+           # tst_get_tmpdir 定义成 #error 宏，库自身的定义处会直接炸。
+           "-DLTPLIB")
 
 # ---------- 测试 runner ----------
 # 两段式构建（符号本地化，见 localize.py）：
