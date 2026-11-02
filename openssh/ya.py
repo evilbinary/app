@@ -108,6 +108,20 @@ _configure_wrapper = (
     '#define HAVE_BLK_SIZE_T 1\n'
     '#define HAVE_SIG_ATOMIC_T 1\n'
     '#define HAVE_STRUCT_SOCKADDR_STORAGE 1\n'
+    # musl 确实提供的函数：configure 的 AC_CHECK_FUNCS 在交叉编译下常常整批
+    # 失败（链接测试过不去 / 执行环境干扰），这里直接补上，避免 OpenSSH 去
+    # #define snprintf/realpath/mblen 盖住 musl 的声明（那会让 stdlib.h 里的
+    # 原型被宏替换成语法错误）。
+    '#define HAVE_SNPRINTF 1\n'
+    '#define HAVE_VSNPRINTF 1\n'
+    '#define HAVE_REALPATH 1\n'
+    '#define HAVE_MBLEN 1\n'
+    '#define HAVE_STRTOLL 1\n'
+    '#define HAVE_STRTOULL 1\n'
+    '#define HAVE_WAIT4 1\n'
+    '#define HAVE_SETRESUID 1\n'
+    '#define HAVE_SETRESGID 1\n'
+    '#define HAVE_GETSPNAM 1\n'
     'OPENSSH_FOOT_EOF\n'
     'echo "openssh: patched config.h (sizeof/types)"\n'
     # install 依赖 host-key / check-config，这两个目标要【运行】交叉编译出来的
@@ -180,6 +194,13 @@ def _deploy_sshd(_target):
                            'app', 'resource')
     _src = _pyos.path.join(_ssh_prefix, 'bin', 'sshd')
     if not _pyos.path.exists(_src):
+        return
+    # make install 中途失败会留下 0 字节的目标文件（ginstall 先 create 后写）。
+    # 而 ymake 的「已构建」判定只看文件是否存在 —— 空文件会让后续 ya 一直
+    # 跳过构建，最后把 0 字节的 sshd 部署进镜像（实测踩过）。这里挡一下。
+    if _pyos.path.getsize(_src) == 0:
+        print('openssh: sshd 是空文件（install 残留），跳过部署；'
+              '删掉 {} 后重跑即可重建'.format(_src))
         return
     _bin = _pyos.path.join(_res, 'bin')
     _pyos.makedirs(_bin, exist_ok=True)
@@ -271,15 +292,24 @@ _crypt_inc = _pyos.path.join(_crypt_lib, 'include')
 #   （报 “C compiler cannot create executables”）。
 _cflags = ('-I' + _musl_inc + ' -I' + _crypt_inc +
            ' -O2 -fno-strict-aliasing')
+# 【用内核自己的用户态链接脚本】ymake 的 set_type("cli") 会给普通 target
+# 加 `-T app/xlinker/user-<plat>.ld`（把 .text 放到 K_VIR_ADDR=0x71000000，
+# 落进内核用户 VA 窗口）。OpenSSH 走 automake，拿不到这个 ldflags，
+# 所以这里显式补上 —— 与现有程序（gpud/sh/cat 入口都是 0x71000000）一致。
+# 否则 ld 默认基址是 0x400000，内核 elf64_precheck 会直接拒绝：
+#   "elf64 precheck reject /bin/sshd vaddr [400000,91f000)"
+# 脚本里带 STARTUP(crt1.o)，所以 LDFLAGS 不再显式给 crt1/crti。
+_xld = _pyos.path.join(_pyos.path.abspath(os.projectdir()),
+                       'app', 'xlinker', 'user-' + str(get_plat()) + '.ld')
+
 _ldflags = ' '.join([
     '-nostdlib', '-static',
+    '-T' + _xld,
     # libcrypto 的 -L 必须在 LDFLAGS 里：LIBS 最前面就有 -lcrypto，而 configure
     # 最早的「C compiler can create executables」测试还没轮到 --with-ssl-dir
     # 生效，缺这个 -L 会直接报 cannot create executables。
     '-L' + _crypto_prefix,   # 注意：_crypto_prefix 已经是 .../crypto/lib
     '-L' + _musl_lib,
-    _pyos.path.join(_musl_lib, 'crt1.o'),
-    _pyos.path.join(_musl_lib, 'crti.o'),
 ])
 # 【顺序】-lcrypto 必须在 -lc 之前：configure 会把 --with-ssl-dir 推出的
 # -lcrypto 追加到 LIBS 末尾，而静态链接是单向解析的，排在 -lc 之后就会让
