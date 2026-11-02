@@ -20,7 +20,7 @@ target("openssh")
 set_type("cli")
 
 add_packages(get_config('default_libc'))
-add_deps("crypto")          # libcrypto.a（eggs/libopenssl）
+add_deps("crypto", "crypt")  # libcrypto.a（eggs/libopenssl）+ libcrypt.a（eggs/libxcrypt）
 
 _ssh_src = _pyos.path.abspath(os.scriptdir())
 _ssh_oot = _pyos.path.abspath(_pyos.path.join(
@@ -146,13 +146,19 @@ _ssh_prefix = _pyos.path.abspath(_pyos.path.join(
     'build', str(get_plat()), str(get_arch()), str(get_config('mode')),
     'openssh'))
 
-_SSHD_CONFIG = '''# YiYiYa 默认 sshd 配置（公钥登录；musl 没有 libcrypt，密码认证关掉）
+# root 的密码哈希：密码是 `root`，由 `openssl passwd -6 root` 生成（$6$ = sha512crypt，
+# 和 libxcrypt 的 sha512crypt 实现一致）。改密码就重新生成一行替换这里。
+_SHADOW_ROOT_HASH = (
+    '$6$kny4I5r7SOO51qus$JS/xi/Pr51mouP3iYcx.kIZy0ynleRNyfiS7HGIc/'
+    'GznSpwSgfafO5sGlPzk9pNIzsCT.Pyd68J5s4fsDsNv6.')
+
+_SSHD_CONFIG = '''# YiYiYa 默认 sshd 配置（密码 + 公钥）
 Port 22
 ListenAddress 0.0.0.0
 HostKey /etc/ssh/ssh_host_ed25519_key
 PermitRootLogin yes
 PubkeyAuthentication yes
-PasswordAuthentication no
+PasswordAuthentication yes
 PermitEmptyPasswords no
 UsePAM no
 X11Forwarding no
@@ -204,7 +210,6 @@ def _deploy_sshd(_target):
             print('openssh: host key generation failed:', _e)
 
     # /etc/passwd：sshd 要用 getpwnam("root") 才能切用户/取 home。
-    # 单用户系统，写一条就够（不需要 shadow —— 已关密码认证）。
     _pw = _pyos.path.join(_res, 'etc', 'passwd')
     if not _pyos.path.exists(_pw):
         _f = open(_pw, 'w')
@@ -212,6 +217,17 @@ def _deploy_sshd(_target):
                  'sshd:x:22:22:sshd:/var/empty:/bin/false\n')
         _f.close()
         print('openssh: wrote /etc/passwd')
+
+    # /etc/shadow：密码认证需要。root 的密码用 `$6$`（sha512crypt），
+    # 哈希由宿主机的 `openssl passwd -6` 生成（和 libxcrypt 的 sha512crypt 对拍过）。
+    # 改密码：openssl passwd -6 新密码，然后替换这里的哈希。
+    _sh = _pyos.path.join(_res, 'etc', 'shadow')
+    if not _pyos.path.exists(_sh):
+        _f = open(_sh, 'w')
+        _f.write('root:' + _SHADOW_ROOT_HASH + ':19000:0:99999:7:::\n')
+        _f.close()
+        _pyos.chmod(_sh, 0o600)
+        print('openssh: wrote /etc/shadow (密码 root)')
 
     # authorized_keys：从宿主机的 ~/.ssh/*.pub 收进来（公钥认证，不用密码）
     _ak_dir = _pyos.path.join(_res, 'root', '.ssh')
@@ -243,11 +259,18 @@ _musl_root = _pyos.path.abspath(_pyos.path.join(
 _musl_inc = _pyos.path.join(_musl_root, 'include')
 _musl_lib = _pyos.path.join(_musl_root, 'lib')
 
+# libxcrypt（eggs/libxcrypt）的安装前缀：musl 没有 crypt(3)，密码认证要用它
+_crypt_lib = _pyos.path.abspath(_pyos.path.join(
+    'build', str(get_plat()), str(get_arch()), str(get_config('mode')),
+    'crypt', 'lib'))
+_crypt_inc = _pyos.path.join(_crypt_lib, 'include')
+
 # 【裸机交叉编译的三件套】照 eggs/libffmpeg 的经验：
 #   configure 的 test_ld 只带 $LDFLAGS（不带 $CFLAGS），所以 LDFLAGS 里必须
 #   同时给 -nostdlib 和 crt1.o/crti.o，否则 gcc 会去塞 newlib 的 crt0 并失败
 #   （报 “C compiler cannot create executables”）。
-_cflags = '-I' + _musl_inc + ' -O2 -fno-strict-aliasing'
+_cflags = ('-I' + _musl_inc + ' -I' + _crypt_inc +
+           ' -O2 -fno-strict-aliasing')
 _ldflags = ' '.join([
     '-nostdlib', '-static',
     # libcrypto 的 -L 必须在 LDFLAGS 里：LIBS 最前面就有 -lcrypto，而 configure
@@ -263,6 +286,7 @@ _ldflags = ' '.join([
 # libcrypto 里引用的 accept/gethostbyname 全部变成 undefined。
 _libs = ' '.join([
     '-lcrypto',
+    '-L' + _crypt_lib, '-lcrypt',      # libxcrypt：crypt(3)，musl 不自带
     '-L' + _musl_lib, '-lc', '-lgcc',
     _pyos.path.join(_musl_lib, 'crtn.o'),
 ])
