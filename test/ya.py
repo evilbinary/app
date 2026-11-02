@@ -322,3 +322,14 @@ add_defines(
    'PACKAGE_VERSION="24.0-foot"',
    'MESA_LLVM_VERSION_STRING="0"',
 )
+
+# OpenSSL 随机数探针（定位 sshd seed_rng 失败，见 test-rand.c 头部注释）
+target("test-rand")
+set_type("cli")
+add_deps("crypto")
+add_files("test-rand.c")
+
+# pthread_once / futex 探针（见 test-once.c 头部注释）
+target("test-once")
+set_type("cli")
+add_files("test-once.c")
