@@ -78,6 +78,11 @@ _configure_wrapper = (
     # 注意：HAVE_U_INTXX_T / HAVE_U_INT64_T 不要加 —— musl 没有这些类型，
     # 得让 OpenSSH 自己 typedef。
     'cat >> config.h << \'OPENSSH_FOOT_EOF\'\n'
+    # 【版本标记】late patch 靠它判断「这一版补丁有没有打进去」。
+    # 每次增删补丁宏都要把 REV 递增，否则旧的 config.h 不会更新
+    # （踩过：用 HAVE_GETSPNAM 当标记，它第一次就写进去了，
+    #   之后新加的 HAVE_SETSID 等永远不生效）。
+    '/* OPENSSH_FOOT_PATCH_REV_8 */\n'
     '#define SIZEOF_SHORT_INT 2\n'
     '#define SIZEOF_INT 4\n'
     '#define SIZEOF_LONG_INT 8\n'
@@ -122,12 +127,109 @@ _configure_wrapper = (
     '#define HAVE_SETRESUID 1\n'
     '#define HAVE_SETRESGID 1\n'
     '#define HAVE_GETSPNAM 1\n'
+    # 会话/进程类（缺了会让 OpenSSH 定义 `#define setsid() (setsid())`
+    # 这种宏，把 musl unistd.h 里的原型替换成语法错误）
+    '#define HAVE_SETSID 1\n'
+    '#define HAVE_GETSID 1\n'
+    '#define HAVE_SETPGID 1\n'
+    '#define HAVE_GETPGID 1\n'
+    '#define HAVE_GETPGRP 1\n'
+    '#define HAVE_TCGETPGRP 1\n'
+    '#define HAVE_UTIMES 1\n'
+    '#define HAVE_FUTIMES 1\n'
+    # utf8.c 里 `# include <langinfo.h>` 被 HAVE_LANGINFO_H 包着；musl 有
+    # langinfo.h（CODESET = 14），定义后 CODESET / nl_langinfo 才可见。
+    '#define HAVE_LANGINFO_H 1\n'
+    # musl 的 sys/stat.h 把 S_ISVTX 放在 `#ifndef S_IRUSR` 块里，而
+    # bits/stat.h 已经定义了 S_IRUSR → 整块被跳过、S_ISVTX 永远缺失
+    # （strmode.c 因此编不过）。这是 musl 头文件的问题，先在这里兜底。
+    '#ifndef S_ISVTX\n#define S_ISVTX 01000\n#endif\n'
+    # 标准头都补上：configure 的 AC_CHECK_HEADERS 也整批失败了，缺哪个
+    # OpenSSH 就会在自己的 defines.h 里重造一份结构体（sockaddr_un 撞车
+    # 就是这么来的）。这里只列 musl 确实提供的（utmp.h 没有，不补）。
+    '#define HAVE_SYS_UN_H 1\n'
+    '#define HAVE_SYS_MMAN_H 1\n'
+    '#define HAVE_SYS_SELECT_H 1\n'
+    '#define HAVE_SYS_SOCKET_H 1\n'
+    '#define HAVE_SYS_STAT_H 1\n'
+    '#define HAVE_SYS_TIME_H 1\n'
+    '#define HAVE_SYS_IPC_H 1\n'
+    '#define HAVE_SYS_SHM_H 1\n'
+    '#define HAVE_SYS_WAIT_H 1\n'
+    '#define HAVE_NETINET_IN_H 1\n'
+    '#define HAVE_ARPA_INET_H 1\n'
+    '#define HAVE_NETDB_H 1\n'
+    '#define HAVE_POLL_H 1\n'
+    '#define HAVE_PWD_H 1\n'
+    '#define HAVE_GRP_H 1\n'
+    '#define HAVE_SHADOW_H 1\n'
+    '#define HAVE_TERMIOS_H 1\n'
+    '#define HAVE_UTIME_H 1\n'
+    '#define HAVE_GLOB_H 1\n'
+    '#define HAVE_FNMATCH_H 1\n'
+    '#define HAVE_REGEX_H 1\n'
+    '#define HAVE_ICONV_H 1\n'
+    '#define HAVE_STRING_H 1\n'
+    '#define HAVE_UNISTD_H 1\n'
+    '#define HAVE_STDLIB_H 1\n'
+    '#define HAVE_STDINT_H 1\n'
+    '#define HAVE_INTTYPES_H 1\n'
+    '#define HAVE_FCNTL_H 1\n'
+    '#define HAVE_DIRENT_H 1\n'
+    # 【自动生成的那一份】tools/gen_openssh_configh.py 从 configure.ac 提取
+    # 全部 AC_CHECK_FUNCS/HEADERS/DECLS，用 `nm libc.a` + musl include 目录
+    # 核对，生成「musl 真有的」那些宏。手工补是无穷无尽的（已踩十几轮），
+    # 以这份为准；上面手写的只是历史遗留 + 少数它覆盖不到的项。
+    '#include "foot-musl-defs.h"\n'
+    # 【WITH_OPENSSL 必须定义】它是 configure 检测到 OpenSSL 后写的开关，
+    # 我们这边整批检测失败 → 没定义 → 所有 `#ifdef WITH_OPENSSL` 包着的
+    # <openssl/*.h> 都被跳过 → ECDSA_SIG / EVP_MD_CTX / NID_X9_62_prime256v1
+    # 全部 unknown type。ENABLE_SK 又是开着的，于是 ssh-ecdsa-sk.c 必炸。
+    '#define WITH_OPENSSL 1\n'
+    '#define HAVE_NANOSLEEP 1\n'
+    '#define HAVE_USLEEP 1\n'
+    # 字符串/内存类
+    '#define HAVE_STRERROR 1\n'
+    '#define HAVE_STRSEP 1\n'
+    '#define HAVE_STRNDUP 1\n'
+    '#define HAVE_STRNLEN 1\n'
+    '#define HAVE_MEMMEM 1\n'
+    '#define HAVE_GETLINE 1\n'
+    '#define HAVE_STRLCPY 1\n'
+    '#define HAVE_STRLCAT 1\n'
+    '#define HAVE_REALLOCARRAY 1\n'
+    '#define HAVE_EXPLICIT_BZERO 1\n'
+    '#define HAVE_GETENTROPY 1\n'
+    '#define HAVE_GETRANDOM 1\n'
+    # 注意：arc4random / timingsafe_bcmp 这两个 musl 没有（已确认
+    # eggs/libmusl/src 里不存在），不要补 —— 让 OpenSSH 用自己的实现。
     'OPENSSH_FOOT_EOF\n'
     'echo "openssh: patched config.h (sizeof/types)"\n'
     # install 依赖 host-key / check-config，这两个目标要【运行】交叉编译出来的
     # ssh-keygen（在 macOS 上必然 126），所以从 install 依赖里摘掉。
     'sed -i "" "s/^install: \\(.*\\) host-key check-config$/install: \\1/" Makefile\n'
     'exit 0\n')
+# 【配置阶段补 patch，避免改宏就得重配】wrapper 里的 heredoc 只在 configure
+# 时执行一次；之后往补丁里加 #define 不应该要求重新跑几分钟的 configure。
+# 这里从 wrapper 文本里取出同一段 heredoc，幂等地追加到已存在的 config.h。
+_cfg_h = _pyos.path.join(_ssh_oot, 'config.h')
+if _pyos.path.exists(_cfg_h):
+    try:
+        _txt = open(_cfg_h, 'r').read()
+    except Exception:
+        _txt = ''
+    if 'OPENSSH_FOOT_PATCH_REV_8' not in _txt:   # 版本化标记，见 wrapper
+        # 用位置查找而不是 split：wrapper 里 heredoc 的起始写法是
+        # `cat >> config.h << 'OPENSSH_FOOT_EOF'`（带引号），
+        # split('OPENSSH_FOOT_EOF\n') 只能切出 2 段，条件永远不成立。
+        _s = _configure_wrapper.find('/* OPENSSH_FOOT_PATCH_REV_8 */')
+        _e = _configure_wrapper.find('OPENSSH_FOOT_EOF\n', _s + 1)
+        if _s >= 0 and _e > _s:
+            _fh = open(_cfg_h, 'a')
+            _fh.write(_configure_wrapper[_s:_e])
+            _fh.close()
+            print('openssh: patched config.h (late patch REV_3)')
+
 _cfg_path = _pyos.path.join(_ssh_oot, 'configure')
 try:
     _old = open(_cfg_path, 'r').read()
@@ -354,6 +456,21 @@ try:
         print('openssh: patched bsd-misc.c ({} semicolons)'.format(_n))
 except Exception as _e:
     print('openssh: patch bsd-misc.c failed:', _e)
+
+# 【utf8.c 缺 <langinfo.h>】它直接调 nl_langinfo(CODESET)，但 OpenSSH 10 的
+# utf8.c 只 include 了 <locale.h>，靠某些系统头间接带出 langinfo；musl 不带。
+# 后果是 CODESET 未声明（编译错误），就算能过也是隐式声明 nl_langinfo
+# （返回 int，64 位下指针被截断 → 运行时崩）。这里幂等补一行 include。
+_utf8_c = _pyos.path.join(_ssh_src, 'utf8.c')
+try:
+    _s = open(_utf8_c, 'r').read()
+    if 'langinfo.h' not in _s:
+        _s = _s.replace('#include <locale.h>',
+                        '#include <locale.h>\n#include <langinfo.h>', 1)
+        open(_utf8_c, 'w').write(_s)
+        print('openssh: patched utf8.c (+langinfo.h)')
+except Exception as _e:
+    print('openssh: patch utf8.c failed:', _e)
 
 configure(
     'CC=' + _tool + '-gcc',
