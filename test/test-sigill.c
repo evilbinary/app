@@ -25,8 +25,11 @@ static volatile sig_atomic_t hit = 0;
 static void on_sigill(int sig)
 {
     (void)sig;
+    printf("  [h] handler enter\n");
     hit = 1;
+    printf("  [h] handler before longjmp\n");
     siglongjmp(jb, 1);
+    printf("  [h] handler after longjmp (NOT REACHED)\n");
 }
 
 int main(void)
@@ -49,7 +52,7 @@ int main(void)
     /* 连做 3 轮，模拟 OpenSSL 逐条指令试探的行为 */
     for (round = 0; round < 3; round++) {
         printf("sigill: round %d, executing udf\n", round);
-        if (sigsetjmp(jb, 1) == 0) {
+        if (sigsetjmp(jb, 0) == 0) {
             __asm__ __volatile__("udf #0");   /* 未定义指令 → SIGILL */
             printf("sigill: round %d NOT TRAPPED\n", round);
         } else {

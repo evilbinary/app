@@ -341,3 +341,7 @@ add_files("test-big.c")
 target("test-sigill")
 set_type("cli")
 add_files("test-sigill.c")
+
+target("test-longjmp")
+set_type("cli")
+add_files("test-longjmp.c")
