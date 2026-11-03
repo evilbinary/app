@@ -172,7 +172,13 @@ enum {
   // Map _llseek to lseek for compatibility (musl may still call it).
   SYS_LLSEEK = 62,  // Same as SYS_SEEK on ARM64
   SYS_DUP = 23,
-  SYS_DUP2 = 23,      // ARM64: dup2 not available, map to dup (or use dup3=24)
+  /* 【SYS_DUP2 必须是 24，不能是 23】23 在内核是 sys_dup（1 参数语义）。
+   * init.c 用 syscall2(SYS_DUP2, series, 1/0/2) 把子进程的 stdio 重定向到
+   * shell 的管道 —— 之前 SYS_DUP2=23 时这三个调用实际执行的是 sys_dup(series)，
+   * new 参数被忽略，重定向完全失败，表现为「logo 之后 shell 无法输入」。
+   * 内核侧 24 号是 sys_dup3(oldfd,newfd,flags)，第三参数（flags）被忽略，
+   * 行为等同 dup2 ✓。 */
+  SYS_DUP2 = 24,
   SYS_DUP3 = 24,      // ARM64: use dup3 instead of dup2
   SYS_PIPE = 59,      // ARM64: pipe2 not available, use standard pipe
   SYS_UNLINK = 35,
