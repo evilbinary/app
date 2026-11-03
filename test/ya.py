@@ -333,3 +333,11 @@ add_files("test-rand.c")
 target("test-once")
 set_type("cli")
 add_files("test-once.c")
+
+target("test-big")
+set_type("cli")
+add_files("test-big.c")
+
+target("test-sigill")
+set_type("cli")
+add_files("test-sigill.c")
