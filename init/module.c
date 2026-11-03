@@ -206,6 +206,12 @@ void modules_init(void) {
   REGISTER_MODULE(cpu);
 #endif
 
+/* 看门狗：调度器停摆 WDT_TIMEOUT_SEC 秒后 PSCI 复位。
+ * 实现见 duck/modules/watchdog/；schedule.c 只有 weak 钩子。 */
+#ifdef WATCHDOG_MODULE
+  REGISTER_MODULE(watchdog);
+#endif
+
 #ifdef POSIX_MODULE
   REGISTER_MODULE(posix);
 #endif
