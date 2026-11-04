@@ -94,3 +94,11 @@ add_files("cp.c")
 target("test-tcpd")
 set_type("cli")
 add_files("test-tcpd.c")
+
+target("test-fork-sock")
+set_type("cli")
+add_files("test-fork-sock.c")
+
+target("mkdir")
+set_type("cli")
+add_files("mkdir.c")
