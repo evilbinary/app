@@ -90,3 +90,7 @@ add_files("reboot.c")
 target("cp")
 set_type("cli")
 add_files("cp.c")
+
+target("test-tcpd")
+set_type("cli")
+add_files("test-tcpd.c")
