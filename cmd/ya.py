@@ -82,3 +82,7 @@ add_files("logo.c")
 target("pushd")
 set_type("cli")
 add_files("pushd.c")
+
+target("reboot")
+set_type("cli")
+add_files("reboot.c")

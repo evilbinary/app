@@ -21,7 +21,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define PUSHD_PORT 9000
+/* 9001：与旧版(9000)并存，便于「先起新的、再停旧的」热更新 ——
+ * 端口相同的话必须先杀旧进程，而杀完之后就没有通道再起新进程了。 */
+#define PUSHD_PORT 9004
 #define HDR_MAX    4096
 /* 读空闲超时。原来是 600（3 秒），实测推 7.7MB 时只写到 163KB 就 short：
  * pushd 写 FAT 的速度跟不上 curl 的发送，TCP 接收窗口满后对端会暂停发送，
@@ -195,7 +197,9 @@ static void reply_status(int fd, const char *status, const char *body) {
 
 static void do_put(int fd, const char *path, char *hdr, int hlen) {
     char tmp[256];
-    char buf[1024];
+    /* 【16KB 静态缓冲】原来每轮只写 1KB 到 FAT，推 7.7MB 实测只有 8KB/s
+     * （280 秒才发出 2.2MB）。线程栈只有 4KB，大数组必须放静态区。 */
+    static char buf[16384];
     char err[160];
     int out;
     int content_len = find_content_length(hdr, hlen);
@@ -230,7 +234,17 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
     printf("pushd: PUT %s clen=%d hdr=%d in_hdr=%d\n", path, content_len, hlen,
            body_in_hdr);
 
-    snprintf(tmp, sizeof(tmp), "%s.new", path);
+    /* 【直接写模式】带 X-Direct: 1 时跳过 tmp+rename，直接写目标文件。
+     * 用途：FAT 根目录的 rename 目前是坏的（根节点 fat_path 为空，
+     * fat_volume_path 直接返回 -1），而 raspi5 的 kernel8.img 就在根目录、
+     * 换内核必须写它。先备份再直写，中断也不会把启动盘写废。 */
+    /* 大小写不敏感：curl 发的是 "X-Direct: 1" */
+    if (find_ci_len(hdr, hlen, "x-direct: 1") != NULL) {
+        snprintf(tmp, sizeof(tmp), "%s", path);
+        printf("pushd: DIRECT write %s\n", tmp);
+    } else {
+        snprintf(tmp, sizeof(tmp), "%s.new", path);
+    }
     out = open(tmp, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (out < 0) {
         snprintf(err, sizeof(err), "open %s: %s", tmp, strerror(errno));
@@ -276,6 +290,13 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
         unlink(tmp);
         printf("pushd: empty body\n");
         reply_status(fd, "500 Empty Body", "no data");
+        return;
+    }
+
+    if (strcmp(tmp, path) == 0) {
+        /* direct 模式：写的就是目标文件本身，没有 tmp 需要改名 */
+        printf("pushd: wrote %s (%d bytes, direct)\n", path, total);
+        reply_status(fd, "200 OK", "OK\n");
         return;
     }
 
@@ -373,8 +394,40 @@ static void do_run(int fd, char *hdr, int hlen) {
     pid = fork();
     if (pid == 0) {
         close(pfd[0]);
-        (void)dup2(pfd[1], 1);
-        (void)dup2(pfd[1], 2);
+        /* 后台命令（带 &）不能接 pipe：pushd 处理完请求就关 pipe，
+         * 后台进程再写 stdout 会收到 SIGPIPE 直接死（实测 sshd 起来
+         * 3 秒后 22 端口就从 OPEN 变 refused）。改成 /dev/null。
+         * 前台命令接 pipe 以便把输出回给客户端。 */
+        if (strchr(cmd, '&') != NULL) {
+            /* 后台进程的 stdout/stderr 落到 /etc/run.err：只打开一次、
+             * 由子进程一直持有，不反复 open/close —— 后者会破坏 FAT 里
+             * 别的进程正在用的 FIL（实测导致 "fat write error code 9"）。
+             * 这样 sshd -ddd 和 sshd-auth 的全部调试输出都能远程取回。 */
+            int logf = open("/etc/run.err", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            if (logf >= 0) {
+                (void)dup2(logf, 1);
+                (void)dup2(logf, 2);
+                if (logf > 2) {
+                    close(logf);
+                }
+            }
+            /* 彻底脱离：新建会话，并关掉从 pushd 继承的所有 fd
+             * （尤其是 9002 的监听 socket）。否则后台进程长期持有监听
+             * fd，pushd 退出后端口状态错乱；实测还会把 pushd 一起带崩。 */
+            (void)setsid();
+            {
+                int k;
+                for (k = 3; k < 64; k++) {
+                    close(k);
+                }
+            }
+        } else {
+            (void)dup2(pfd[1], 1);
+            /* 前台命令合并 stderr：sshd -ddd 的调试/致命信息都走 stderr，
+             * 不合并的话客户端只能看到 stdout（几乎是空的），
+             * 查 exec 失败原因时什么都看不到。 */
+            (void)dup2(pfd[1], 2);
+        }
         close(pfd[1]);
         execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
         _exit(127);
@@ -397,7 +450,23 @@ static void do_run(int fd, char *hdr, int hlen) {
         }
     }
     close(pfd[0]);
-    waitpid(pid, NULL, 0);
+    /* 【绝不无限等】原来是 waitpid(pid, NULL, 0)：如果 sh 在 "cmd &" 之后
+     * 不退出（自制 shell 的行为不确定），pushd 就会永久阻塞，而它是单线程
+     * 串行的 —— 一个请求卡死，后面所有 HTTP 请求全部排在 accept 之外，
+     * 表现为「端口 OPEN 但任何 GET/PUT 都超时」。改成最多轮询 3 秒，
+     * 超时就把 sh 留在后台（僵尸最终由 init 回收），本次请求照常返回。 */
+    if (strchr(cmd, '&') == NULL) {
+        /* 只有前台命令需要等它结束；后台命令（&）已经 setsid 脱离，
+         * 等它毫无意义，还会拖住 pushd 单线程。 */
+        int waited = 0;
+        while (waited < 300) {
+            if (waitpid(pid, NULL, WNOHANG) != 0) {
+                break;
+            }
+            usleep(10000);
+            waited++;
+        }
+    }
     printf("pushd: RUN done\n");
 }
 
@@ -428,6 +497,19 @@ static void handle(int fd) {
             *p = '\0';
         }
         do_get(fd, path);
+    } else if (strncmp(hdr, "POST /reboot", 12) == 0) {
+        /* 一条 curl 就能让设备重启（走 PSCI），配合推内核自动化：
+         *   curl -X POST http://<ip>:9004/reboot
+         * 先回响应再复位，避免客户端只看到连接被重置。 */
+        reply_status(fd, "200 OK", "rebooting\n");
+        sleep(1);
+        {
+            extern int reboot(int);
+            (void)reboot(0x01234567 /* RB_AUTOBOOT */);
+        }
+        for (;;) {
+            sleep(1);
+        }
     } else if (strncmp(hdr, "POST /run", 9) == 0) {
         do_run(fd, hdr, hlen);
     } else {
@@ -440,6 +522,7 @@ int main(void) {
     int on = 1;
     struct sockaddr_in addr;
     int pid;
+    int port = PUSHD_PORT;
 
     printf("pushd: starting on port %d\n", PUSHD_PORT);
 
@@ -448,22 +531,40 @@ int main(void) {
         perror("pushd: socket");
         return 1;
     }
-    setsockopt(srv, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    /* 【不要 SO_REUSEADDR】有它时 bind() 会对「已被别人 listen 的端口」
+     * 也返回成功，随后 listen() 才报 EADDRINUSE —— 那样端口递增逻辑
+     * 根本走不到。去掉后 bind 直接失败，才能顺利换下一个端口。
+     * （代价：进程刚退出时可能有 TIME_WAIT，但 pushd 是常驻监听，
+     *   正常更新都会换新端口，不受影响。） */
+    (void)on;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(PUSHD_PORT);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if (bind(srv, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        perror("pushd: bind");
-        close(srv);
-        return 1;
+    /* 【端口自动递增】旧版还在占着默认端口时，新版本要能起来 ——
+     * 否则每次更新 pushd 都得先杀旧的，而杀掉旧的就再没有通道启动新的。
+     * 从 PUSHD_PORT 开始往后试 16 个。 */
+    {
+        int bound = 0;
+        for (port = PUSHD_PORT; port < PUSHD_PORT + 16; port++) {
+            addr.sin_port = htons((unsigned short)port);
+            if (bind(srv, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
+                printf("pushd: bound port %d\n", port);
+                bound = 1;
+                break;
+            }
+        }
+        if (!bound) {
+            perror("pushd: bind");
+            close(srv);
+            return 1;
+        }
     }
     if (listen(srv, 4) < 0) {
         perror("pushd: listen");
         close(srv);
         return 1;
     }
-    printf("pushd: ready  curl -T <file> http://<ip>:%d/<path>\n", PUSHD_PORT);
+    printf("pushd: ready  curl -T <file> http://<ip>:%d/<path>\n", port);
 
     pid = fork();
     if (pid < 0) {
@@ -482,6 +583,10 @@ int main(void) {
         socklen_t plen = sizeof(peer);
         int c = accept(srv, (struct sockaddr *)&peer, &plen);
         if (c < 0) {
+            /* 监听 socket 是非阻塞的：没有新连接时 accept 返回 EAGAIN。
+             * 直接 continue 会变成纯忙等（实测两个 pushd 各占 23% / 9% CPU，
+             * ps 里 calls 全是 202=accept）。短睡 5ms 把 CPU 降下来。 */
+            usleep(5000);
             continue;
         }
         handle(c);
