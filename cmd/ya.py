@@ -79,9 +79,9 @@ add_deps("gui", "image", "jpeg", "png", "zlib")
 # 逐阶段重画，-O2 让混合/缩放快一些（infones 也是这么加的）
 add_cflags("-O2")
 add_files("logo.c") 
-target("pushd")
+target("devd")
 set_type("cli")
-add_files("pushd.c")
+add_files("devd.c")
 
 target("reboot")
 set_type("cli")

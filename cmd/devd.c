@@ -225,13 +225,13 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
          * 但 Content-Length 在前面所以能解析出来）。 */
         int s = (hlen > 48) ? (hlen - 48) : 0;
         int i;
-        printf("pushd: tail[%d..%d]=", s, hlen);
+        printf("devd: tail[%d..%d]=", s, hlen);
         for (i = s; i < hlen; i++) {
             printf("%02x", (unsigned char)hdr[i]);
         }
         printf("\n");
     }
-    printf("pushd: PUT %s clen=%d hdr=%d in_hdr=%d\n", path, content_len, hlen,
+    printf("devd: PUT %s clen=%d hdr=%d in_hdr=%d\n", path, content_len, hlen,
            body_in_hdr);
 
     /* 【直接写模式】带 X-Direct: 1 时跳过 tmp+rename，直接写目标文件。
@@ -241,14 +241,14 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
     /* 大小写不敏感：curl 发的是 "X-Direct: 1" */
     if (find_ci_len(hdr, hlen, "x-direct: 1") != NULL) {
         snprintf(tmp, sizeof(tmp), "%s", path);
-        printf("pushd: DIRECT write %s\n", tmp);
+        printf("devd: DIRECT write %s\n", tmp);
     } else {
         snprintf(tmp, sizeof(tmp), "%s.new", path);
     }
     out = open(tmp, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (out < 0) {
         snprintf(err, sizeof(err), "open %s: %s", tmp, strerror(errno));
-        printf("pushd: %s\n", err);
+        printf("devd: %s\n", err);
         reply_status(fd, "500 Cannot Open", err);
         return;
     }
@@ -282,20 +282,20 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
     if (content_len > 0 && total != content_len) {
         unlink(tmp);
         snprintf(err, sizeof(err), "short %d/%d", total, content_len);
-        printf("pushd: %s\n", err);
+        printf("devd: %s\n", err);
         reply_status(fd, "500 Short Body", err);
         return;
     }
     if (total == 0) {
         unlink(tmp);
-        printf("pushd: empty body\n");
+        printf("devd: empty body\n");
         reply_status(fd, "500 Empty Body", "no data");
         return;
     }
 
     if (strcmp(tmp, path) == 0) {
         /* direct 模式：写的就是目标文件本身，没有 tmp 需要改名 */
-        printf("pushd: wrote %s (%d bytes, direct)\n", path, total);
+        printf("devd: wrote %s (%d bytes, direct)\n", path, total);
         reply_status(fd, "200 OK", "OK\n");
         return;
     }
@@ -303,11 +303,11 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
     unlink(path);
     if (rename(tmp, path) != 0) {
         snprintf(err, sizeof(err), "rename: %s", strerror(errno));
-        printf("pushd: %s\n", err);
+        printf("devd: %s\n", err);
         reply_status(fd, "500 Rename Failed", err);
         return;
     }
-    printf("pushd: wrote %s (%d bytes)\n", path, total);
+    printf("devd: wrote %s (%d bytes)\n", path, total);
     reply_status(fd, "200 OK", "OK\n");
 }
 
@@ -336,7 +336,7 @@ static void do_get(int fd, const char *path) {
         total += r;
     }
     close(in);
-    printf("pushd: sent %s (%d bytes)\n", path, total);
+    printf("devd: sent %s (%d bytes)\n", path, total);
 }
 
 /* POST /run —— body 是要执行的命令，返回 stdout+stderr。
@@ -385,7 +385,7 @@ static void do_run(int fd, char *hdr, int hlen) {
         got += r;
     }
     cmd[got] = '\0';
-    printf("pushd: RUN [%s]\n", cmd);
+    printf("devd: RUN [%s]\n", cmd);
 
     if (pipe(pfd) != 0) {
         reply_status(fd, "500 Pipe", NULL);
@@ -467,7 +467,7 @@ static void do_run(int fd, char *hdr, int hlen) {
             waited++;
         }
     }
-    printf("pushd: RUN done\n");
+    printf("devd: RUN done\n");
 }
 
 static void handle(int fd) {
@@ -477,11 +477,11 @@ static void handle(int fd) {
     char *p;
 
     if (hlen <= 0) {
-        printf("pushd: header read failed\n");
+        printf("devd: header read failed\n");
         reply_status(fd, "400 Bad Request", "no header");
         return;
     }
-    printf("pushd: hdr %d: %.40s\n", hlen, hdr);
+    printf("devd: hdr %d: %.40s\n", hlen, hdr);
 
     if (strncmp(hdr, "PUT ", 4) == 0) {
         path = hdr + 4;
@@ -524,11 +524,11 @@ int main(void) {
     int pid;
     int port = PUSHD_PORT;
 
-    printf("pushd: starting on port %d\n", PUSHD_PORT);
+    printf("devd: starting on port %d\n", PUSHD_PORT);
 
     srv = socket(AF_INET, SOCK_STREAM, 0);
     if (srv < 0) {
-        perror("pushd: socket");
+        perror("devd: socket");
         return 1;
     }
     /* 【不要 SO_REUSEADDR】有它时 bind() 会对「已被别人 listen 的端口」
@@ -548,32 +548,32 @@ int main(void) {
         for (port = PUSHD_PORT; port < PUSHD_PORT + 16; port++) {
             addr.sin_port = htons((unsigned short)port);
             if (bind(srv, (struct sockaddr *)&addr, sizeof(addr)) == 0) {
-                printf("pushd: bound port %d\n", port);
+                printf("devd: bound port %d\n", port);
                 bound = 1;
                 break;
             }
         }
         if (!bound) {
-            perror("pushd: bind");
+            perror("devd: bind");
             close(srv);
             return 1;
         }
     }
     if (listen(srv, 4) < 0) {
-        perror("pushd: listen");
+        perror("devd: listen");
         close(srv);
         return 1;
     }
-    printf("pushd: ready  curl -T <file> http://<ip>:%d/<path>\n", port);
+    printf("devd: ready  curl -T <file> http://<ip>:%d/<path>\n", port);
 
     pid = fork();
     if (pid < 0) {
-        perror("pushd: fork");
+        perror("devd: fork");
         close(srv);
         return 1;
     }
     if (pid > 0) {
-        printf("pushd: background pid=%d\n", pid);
+        printf("devd: background pid=%d\n", pid);
         close(srv);
         return 0;
     }
