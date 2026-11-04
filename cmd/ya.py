@@ -86,3 +86,7 @@ add_files("devd.c")
 target("reboot")
 set_type("cli")
 add_files("reboot.c")
+
+target("cp")
+set_type("cli")
+add_files("cp.c")
