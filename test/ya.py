@@ -345,3 +345,11 @@ add_files("test-sigill.c")
 target("test-longjmp")
 set_type("cli")
 add_files("test-longjmp.c")
+
+target("test-spair")
+set_type("cli")
+add_files("test-spair.c")
+
+target("test-sshloop")
+set_type("cli")
+add_files("test-sshloop.c")

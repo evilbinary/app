@@ -40,7 +40,12 @@ int main(void) {
   dev.max_perfcnt = 0;
   dev.vpm_size = 16 * 1024;
   dev.qpu_count = 12;
-  dev.has_accumulators = true;
+  /* 【关键】7.1 移除了 accumulator —— Mesa 的定义是
+   *   devinfo->has_accumulators = devinfo->ver < 71;
+   * （v3d_device_info.c:76）。设成 true 会让 RA 走进 accumulator 分支，
+   * 而 implicit_rf_nodes[] 在那种情况下从不初始化，某些指令的隐式
+   * 写会读到栈垃圾当节点号（实测 n2=0x71035F6C）。 */
+  dev.has_accumulators = false;
   dev.clipper_xy_granularity = 1.0f;
   dev.cle_readahead = 256;
   dev.page_size = 4096;
@@ -70,10 +75,72 @@ int main(void) {
     goto out;
   }
 
-  /* 【必须】编译器处处访问 shader->options（Mesa 里由 pipe_screen 提供）。
-   * 这里先给一份 zero-init 的：只为验证链路不崩，正确性配置后补
-   * （v3d_screen.c:544 有一整套 lower_* 开关）。 */
-  static nir_shader_compiler_options opts;
+  /* 【必须】编译器处处访问 shader->options。这里是 v3d_screen.c:552
+   * 那份真实配置（Mesa 验证过）：zero-init 会让 VIR 留下 V3D 不支持的
+   * 指令形态，寄存器分配断言失败（ra_add_node_interference）。 */
+  static nir_shader_compiler_options opts = {
+      .compact_arrays = true,
+      .lower_uadd_sat = true,
+      .lower_usub_sat = true,
+      .lower_iadd_sat = true,
+      .lower_extract_byte = true,
+      .lower_extract_word = true,
+      .lower_insert_byte = true,
+      .lower_insert_word = true,
+      .lower_bitfield_insert = true,
+      .lower_bitfield_extract = true,
+      .lower_bitfield_extract16 = true,
+      .lower_bitfield_extract8 = true,
+      .lower_bitfield_reverse = true,
+      .lower_bit_count = true,
+      .lower_cs_local_id_to_index = true,
+      .lower_ffract = true,
+      .lower_fmod = true,
+      .lower_pack_unorm_2x16 = true,
+      .lower_pack_snorm_2x16 = true,
+      .lower_pack_unorm_4x8 = true,
+      .lower_pack_snorm_4x8 = true,
+      .lower_unpack_unorm_4x8 = true,
+      .lower_unpack_snorm_4x8 = true,
+      .lower_pack_half_2x16 = true,
+      .lower_unpack_half_2x16 = true,
+      .lower_pack_32_2x16 = true,
+      .lower_pack_32_2x16_split = true,
+      .lower_unpack_32_2x16_split = true,
+      .lower_fdiv = true,
+      .lower_find_lsb = true,
+      .lower_flrp32 = true,
+      .lower_fpow = true,
+      .lower_fsqrt = true,
+      .lower_ifind_msb = true,
+      .lower_isign = true,
+      .lower_hadd = true,
+      .lower_fisnormal = true,
+      .lower_mul_high = true,
+      .lower_wpos_pntc = true,
+      .lower_to_scalar = true,       /* V3D 是标量后端，必须标量化 */
+      .lower_interpolate_at = true,
+      .lower_int64_options =
+          nir_lower_bcsel64 | nir_lower_bit_count64 | nir_lower_conv64 |
+          nir_lower_divmod64 | nir_lower_iabs64 | nir_lower_iadd64 |
+          nir_lower_icmp64 | nir_lower_imul_2x32_64 | nir_lower_imul64 |
+          nir_lower_ineg64 | nir_lower_logic64 | nir_lower_minmax64 |
+          nir_lower_shift64 | nir_lower_ufind_msb64,
+      .lower_fquantize2f16 = true,
+      .lower_ufind_msb = true,
+      .has_fsub = true,
+      .has_isub = true,
+      .has_imul24 = true,
+      .has_umul24 = true,
+      .has_uclz = true,
+      .divergence_analysis_options =
+          nir_divergence_multiple_workgroup_per_compute_subgroup,
+      .max_unroll_iterations = 16,
+      .max_samples = 4,
+      .force_indirect_unrolling_sampler = true,
+      .scalarize_ddx = true,
+      .max_varying_expression_cost = 4,
+  };
 
   nir_builder b;
   memset(&b, 0, sizeof(b));
@@ -97,7 +164,16 @@ int main(void) {
   out_var->data.location = VARYING_SLOT_POS;
   nir_store_var(&b, out_var, pos, 0xf /* xyzw */);
 
-  printf("nir shader built (outputs=%u)\r\n", b.shader->num_outputs);
+  /* 【必须】给 IO 变量分配驱动位置。Mesa 里这步由 st/mesa 在交给
+   * 驱动前完成（nir_assign_io_var_locations）。不做的话：
+   *   shader->num_outputs 仍是 0、var->data.driver_location 未定义，
+   * v3d 的 nir_to_vir 用它算 VPM 输出槽时会得到垃圾偏移，进而让
+   * 寄存器分配器收到越界的节点索引（实测 ra_add_node_interference
+   * 断言 n1/n2 < g->count 失败）。 */
+  nir_assign_io_var_locations(b.shader, nir_var_shader_in);
+  nir_assign_io_var_locations(b.shader, nir_var_shader_out);
+  printf("io locations assigned: outputs=%u inputs=%u\r\n",
+         b.shader->num_outputs, b.shader->num_inputs);
 
   /* ---------- 编译到 QPU ---------- */
   struct v3d_key key;
