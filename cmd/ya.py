@@ -106,3 +106,11 @@ add_files("mkdir.c")
 target("ltp-run")
 set_type("cli")
 add_files("ltp-run.c")
+
+target("test-exec-sock")
+set_type("cli")
+add_files("test-exec-sock.c")
+
+target("test-socket-all")
+set_type("cli")
+add_files("test-socket-all.c")
