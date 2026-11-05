@@ -102,3 +102,7 @@ add_files("test-fork-sock.c")
 target("mkdir")
 set_type("cli")
 add_files("mkdir.c")
+
+target("ltp-run")
+set_type("cli")
+add_files("ltp-run.c")
