@@ -23,7 +23,7 @@
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 
-#include "client.h"
+#include "foot_present.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -32,11 +32,6 @@
 #ifndef EGL_PLATFORM_DEVICE_EXT
 #define EGL_PLATFORM_DEVICE_EXT 0x313F
 #endif
-
-#define GPU_LOW_SCREEN_PARAM 141
-#define GPU_LOW_BO_CREATE 110
-#define GPU_LOW_BO_DESTROY 112
-#define GPU_LOW_SUBMIT_TFU 122
 
 #define W 640
 #define H 480
@@ -704,104 +699,6 @@ static GLuint link_program(const char* vs_src, const char* fs_src) {
   return p;
 }
 
-/* ---- 上屏（direct / tfu），RGB565 ---- */
-typedef struct {
-  int sw, sh, pitch, cpp, size;
-  int ox, oy;
-  unsigned char* fb;
-  foot_cap_t cap;
-  unsigned int bo_va, bo_size, bo;
-  client_t* gc;
-} present_t;
-
-static int present_init(present_t* p, const char* mode, int w, int h) {
-  memset(p, 0, sizeof(*p));
-  p->gc = client_get("gpu");
-  if (p->gc == NULL) return -1;
-  long v[8];
-  for (int i = 0; i < 8; i++) {
-    unsigned int param = (unsigned int)i;
-    v[i] = (long)client_call_ex(p->gc, (void*)GPU_LOW_SCREEN_PARAM, &param,
-                                sizeof(param), 5000);
-  }
-  p->sw = (int)v[2]; p->sh = (int)v[3]; p->pitch = (int)v[4];
-  p->cpp = (int)v[5]; p->size = (int)v[7];
-  if (p->sw <= 0 || p->sh <= 0 || p->pitch <= 0 || p->cpp <= 0 || p->size <= 0)
-    return -1;
-  p->ox = ((p->sw - w) / 2) & ~1;
-  p->oy = (p->sh - h) / 2;
-  if (p->ox < 0) p->ox = 0;
-  if (p->oy < 0) p->oy = 0;
-
-  if (strcmp(mode, "direct") == 0) {
-    int fd = open("/dev/fb", O_RDWR);
-    if (fd < 0) return -1;
-    void* base = mmap(NULL, (size_t)p->size, PROT_READ | PROT_WRITE,
-                      MAP_SHARED, fd, 0);
-    close(fd);
-    if (base == MAP_FAILED) return -1;
-    p->fb = (unsigned char*)base;
-  } else {
-    unsigned int sz = 0, pa = 0;
-    p->cap = foot_cap_alloc_arena((unsigned long)w * h * 2, 0, 0, &pa, &sz);
-    if (p->cap == FOOT_CAP_NONE) return -1;
-    void* va = (void*)0x54000000UL;
-    if (foot_cap_map(p->cap, va, 0, sz) != 0) return -1;
-    p->bo_va = (unsigned int)(uintptr_t)va;
-    p->bo_size = sz;
-    gpu_bo_create_req req;
-    memset(&req, 0, sizeof(req));
-    req.pa = pa; req.size = sz;
-    long handle = (long)client_call_ex(p->gc, (void*)GPU_LOW_BO_CREATE, &req,
-                                       sizeof(req), 60000);
-    if (handle <= 0) return -1;
-    p->bo = (unsigned int)handle;
-  }
-  return 0;
-}
-
-static void present_frame(present_t* p, const uint8_t* rgba, int w, int h) {
-  /* GL 的 FBO 是 +Y 向上，glReadPixels 第 0 行是图像底部；屏幕第 0 行是
-   * 顶部，因此这里按行翻转。 */
-  if (p->fb != NULL) {
-    uint16_t* base = (uint16_t*)p->fb;
-    int pitch_px = p->pitch / p->cpp;
-    for (int y = 0; y < h; y++) {
-      uint16_t* row = base + (size_t)(p->oy + y) * pitch_px + p->ox;
-      const uint8_t* src = rgba + (size_t)(h - 1 - y) * w * 4;
-      for (int x = 0; x < w; x++) {
-        uint8_t r = src[x * 4 + 0], g = src[x * 4 + 1], b = src[x * 4 + 2];
-        row[x] = (uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
-      }
-    }
-    foot_cache_clean(p->fb, (char*)p->fb + p->size);
-  } else {
-    uint16_t* dst = (uint16_t*)(uintptr_t)p->bo_va;
-    for (int y = 0; y < h; y++) {
-      const uint8_t* src = rgba + (size_t)(h - 1 - y) * w * 4;
-      for (int x = 0; x < w; x++) {
-        uint8_t r = src[x * 4 + 0], g = src[x * 4 + 1], b = src[x * 4 + 2];
-        dst[(size_t)y * w + x] =
-            (uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
-      }
-    }
-    foot_cache_clean(dst, (char*)dst + (size_t)w * h * 2);
-    gpu_submit_tfu_req tr;
-    memset(&tr, 0, sizeof(tr));
-    tr.src_handle = p->bo;
-    tr.dst_handle = 0;
-    tr.w = (unsigned int)w;
-    tr.h = (unsigned int)h;
-    tr.src_fmt = 6;
-    tr.dst_fmt = 6;
-    tr.dst_offset = (unsigned int)p->oy * (unsigned int)p->pitch +
-                    (unsigned int)p->ox * (unsigned int)p->cpp;
-    long rc = (long)client_call_ex(p->gc, (void*)GPU_LOW_SUBMIT_TFU, &tr,
-                                   sizeof(tr), 10000);
-    if (rc != 0) printf("present: TFU failed (%ld)\n", rc);
-  }
-}
-
 int main(int argc, char** argv) {
   /* 默认就是 direct 上屏；需要自检或 TFU 时显式传参：
    *   test-gles-teapot             -> direct 300 帧
@@ -812,12 +709,15 @@ int main(int argc, char** argv) {
   const char* mode = "direct";
   int present_mode = 1;
   int frames = 300;
+  foot_present_mode_t pmode = FOOT_PRESENT_DEFAULT;
   if (argc > 1) {
     if (strcmp(argv[1], "selftest") == 0) {
       present_mode = 0;
       mode = "selftest";
     } else if (strcmp(argv[1], "direct") == 0 || strcmp(argv[1], "tfu") == 0) {
       mode = argv[1];
+      pmode = (strcmp(argv[1], "tfu") == 0) ? FOOT_PRESENT_TFU
+                                            : FOOT_PRESENT_DIRECT;
     } else {
       frames = atoi(argv[1]);
     }
@@ -917,16 +817,9 @@ int main(int argc, char** argv) {
   printf("utah teapot: %d vertices\n", teapot.nvertices);
 
   static uint8_t pixels[W * H * 4];
-  present_t pres;
-  int have_pres = 0;
   if (present_mode) {
-    if (present_init(&pres, mode, W, H) != 0) {
-      printf("present init failed\n");
-      return 1;
-    }
-    have_pres = 1;
-    printf("present: mode=%s screen=%dx%d pitch=%d ox=%d oy=%d\n", mode,
-           pres.sw, pres.sh, pres.pitch, pres.ox, pres.oy);
+    /* 默认 direct；foot_present 首次调用自动查屏幕并映射 /dev/fb */
+    printf("present: mode=%s (foot_present default direct)\n", mode);
   }
 
   int nframes = present_mode ? frames : 2;
@@ -962,7 +855,7 @@ int main(int argc, char** argv) {
       printf("frame%d nonbg=%d center=%u,%u,%u\n", f, nonbg[f], c[0], c[1],
              c[2]);
     } else {
-      present_frame(&pres, pixels, W, H);
+      foot_present_frame_ex(pixels, W, H, pmode);
       if ((f & 31) == 0) printf("frame %d/%d\n", f, nframes);
       usleep(33000);
     }
@@ -983,18 +876,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (have_pres) {
-    if (pres.fb != NULL) munmap(pres.fb, (size_t)pres.size);
-    if (pres.cap != FOOT_CAP_NONE) {
-      foot_cap_unmap(pres.cap);
-      foot_cap_revoke(pres.cap);
-    }
-    if (pres.bo != 0) {
-      unsigned int handle = pres.bo;
-      client_call_ex(pres.gc, (void*)GPU_LOW_BO_DESTROY, &handle,
-                     sizeof(handle), 5000);
-    }
-  }
+  if (present_mode) foot_present_shutdown();
 
   eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
   eglDestroyContext(dpy, ctx);

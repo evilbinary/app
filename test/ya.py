@@ -522,6 +522,7 @@ set_type("cli")
 add_deps("foot")
 add_deps("EGL")
 add_deps("GLESv2")
+add_deps("drm")
 add_cflags(' -D__unix__ ')
 add_includedirs("../../eggs/libmesa/include")
 add_files(
