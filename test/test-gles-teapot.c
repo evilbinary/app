@@ -803,12 +803,33 @@ static void present_frame(present_t* p, const uint8_t* rgba, int w, int h) {
 }
 
 int main(int argc, char** argv) {
-  int present_mode = argc > 1 && (strcmp(argv[1], "direct") == 0 ||
-                                  strcmp(argv[1], "tfu") == 0);
-  int frames = (argc > 2) ? atoi(argv[2]) : 300;
+  /* 默认就是 direct 上屏；需要自检或 TFU 时显式传参：
+   *   test-gles-teapot             -> direct 300 帧
+   *   test-gles-teapot 600         -> direct 600 帧
+   *   test-gles-teapot tfu 300     -> 离屏 + TFU
+   *   test-gles-teapot selftest    -> 两帧读回自检
+   */
+  const char* mode = "direct";
+  int present_mode = 1;
+  int frames = 300;
+  if (argc > 1) {
+    if (strcmp(argv[1], "selftest") == 0) {
+      present_mode = 0;
+      mode = "selftest";
+    } else if (strcmp(argv[1], "direct") == 0 || strcmp(argv[1], "tfu") == 0) {
+      mode = argv[1];
+    } else {
+      frames = atoi(argv[1]);
+    }
+  }
+  if (argc > 2 && present_mode) {
+    if (strcmp(argv[1], "direct") == 0 || strcmp(argv[1], "tfu") == 0) {
+      frames = atoi(argv[2]);
+    }
+  }
   if (frames <= 0) frames = 300;
   setvbuf(stdout, NULL, _IONBF, 0);
-  printf("=== test-gles-teapot (%s) ===\n", present_mode ? argv[1] : "selftest");
+  printf("=== test-gles-teapot (%s) ===\n", mode);
 
   PFNEGLQUERYDEVICESEXTPROC query_devices =
       (PFNEGLQUERYDEVICESEXTPROC)eglGetProcAddress("eglQueryDevicesEXT");
@@ -899,12 +920,12 @@ int main(int argc, char** argv) {
   present_t pres;
   int have_pres = 0;
   if (present_mode) {
-    if (present_init(&pres, argv[1], W, H) != 0) {
+    if (present_init(&pres, mode, W, H) != 0) {
       printf("present init failed\n");
       return 1;
     }
     have_pres = 1;
-    printf("present: mode=%s screen=%dx%d pitch=%d ox=%d oy=%d\n", argv[1],
+    printf("present: mode=%s screen=%dx%d pitch=%d ox=%d oy=%d\n", mode,
            pres.sw, pres.sh, pres.pitch, pres.ox, pres.oy);
   }
 
