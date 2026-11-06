@@ -819,7 +819,7 @@ int main(int argc, char** argv) {
   static uint8_t pixels[W * H * 4];
   if (present_mode) {
     /* 默认 direct；foot_present 首次调用自动查屏幕并映射 /dev/fb */
-    printf("present: mode=%s (foot_present default direct)\n", mode);
+    printf("present: mode=%s (gpud present, default direct)\n", mode);
   }
 
   int nframes = present_mode ? frames : 2;
