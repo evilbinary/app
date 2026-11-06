@@ -31,7 +31,7 @@
 #include "v3d/v3d_resource.h"
 #include "v3d/v3d_bufmgr.h"
 
-extern void* foot_v3d_bo_cpu_va(unsigned int handle);
+extern void* foot_gpu_bo_cpu_va(unsigned int handle);
 
 /* 与 foot/driver/gpu/gpu_backend.h 的 gpu_submit_tfu_req 字节一致。
  * dst_handle=0 表示屏幕；同格式 TFU 直拷。 */
@@ -392,9 +392,9 @@ int main(int argc, char** argv) {
     printf("present(direct) zero-copy scanout\n");
   } else {
   /* ---- 读回 ---- */
-  void* cpu = foot_v3d_bo_cpu_va(vr->bo->handle);
+  void* cpu = foot_gpu_bo_cpu_va(vr->bo->handle);
   if (cpu == NULL) {
-    printf("foot_v3d_bo_cpu_va(%u) = NULL\n", vr->bo->handle);
+    printf("foot_gpu_bo_cpu_va(%u) = NULL\n", vr->bo->handle);
     fail++;
   } else {
     foot_cache_invalidate(cpu, (char*)cpu + vr->bo->size);

@@ -35,7 +35,7 @@ typedef struct {
   unsigned int src, sx, sy, dx, dy, w, h, src_fmt, flags;
 } gpu_present_req;
 
-extern void* foot_v3d_bo_cpu_va(unsigned int handle);
+extern void* foot_gpu_bo_cpu_va(unsigned int handle);
 
 /* ---- BO 的 CPU 映射（libdrm 的 CREATE_BO 回调）---- */
 #define BO_VA_BASE 0x52000000UL
@@ -173,9 +173,9 @@ int main(void) {
   ctx->flush(ctx, NULL, 0);
 
   /* GPU 写完后，CPU 侧必须失效 cache 才能看到 DRAM 里的结果 */
-  void* cpu = foot_v3d_bo_cpu_va(vr->bo->handle);
+  void* cpu = foot_gpu_bo_cpu_va(vr->bo->handle);
   if (cpu == NULL) {
-    printf("foot_v3d_bo_cpu_va(%u) = NULL\n", vr->bo->handle);
+    printf("foot_gpu_bo_cpu_va(%u) = NULL\n", vr->bo->handle);
     fail++;
   } else {
     foot_cache_invalidate(cpu, (char*)cpu + vr->bo->size);
