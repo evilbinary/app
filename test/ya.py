@@ -503,3 +503,27 @@ add_files("test-spair.c")
 target("test-sshloop")
 set_type("cli")
 add_files("test-sshloop.c")
+
+# Mesa EGL/GLES2 前端最小验证：EGL device 平台 + FBO + glClear
+target("test-gles-clear")
+set_type("cli")
+add_deps("foot")
+add_deps("EGL")
+add_deps("GLESv2")
+add_cflags(' -D__unix__ ')
+add_includedirs("../../eggs/libmesa/include")
+add_files(
+   'test-gles-clear.c'
+)
+
+# Mesa EGL/GLES2 茶壶：GLSL + glDrawArrays + 旋转 + glReadPixels
+target("test-gles-teapot")
+set_type("cli")
+add_deps("foot")
+add_deps("EGL")
+add_deps("GLESv2")
+add_cflags(' -D__unix__ ')
+add_includedirs("../../eggs/libmesa/include")
+add_files(
+   'test-gles-teapot.c'
+)
