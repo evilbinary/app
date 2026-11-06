@@ -1,10 +1,14 @@
-/* test-gles-teapot.c - Mesa EGL/GLES2 茶壶：glDrawArrays 全链路
+/* test-gles-teapot.c - Mesa EGL/GLES2 Utah 茶壶（从 EwokOS teapot 移植）
  *
- * 流程：EGL device + GLES2 context + FBO -> GLSL 着色器 -> 旋转茶壶
- *       -> 两个不同角度 glDrawArrays -> glReadPixels 验证。
+ * 几何：Newell 经典犹他茶壶，306 控制点 / 32 个双三次 Bezier patch，
+ * 运行时细分为 32*10*10*2 个三角形，法线解析求得。
+ * 光照：每顶点双面 Blinn-Phong（CPU 计算，颜色作为 attribute 上传），
+ * 顶点着色器只做 uMVP 变换，和 EwokOS 的做法一致。
+ * 上屏：direct（/dev/fb 直写）或 tfu（离屏 BO + TFU）。
  *
- * 运行前：/lib/libv3d_dri.so、/lib/libEGL.so、/lib/libGLESv2.so，
- *         且 gpud 已启动。
+ *   /bin/test-gles-teapot direct 300
+ *   /bin/test-gles-teapot tfu 300
+ *   /bin/test-gles-teapot            # 自检（两帧读回）
  */
 #include <fcntl.h>
 #include <math.h>
@@ -21,15 +25,22 @@
 
 #include "client.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 #ifndef EGL_PLATFORM_DEVICE_EXT
 #define EGL_PLATFORM_DEVICE_EXT 0x313F
 #endif
 
 #define GPU_LOW_SCREEN_PARAM 141
 #define GPU_LOW_BO_CREATE 110
+#define GPU_LOW_BO_DESTROY 112
 #define GPU_LOW_SUBMIT_TFU 122
 
-/* 与 foot/driver/gpu/gpu_backend.h 的 gpu_submit_tfu_req 字节一致 */
+#define W 640
+#define H 480
+
 typedef struct {
   unsigned int src_handle, src_offset;
   unsigned int dst_handle, dst_offset;
@@ -42,234 +53,617 @@ typedef struct {
   unsigned int pa, size, flags;
 } gpu_bo_create_req;
 
-#define W 640
-#define H 480
-#define MAX_VERTS 24000
-#define VSTRIDE 16 /* float3 position(NDC) + RGBA8 color */
+static const GLfloat cpdata[306][3] = {
+    {1.4,0,2.4},{1.4,-0.784,2.4},{0.78,-1.4,2.4},{0,-1.4,2.4},
+    {1.3375,0,2.53125},{1.3375,-0.749,2.53125},{0.749,-1.3375,2.53125},{0,-1.3375,2.53125},
+    {1.4375,0,2.53125},{1.4375,-0.805,2.53125},{0.805,-1.4375,2.53125},{0,-1.4375,2.53125},
+    {1.5,0,2.4},{1.5,-0.84,2.4},{0.84,-1.5,2.4},{0,-1.5,2.4},
+    {-0.784,-1.4,2.4},{-1.4,-0.784,2.4},{-1.4,0,2.4},{-0.749,-1.3375,2.53125},
+    {-1.3375,-0.749,2.53125},{-1.3375,0,2.53125},{-0.805,-1.4375,2.53125},{-1.4375,-0.805,2.53125},
+    {-1.4375,0,2.53125},{-0.84,-1.5,2.4},{-1.5,-0.84,2.4},{-1.5,0,2.4},
+    {-1.4,0.784,2.4},{-0.784,1.4,2.4},{0,1.4,2.4},{-1.3375,0.749,2.53125},
+    {-0.749,1.3375,2.53125},{0,1.3375,2.53125},{-1.4375,0.805,2.53125},{-0.805,1.4375,2.53125},
+    {0,1.4375,2.53125},{-1.5,0.84,2.4},{-0.84,1.5,2.4},{0,1.5,2.4},
+    {0.784,1.4,2.4},{1.4,0.784,2.4},{0.749,1.3375,2.53125},{1.3375,0.749,2.53125},
+    {0.805,1.4375,2.53125},{1.4375,0.805,2.53125},{0.84,1.5,2.4},{1.5,0.84,2.4},
+    {1.75,0,1.875},{1.75,-0.98,1.875},{0.98,-1.75,1.875},{0,-1.75,1.875},
+    {2,0,1.35},{2,-1.12,1.35},{1.12,-2,1.35},{0,-2,1.35},
+    {2,0,0.9},{2,-1.12,0.9},{1.12,-2,0.9},{0,-2,0.9},
+    {-0.98,-1.75,1.875},{-1.75,-0.98,1.875},{-1.75,0,1.875},{-1.12,-2,1.35},
+    {-2,-1.12,1.35},{-2,0,1.35},{-1.12,-2,0.9},{-2,-1.12,0.9},
+    {-2,0,0.9},{-1.75,0.98,1.875},{-0.98,1.75,1.875},{0,1.75,1.875},
+    {-2,1.12,1.35},{-1.12,2,1.35},{0,2,1.35},{-2,1.12,0.9},
+    {-1.12,2,0.9},{0,2,0.9},{0.98,1.75,1.875},{1.75,0.98,1.875},
+    {1.12,2,1.35},{2,1.12,1.35},{1.12,2,0.9},{2,1.12,0.9},
+    {2,0,0.45},{2,-1.12,0.45},{1.12,-2,0.45},{0,-2,0.45},
+    {1.5,0,0.225},{1.5,-0.84,0.225},{0.84,-1.5,0.225},{0,-1.5,0.225},
+    {1.5,0,0.15},{1.5,-0.84,0.15},{0.84,-1.5,0.15},{0,-1.5,0.15},
+    {-1.12,-2,0.45},{-2,-1.12,0.45},{-2,0,0.45},{-0.84,-1.5,0.225},
+    {-1.5,-0.84,0.225},{-1.5,0,0.225},{-0.84,-1.5,0.15},{-1.5,-0.84,0.15},
+    {-1.5,0,0.15},{-2,1.12,0.45},{-1.12,2,0.45},{0,2,0.45},
+    {-1.5,0.84,0.225},{-0.84,1.5,0.225},{0,1.5,0.225},{-1.5,0.84,0.15},
+    {-0.84,1.5,0.15},{0,1.5,0.15},{1.12,2,0.45},{2,1.12,0.45},
+    {0.84,1.5,0.225},{1.5,0.84,0.225},{0.84,1.5,0.15},{1.5,0.84,0.15},
+    {-1.6,0,2.025},{-1.6,-0.3,2.025},{-1.5,-0.3,2.25},{-1.5,0,2.25},
+    {-2.3,0,2.025},{-2.3,-0.3,2.025},{-2.5,-0.3,2.25},{-2.5,0,2.25},
+    {-2.7,0,2.025},{-2.7,-0.3,2.025},{-3,-0.3,2.25},{-3,0,2.25},
+    {-2.7,0,1.8},{-2.7,-0.3,1.8},{-3,-0.3,1.8},{-3,0,1.8},
+    {-1.5,0.3,2.25},{-1.6,0.3,2.025},{-2.5,0.3,2.25},{-2.3,0.3,2.025},
+    {-3,0.3,2.25},{-2.7,0.3,2.025},{-3,0.3,1.8},{-2.7,0.3,1.8},
+    {-2.7,0,1.575},{-2.7,-0.3,1.575},{-3,-0.3,1.35},{-3,0,1.35},
+    {-2.5,0,1.125},{-2.5,-0.3,1.125},{-2.65,-0.3,0.9375},{-2.65,0,0.9375},
+    {-2,-0.3,0.9},{-1.9,-0.3,0.6},{-1.9,0,0.6},{-3,0.3,1.35},
+    {-2.7,0.3,1.575},{-2.65,0.3,0.9375},{-2.5,0.3,1.125},{-1.9,0.3,0.6},
+    {-2,0.3,0.9},{1.7,0,1.425},{1.7,-0.66,1.425},{1.7,-0.66,0.6},
+    {1.7,0,0.6},{2.6,0,1.425},{2.6,-0.66,1.425},{3.1,-0.66,0.825},
+    {3.1,0,0.825},{2.3,0,2.1},{2.3,-0.25,2.1},{2.4,-0.25,2.025},
+    {2.4,0,2.025},{2.7,0,2.4},{2.7,-0.25,2.4},{3.3,-0.25,2.4},
+    {3.3,0,2.4},{1.7,0.66,0.6},{1.7,0.66,1.425},{3.1,0.66,0.825},
+    {2.6,0.66,1.425},{2.4,0.25,2.025},{2.3,0.25,2.1},{3.3,0.25,2.4},
+    {2.7,0.25,2.4},{2.8,0,2.475},{2.8,-0.25,2.475},{3.525,-0.25,2.49375},
+    {3.525,0,2.49375},{2.9,0,2.475},{2.9,-0.15,2.475},{3.45,-0.15,2.5125},
+    {3.45,0,2.5125},{2.8,0,2.4},{2.8,-0.15,2.4},{3.2,-0.15,2.4},
+    {3.2,0,2.4},{3.525,0.25,2.49375},{2.8,0.25,2.475},{3.45,0.15,2.5125},
+    {2.9,0.15,2.475},{3.2,0.15,2.4},{2.8,0.15,2.4},{0,0,3.15},
+    {0,-0.002,3.15},{0.002,0,3.15},{0.8,0,3.15},{0.8,-0.45,3.15},
+    {0.45,-0.8,3.15},{0,-0.8,3.15},{0,0,2.85},{0.2,0,2.7},
+    {0.2,-0.112,2.7},{0.112,-0.2,2.7},{0,-0.2,2.7},{-0.002,0,3.15},
+    {-0.45,-0.8,3.15},{-0.8,-0.45,3.15},{-0.8,0,3.15},{-0.112,-0.2,2.7},
+    {-0.2,-0.112,2.7},{-0.2,0,2.7},{0,0.002,3.15},{-0.8,0.45,3.15},
+    {-0.45,0.8,3.15},{0,0.8,3.15},{-0.2,0.112,2.7},{-0.112,0.2,2.7},
+    {0,0.2,2.7},{0.45,0.8,3.15},{0.8,0.45,3.15},{0.112,0.2,2.7},
+    {0.2,0.112,2.7},{0.4,0,2.55},{0.4,-0.224,2.55},{0.224,-0.4,2.55},
+    {0,-0.4,2.55},{1.3,0,2.55},{1.3,-0.728,2.55},{0.728,-1.3,2.55},
+    {0,-1.3,2.55},{1.3,0,2.4},{1.3,-0.728,2.4},{0.728,-1.3,2.4},
+    {0,-1.3,2.4},{-0.224,-0.4,2.55},{-0.4,-0.224,2.55},{-0.4,0,2.55},
+    {-0.728,-1.3,2.55},{-1.3,-0.728,2.55},{-1.3,0,2.55},{-0.728,-1.3,2.4},
+    {-1.3,-0.728,2.4},{-1.3,0,2.4},{-0.4,0.224,2.55},{-0.224,0.4,2.55},
+    {0,0.4,2.55},{-1.3,0.728,2.55},{-0.728,1.3,2.55},{0,1.3,2.55},
+    {-1.3,0.728,2.4},{-0.728,1.3,2.4},{0,1.3,2.4},{0.224,0.4,2.55},
+    {0.4,0.224,2.55},{0.728,1.3,2.55},{1.3,0.728,2.55},{0.728,1.3,2.4},
+    {1.3,0.728,2.4},{0,0,0},{1.5,0,0.15},{1.5,0.84,0.15},
+    {0.84,1.5,0.15},{0,1.5,0.15},{1.5,0,0.075},{1.5,0.84,0.075},
+    {0.84,1.5,0.075},{0,1.5,0.075},{1.425,0,0},{1.425,0.798,0},
+    {0.798,1.425,0},{0,1.425,0},{-0.84,1.5,0.15},{-1.5,0.84,0.15},
+    {-1.5,0,0.15},{-0.84,1.5,0.075},{-1.5,0.84,0.075},{-1.5,0,0.075},
+    {-0.798,1.425,0},{-1.425,0.798,0},{-1.425,0,0},{-1.5,-0.84,0.15},
+    {-0.84,-1.5,0.15},{0,-1.5,0.15},{-1.5,-0.84,0.075},{-0.84,-1.5,0.075},
+    {0,-1.5,0.075},{-1.425,-0.798,0},{-0.798,-1.425,0},{0,-1.425,0},
+    {0.84,-1.5,0.15},{1.5,-0.84,0.15},{0.84,-1.5,0.075},{1.5,-0.84,0.075},
+    {0.798,-1.425,0},{1.425,-0.798,0}
+};
 
-static float g_mesh_p[MAX_VERTS][3];
-static float g_mesh_n[MAX_VERTS][3];
-static uint8_t g_mesh_c[MAX_VERTS][3];
-static int g_mesh_count;
+/* Each patch lists 16 control-point indices (1-based) in row-major 4x4 order. */
+static const int patches[32][16] = {
+    {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16},
+    {4,17,18,19,8,20,21,22,12,23,24,25,16,26,27,28},
+    {19,29,30,31,22,32,33,34,25,35,36,37,28,38,39,40},
+    {31,41,42,1,34,43,44,5,37,45,46,9,40,47,48,13},
+    {13,14,15,16,49,50,51,52,53,54,55,56,57,58,59,60},
+    {16,26,27,28,52,61,62,63,56,64,65,66,60,67,68,69},
+    {28,38,39,40,63,70,71,72,66,73,74,75,69,76,77,78},
+    {40,47,48,13,72,79,80,49,75,81,82,53,78,83,84,57},
+    {57,58,59,60,85,86,87,88,89,90,91,92,93,94,95,96},
+    {60,67,68,69,88,97,98,99,92,100,101,102,96,103,104,105},
+    {69,76,77,78,99,106,107,108,102,109,110,111,105,112,113,114},
+    {78,83,84,57,108,115,116,85,111,117,118,89,114,119,120,93},
+    {121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136},
+    {124,137,138,121,128,139,140,125,132,141,142,129,136,143,144,133},
+    {133,134,135,136,145,146,147,148,149,150,151,152,69,153,154,155},
+    {136,143,144,133,148,156,157,145,152,158,159,149,155,160,161,69},
+    {162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177},
+    {165,178,179,162,169,180,181,166,173,182,183,170,177,184,185,174},
+    {174,175,176,177,186,187,188,189,190,191,192,193,194,195,196,197},
+    {177,184,185,174,189,198,199,186,193,200,201,190,197,202,203,194},
+    {204,204,204,204,207,208,209,210,211,211,211,211,212,213,214,215},
+    {204,204,204,204,210,217,218,219,211,211,211,211,215,220,221,222},
+    {204,204,204,204,219,224,225,226,211,211,211,211,222,227,228,229},
+    {204,204,204,204,226,230,231,207,211,211,211,211,229,232,233,212},
+    {212,213,214,215,234,235,236,237,238,239,240,241,242,243,244,245},
+    {215,220,221,222,237,246,247,248,241,249,250,251,245,252,253,254},
+    {222,227,228,229,248,255,256,257,251,258,259,260,254,261,262,263},
+    {229,232,233,212,257,264,265,234,260,266,267,238,263,268,269,242},
+    {270,270,270,270,279,280,281,282,275,276,277,278,93,120,119,114},
+    {270,270,270,270,282,289,290,291,278,286,287,288,114,113,112,105},
+    {270,270,270,270,291,298,299,300,288,295,296,297,105,104,103,96},
+    {270,270,270,270,300,305,306,279,297,303,304,275,96,95,94,93}
+};
 
-static uint8_t g_vdata[MAX_VERTS * VSTRIDE];
-static uint8_t g_pixels[W * H * 4];
 
-/* ---------------- 网格生成（与 test-mesa-teapot 相同） ---------------- */
-static void add_vert(float x, float y, float z, float nx, float ny, float nz,
-                     int r, int g, int b) {
-  if (g_mesh_count >= MAX_VERTS) return;
-  int i = g_mesh_count++;
-  g_mesh_p[i][0] = x;
-  g_mesh_p[i][1] = y;
-  g_mesh_p[i][2] = z;
-  g_mesh_n[i][0] = nx;
-  g_mesh_n[i][1] = ny;
-  g_mesh_n[i][2] = nz;
-  g_mesh_c[i][0] = (uint8_t)r;
-  g_mesh_c[i][1] = (uint8_t)g;
-  g_mesh_c[i][2] = (uint8_t)b;
-}
+#define NPATCH      32
+#define TEAPOT_GRID 10
 
-static void add_tri(float ax, float ay, float az, float bx, float by, float bz,
-                    float cx, float cy, float cz, int r, int g, int b) {
-  float ux = bx - ax, uy = by - ay, uz = bz - az;
-  float vx = cx - ax, vy = cy - ay, vz = cz - az;
-  float nx = uy * vz - uz * vy;
-  float ny = uz * vx - ux * vz;
-  float nz = ux * vy - uy * vx;
-  float len = sqrtf(nx * nx + ny * ny + nz * nz);
-  if (len < 1e-6f) return;
-  nx /= len; ny /= len; nz /= len;
-  add_vert(ax, ay, az, nx, ny, nz, r, g, b);
-  add_vert(bx, by, bz, nx, ny, nz, r, g, b);
-  add_vert(cx, cy, cz, nx, ny, nz, r, g, b);
-}
+/* ---- 全局状态（与 EwokOS teapot 相同） ---- */
+static int win_width = W;
+static int win_height = H;
 
-static void gen_lathe(const float* prof, int np, int seg, int r, int g, int b) {
-  for (int i = 0; i < np - 1; i++) {
-    float r0 = prof[2 * i], y0 = prof[2 * i + 1];
-    float r1 = prof[2 * i + 2], y1 = prof[2 * i + 3];
-    for (int j = 0; j < seg; j++) {
-      float a0 = 2.0f * (float)M_PI * j / seg;
-      float a1 = 2.0f * (float)M_PI * (j + 1) / seg;
-      float c0 = cosf(a0), s0 = sinf(a0), c1 = cosf(a1), s1 = sinf(a1);
-      float p00x = r0 * c0, p00y = y0, p00z = r0 * s0;
-      float p01x = r0 * c1, p01y = y0, p01z = r0 * s1;
-      float p10x = r1 * c0, p10y = y1, p10z = r1 * s0;
-      float p11x = r1 * c1, p11y = y1, p11z = r1 * s1;
-      add_tri(p00x, p00y, p00z, p10x, p10y, p10z, p11x, p11y, p11z, r, g, b);
-      add_tri(p00x, p00y, p00z, p11x, p11y, p11z, p01x, p01y, p01z, r, g, b);
+struct teapot_mesh {
+    GLfloat* vertices;          /* CPU: 6 floats/vertex x,y,z, nx,ny,nz */
+    GLfloat* colors;            /* CPU: 4 floats/vertex rgba             */
+    int nvertices;
+    int patch_first[NPATCH];
+    int patch_count[NPATCH];
+    GLuint pos_vbo;
+    GLuint color_vbo;
+};
+static struct teapot_mesh teapot;
+
+static GLfloat spin_angle = 0.0f;
+static GLfloat camera_angle = 0.0f;
+static GLfloat camera_elev = 15.0f;
+static GLfloat projection_matrix[16];
+
+static GLuint program = 0;
+static GLint loc_mvp = -1;
+static GLint attr_pos = 0, attr_color = 1;
+
+static const char *teapot_vs =
+    "attribute vec4 aPosition;\n"
+    "attribute vec4 aColor;\n"
+    "uniform mat4 uMVP;\n"
+    "varying vec4 vColor;\n"
+    "void main() {\n"
+    "    vColor = aColor;\n"
+    "    gl_Position = uMVP * aPosition;\n"
+    "}\n";
+
+static const char *teapot_fs =
+    "precision mediump float;\n"
+    "varying vec4 vColor;\n"
+    "void main() {\n"
+    "    gl_FragColor = vColor;\n"
+    "}\n";
+
+/* ------------------------------------------------------------------ *
+ * Minimal matrix helpers (row-vector convention, as in gears.c).
+ * ------------------------------------------------------------------ */
+static void multiply(GLfloat *m, const GLfloat *n)
+{
+    GLfloat tmp[16];
+    const GLfloat *row, *column;
+    div_t d;
+    int i, j;
+
+    for (i = 0; i < 16; i++) {
+        tmp[i] = 0;
+        d = div(i, 4);
+        row = n + d.quot * 4;
+        column = m + d.rem;
+        for (j = 0; j < 4; j++)
+            tmp[i] += row[j] * column[j * 4];
     }
-  }
+    memcpy(m, tmp, sizeof(tmp));
 }
 
-static void gen_bottom_cap(float radius, float y, int seg, int r, int g, int b) {
-  for (int j = 0; j < seg; j++) {
-    float a0 = 2.0f * (float)M_PI * j / seg;
-    float a1 = 2.0f * (float)M_PI * (j + 1) / seg;
-    add_tri(0, y, 0, radius * cosf(a0), y, radius * sinf(a0),
-            radius * cosf(a1), y, radius * sinf(a1), r, g, b);
-  }
+static void rotate(GLfloat *m, GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
+{
+    GLfloat c = cosf(angle * M_PI / 180.0f);
+    GLfloat s = sinf(angle * M_PI / 180.0f);
+    GLfloat r[16] = {
+        x * x * (1 - c) + c,     y * x * (1 - c) + z * s, x * z * (1 - c) - y * s, 0,
+        x * y * (1 - c) - z * s, y * y * (1 - c) + c,     y * z * (1 - c) + x * s, 0,
+        x * z * (1 - c) + y * s, y * z * (1 - c) - x * s, z * z * (1 - c) + c,     0,
+        0, 0, 0, 1
+    };
+    multiply(m, r);
 }
 
-static void gen_sphere(float cx, float cy, float cz, float rad, int slices,
-                       int stacks, int r, int g, int b) {
-  for (int i = 0; i < stacks; i++) {
-    float p0 = (float)M_PI * i / stacks - (float)M_PI / 2.0f;
-    float p1 = (float)M_PI * (i + 1) / stacks - (float)M_PI / 2.0f;
-    for (int j = 0; j < slices; j++) {
-      float t0 = 2.0f * (float)M_PI * j / slices;
-      float t1 = 2.0f * (float)M_PI * (j + 1) / slices;
-      float cp0 = cosf(p0), sp0 = sinf(p0), cp1 = cosf(p1), sp1 = sinf(p1);
-      float q00x = cx + rad * cp0 * cosf(t0), q00y = cy + rad * sp0,
-            q00z = cz + rad * cp0 * sinf(t0);
-      float q01x = cx + rad * cp0 * cosf(t1), q01y = cy + rad * sp0,
-            q01z = cz + rad * cp0 * sinf(t1);
-      float q10x = cx + rad * cp1 * cosf(t0), q10y = cy + rad * sp1,
-            q10z = cz + rad * cp1 * sinf(t0);
-      float q11x = cx + rad * cp1 * cosf(t1), q11y = cy + rad * sp1,
-            q11z = cz + rad * cp1 * sinf(t1);
-      add_tri(q00x, q00y, q00z, q10x, q10y, q10z, q11x, q11y, q11z, r, g, b);
-      add_tri(q00x, q00y, q00z, q11x, q11y, q11z, q01x, q01y, q01z, r, g, b);
+static void translate(GLfloat *m, GLfloat x, GLfloat y, GLfloat z)
+{
+    GLfloat t[16] = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  x, y, z, 1 };
+    multiply(m, t);
+}
+
+static void identity(GLfloat *m)
+{
+    GLfloat t[16] = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f,
+    };
+    memcpy(m, t, sizeof(t));
+}
+
+static void transpose(GLfloat *m)
+{
+    GLfloat t[16] = {
+        m[0], m[4], m[8],  m[12],
+        m[1], m[5], m[9],  m[13],
+        m[2], m[6], m[10], m[14],
+        m[3], m[7], m[11], m[15]
+    };
+    memcpy(m, t, sizeof(t));
+}
+
+static void invert(GLfloat *m)
+{
+    GLfloat t[16];
+    identity(t);
+    t[12] = -m[12]; t[13] = -m[13]; t[14] = -m[14];
+    m[12] = m[13] = m[14] = 0;
+    transpose(m);
+    multiply(m, t);
+}
+
+static void perspective(GLfloat *m, GLfloat fovy, GLfloat aspect, GLfloat z_near, GLfloat z_far)
+{
+    GLfloat tmp[16];
+    identity(tmp);
+
+    GLfloat radians = fovy / 2.0f * M_PI / 180.0f;
+    GLfloat sine = sinf(radians);
+    GLfloat cosine = cosf(radians);
+    GLfloat delta_z = z_far - z_near;
+
+    if (delta_z == 0 || sine == 0 || aspect == 0)
+        return;
+
+    GLfloat cotangent = cosine / sine;
+
+    tmp[0] = cotangent / aspect;
+    tmp[5] = cotangent;
+    tmp[10] = -(z_far + z_near) / delta_z;
+    tmp[11] = -1.0f;
+    tmp[14] = -2.0f * z_near * z_far / delta_z;
+    tmp[15] = 0.0f;
+
+    memcpy(m, tmp, sizeof(tmp));
+}
+
+static void look_at(GLfloat *m, GLfloat eye_x, GLfloat eye_y, GLfloat eye_z,
+                    GLfloat center_x, GLfloat center_y, GLfloat center_z,
+                    GLfloat up_x, GLfloat up_y, GLfloat up_z)
+{
+    GLfloat f[3], s[3], u[3];
+    GLfloat f_len, s_len;
+
+    f[0] = center_x - eye_x;
+    f[1] = center_y - eye_y;
+    f[2] = center_z - eye_z;
+    f_len = sqrtf(f[0]*f[0] + f[1]*f[1] + f[2]*f[2]);
+    if (f_len == 0.0f) f_len = 1.0f;
+    f[0] /= f_len; f[1] /= f_len; f[2] /= f_len;
+
+    s[0] = f[1]*up_z - f[2]*up_y;
+    s[1] = f[2]*up_x - f[0]*up_z;
+    s[2] = f[0]*up_y - f[1]*up_x;
+    s_len = sqrtf(s[0]*s[0] + s[1]*s[1] + s[2]*s[2]);
+    if (s_len == 0.0f) s_len = 1.0f;
+    s[0] /= s_len; s[1] /= s_len; s[2] /= s_len;
+
+    u[0] = s[1]*f[2] - s[2]*f[1];
+    u[1] = s[2]*f[0] - s[0]*f[2];
+    u[2] = s[0]*f[1] - s[1]*f[0];
+
+    GLfloat look_at_mat[16] = {
+        s[0], u[0], -f[0], 0,
+        s[1], u[1], -f[1], 0,
+        s[2], u[2], -f[2], 0,
+        -(s[0]*eye_x + s[1]*eye_y + s[2]*eye_z),
+        -(u[0]*eye_x + u[1]*eye_y + u[2]*eye_z),
+        f[0]*eye_x + f[1]*eye_y + f[2]*eye_z,
+        1
+    };
+
+    memcpy(m, look_at_mat, sizeof(look_at_mat));
+}
+
+static void bernstein(float t, float b[4])
+{
+    float mt = 1.0f - t;
+    b[0] = mt * mt * mt;
+    b[1] = 3.0f * t * mt * mt;
+    b[2] = 3.0f * t * t * mt;
+    b[3] = t * t * t;
+}
+
+static void bernstein_d(float t, float d[4])
+{
+    float mt = 1.0f - t;
+    d[0] = -3.0f * mt * mt;
+    d[1] = 3.0f * mt * mt - 6.0f * t * mt;
+    d[2] = 6.0f * t * mt - 3.0f * t * t;
+    d[3] = 3.0f * t * t;
+}
+
+/* Evaluate one bicubic Bezier patch at (u,v); write position and the unit
+ * surface normal (cross product of the u and v tangents). */
+static void eval_patch(const int* pidx, float u, float v, float pos[3], float nrm[3])
+{
+    float bu[4], bv[4], du[4], dv[4];
+    bernstein(u, bu);
+    bernstein(v, bv);
+    bernstein_d(u, du);
+    bernstein_d(v, dv);
+
+    float px = 0, py = 0, pz = 0;
+    float tu_x = 0, tu_y = 0, tu_z = 0;   /* dS/du */
+    float tv_x = 0, tv_y = 0, tv_z = 0;   /* dS/dv */
+
+    int i, j;
+    for (i = 0; i < 4; i++) {
+        for (j = 0; j < 4; j++) {
+            const GLfloat* cp = cpdata[pidx[i * 4 + j] - 1];
+            float w  = bu[i] * bv[j];
+            float wu = du[i] * bv[j];
+            float wv = bu[i] * dv[j];
+            px += w * cp[0];  py += w * cp[1];  pz += w * cp[2];
+            tu_x += wu * cp[0]; tu_y += wu * cp[1]; tu_z += wu * cp[2];
+            tv_x += wv * cp[0]; tv_y += wv * cp[1]; tv_z += wv * cp[2];
+        }
     }
-  }
-}
 
-static void gen_cylinder(float x0, float y0, float z0, float x1, float y1,
-                         float z1, float rad0, float rad1, int sides, int r,
-                         int g, int b) {
-  float ax = x1 - x0, ay = y1 - y0, az = z1 - z0;
-  float al = sqrtf(ax * ax + ay * ay + az * az);
-  if (al < 1e-6f) return;
-  ax /= al; ay /= al; az /= al;
-  float ux = 0, uy = 0, uz = 1;
-  if (fabsf(ay) > 0.9f) { ux = 1; uy = 0; uz = 0; }
-  float cx = ay * uz - az * uy;
-  float cy = az * ux - ax * uz;
-  float cz = ax * uy - ay * ux;
-  float cl = sqrtf(cx * cx + cy * cy + cz * cz);
-  cx /= cl; cy /= cl; cz /= cl;
-  float vx = ay * cz - az * cy;
-  float vy = az * cx - ax * cz;
-  float vz = ax * cy - ay * cx;
-  for (int j = 0; j < sides; j++) {
-    float a0 = 2.0f * (float)M_PI * j / sides;
-    float a1 = 2.0f * (float)M_PI * (j + 1) / sides;
-    float c0 = cosf(a0), s0 = sinf(a0), c1 = cosf(a1), s1 = sinf(a1);
-    float q00x = x0 + rad0 * (cx * c0 + vx * s0);
-    float q00y = y0 + rad0 * (cy * c0 + vy * s0);
-    float q00z = z0 + rad0 * (cz * c0 + vz * s0);
-    float q01x = x0 + rad0 * (cx * c1 + vx * s1);
-    float q01y = y0 + rad0 * (cy * c1 + vy * s1);
-    float q01z = z0 + rad0 * (cz * c1 + vz * s1);
-    float q10x = x1 + rad1 * (cx * c0 + vx * s0);
-    float q10y = y1 + rad1 * (cy * c0 + vy * s0);
-    float q10z = z1 + rad1 * (cz * c0 + vz * s0);
-    float q11x = x1 + rad1 * (cx * c1 + vx * s1);
-    float q11y = y1 + rad1 * (cy * c1 + vy * s1);
-    float q11z = z1 + rad1 * (cz * c1 + vz * s1);
-    add_tri(q00x, q00y, q00z, q10x, q10y, q10z, q11x, q11y, q11z, r, g, b);
-    add_tri(q00x, q00y, q00z, q11x, q11y, q11z, q01x, q01y, q01z, r, g, b);
-  }
-}
+    pos[0] = px; pos[1] = py; pos[2] = pz;
 
-static void gen_torus(float cx, float cy, float cz, float R, float rt,
-                      float a_start, float a_end, int path_seg, int tube_seg,
-                      int r, int g, int b) {
-  for (int i = 0; i < path_seg; i++) {
-    float a0 = a_start + (a_end - a_start) * i / path_seg;
-    float a1 = a_start + (a_end - a_start) * (i + 1) / path_seg;
-    for (int j = 0; j < tube_seg; j++) {
-      float b0 = 2.0f * (float)M_PI * j / tube_seg;
-      float b1 = 2.0f * (float)M_PI * (j + 1) / tube_seg;
-      float ca0 = cosf(a0), sa0 = sinf(a0), ca1 = cosf(a1), sa1 = sinf(a1);
-      float cb0 = cosf(b0), sb0 = sinf(b0), cb1 = cosf(b1), sb1 = sinf(b1);
-      float q00x = cx + (R + rt * cb0) * ca0;
-      float q00y = cy + (R + rt * cb0) * sa0;
-      float q00z = cz + rt * sb0;
-      float q01x = cx + (R + rt * cb1) * ca0;
-      float q01y = cy + (R + rt * cb1) * sa0;
-      float q01z = cz + rt * sb1;
-      float q10x = cx + (R + rt * cb0) * ca1;
-      float q10y = cy + (R + rt * cb0) * sa1;
-      float q10z = cz + rt * sb0;
-      float q11x = cx + (R + rt * cb1) * ca1;
-      float q11y = cy + (R + rt * cb1) * sa1;
-      float q11z = cz + rt * sb1;
-      add_tri(q00x, q00y, q00z, q10x, q10y, q10z, q11x, q11y, q11z, r, g, b);
-      add_tri(q00x, q00y, q00z, q11x, q11y, q11z, q01x, q01y, q01z, r, g, b);
+    float nx = tu_y * tv_z - tu_z * tv_y;
+    float ny = tu_z * tv_x - tu_x * tv_z;
+    float nz = tu_x * tv_y - tu_y * tv_x;
+    float len = sqrtf(nx*nx + ny*ny + nz*nz);
+    if (len > 1e-8f) {
+        nx /= len; ny /= len; nz /= len;
+    } else {
+        nx = 0; ny = 0; nz = 1.0f;
     }
-  }
+    nrm[0] = nx; nrm[1] = ny; nrm[2] = nz;
 }
 
-static void build_teapot(void) {
-  static const float body[] = {
-      0.55f, 0.00f, 0.85f, 0.10f, 1.00f, 0.35f, 1.05f, 0.70f,
-      0.95f, 1.05f, 0.78f, 1.30f, 0.62f, 1.45f, 0.58f, 1.55f,
-  };
-  static const float lid[] = {
-      0.58f, 1.55f, 0.55f, 1.62f, 0.45f, 1.72f,
-      0.25f, 1.80f, 0.10f, 1.84f, 0.00f, 1.85f,
-  };
-  g_mesh_count = 0;
-  gen_bottom_cap(0.55f, 0.0f, 32, 190, 105, 50);
-  gen_lathe(body, (int)(sizeof(body) / sizeof(body[0]) / 2), 32, 200, 120, 60);
-  gen_lathe(lid, (int)(sizeof(lid) / sizeof(lid[0]) / 2), 32, 210, 130, 70);
-  gen_sphere(0, 1.93f, 0, 0.10f, 16, 10, 120, 60, 30);
-  gen_cylinder(0.92f, 0.80f, 0, 1.28f, 0.88f, 0, 0.16f, 0.12f, 12, 200, 120, 60);
-  gen_cylinder(1.28f, 0.88f, 0, 1.62f, 1.38f, 0, 0.12f, 0.07f, 12, 200, 120, 60);
-  gen_torus(-1.00f, 0.88f, 0, 0.34f, 0.085f, (float)M_PI * 0.5f,
-            (float)M_PI * 1.5f, 14, 8, 190, 110, 55);
+static GLfloat* emit_vert(GLfloat* v, const float* pos, const float* nrm)
+{
+    v[0] = pos[0]; v[1] = pos[1]; v[2] = pos[2];
+    v[3] = nrm[0]; v[4] = nrm[1]; v[5] = nrm[2];
+    return v + 6;
 }
 
-/* ---------------- 每帧 CPU 变换 ---------------- */
-static int build_frame(float angle, float aspect) {
-  float ca = cosf(angle), sa = sinf(angle);
-  const float f = 2.414f;
-  const float cam_z = 4.2f;
-  const float model_y = 0.95f;
-  const float lx = 0.40f, ly = 0.80f, lz = 0.50f;
-  int n = 0;
-  for (int i = 0; i < g_mesh_count; i++) {
-    float x = g_mesh_p[i][0];
-    float y = g_mesh_p[i][1] - model_y;
-    float z = g_mesh_p[i][2];
-    float xr = x * ca + z * sa;
-    float zr = -x * sa + z * ca;
-    float zz = zr - cam_z;
-    if (zz > -0.05f) continue;
-    float inv = -1.0f / zz;
-    float xn = f * xr * inv / aspect;
-    float yn = -f * y * inv;
+static void build_teapot(void)
+{
+    const int G = TEAPOT_GRID;
+    const int per_patch = G * G * 2 * 3;      /* triangles * 3 verts */
+    const int total = NPATCH * per_patch;
 
-    float nx = g_mesh_n[i][0] * ca + g_mesh_n[i][2] * sa;
-    float nz = -g_mesh_n[i][0] * sa + g_mesh_n[i][2] * ca;
-    float ny = g_mesh_n[i][1];
-    float d = fabsf(nx * lx + ny * ly + nz * lz);
-    float lit = 0.25f + 0.75f * d;
-    int r = (int)(g_mesh_c[i][0] * lit);
-    int g = (int)(g_mesh_c[i][1] * lit);
-    int b = (int)(g_mesh_c[i][2] * lit);
-    if (r > 255) r = 255;
-    if (g > 255) g = 255;
-    if (b > 255) b = 255;
+    teapot.vertices = (GLfloat*)malloc(total * 6 * sizeof(GLfloat));
+    if (teapot.vertices == NULL) {
+        printf("build_teapot: out of memory\n");
+        return;
+    }
 
-    uint8_t* p = g_vdata + (size_t)n * VSTRIDE;
-    float* fp = (float*)p;
-    fp[0] = xn;
-    fp[1] = yn;
-    fp[2] = 0.0f;
-    p[12] = (uint8_t)r;
-    p[13] = (uint8_t)g;
-    p[14] = (uint8_t)b;
-    p[15] = 255;
-    n++;
-  }
-  return n;
+    /* Per-patch lattice of positions/normals (reused for every patch). */
+    static float lat_pos[(TEAPOT_GRID + 1) * (TEAPOT_GRID + 1)][3];
+    static float lat_nrm[(TEAPOT_GRID + 1) * (TEAPOT_GRID + 1)][3];
+
+    GLfloat* v = teapot.vertices;
+    int p, a, b;
+    for (p = 0; p < NPATCH; p++) {
+        const int* pidx = patches[p];
+        teapot.patch_first[p] = (int)(v - teapot.vertices) / 6;
+
+        for (a = 0; a <= G; a++) {
+            float u = (float)a / (float)G;
+            for (b = 0; b <= G; b++) {
+                float w = (float)b / (float)G;
+                int idx = a * (G + 1) + b;
+                eval_patch(pidx, u, w, lat_pos[idx], lat_nrm[idx]);
+            }
+        }
+
+        for (a = 0; a < G; a++) {
+            for (b = 0; b < G; b++) {
+                int i00 = a * (G + 1) + b;
+                int i10 = (a + 1) * (G + 1) + b;
+                int i01 = a * (G + 1) + b + 1;
+                int i11 = (a + 1) * (G + 1) + b + 1;
+
+                v = emit_vert(v, lat_pos[i00], lat_nrm[i00]);
+                v = emit_vert(v, lat_pos[i10], lat_nrm[i10]);
+                v = emit_vert(v, lat_pos[i11], lat_nrm[i11]);
+
+                v = emit_vert(v, lat_pos[i00], lat_nrm[i00]);
+                v = emit_vert(v, lat_pos[i11], lat_nrm[i11]);
+                v = emit_vert(v, lat_pos[i01], lat_nrm[i01]);
+            }
+        }
+
+        teapot.patch_count[p] = (int)(v - teapot.vertices) / 6 - teapot.patch_first[p];
+    }
+
+    teapot.nvertices = (int)(v - teapot.vertices) / 6;
+
+    /* CPU colour buffer, recomputed every frame by compute_colors(). */
+    teapot.colors = (GLfloat*)malloc((size_t)teapot.nvertices * 4 * sizeof(GLfloat));
+    if (teapot.colors == NULL) {
+        printf("build_teapot: out of memory (colours)\n");
+        return;
+    }
+
+    /* Static vec4 position VBO (x,y,z,1) built from the interleaved pos+normal. */
+    {
+        GLfloat *pos4 = (GLfloat*)malloc((size_t)teapot.nvertices * 4 * sizeof(GLfloat));
+        int i;
+        if (pos4 == NULL) {
+            printf("build_teapot: out of memory (positions)\n");
+            return;
+        }
+        for (i = 0; i < teapot.nvertices; ++i) {
+            pos4[i*4+0] = teapot.vertices[i*6+0];
+            pos4[i*4+1] = teapot.vertices[i*6+1];
+            pos4[i*4+2] = teapot.vertices[i*6+2];
+            pos4[i*4+3] = 1.0f;
+        }
+        glGenBuffers(1, &teapot.pos_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, teapot.pos_vbo);
+        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)teapot.nvertices * 4 * sizeof(GLfloat),
+                     pos4, GL_STATIC_DRAW);
+        free(pos4);
+    }
+
+    /* Dynamic vec4 colour VBO; storage allocated here, filled each frame. */
+    glGenBuffers(1, &teapot.color_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, teapot.color_vbo);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)teapot.nvertices * 4 * sizeof(GLfloat),
+                 NULL, GL_STREAM_DRAW);
+
+    if (teapot.pos_vbo == 0 || teapot.color_vbo == 0)
+        printf("build_teapot: glGenBuffers failed\n");
 }
 
-/* ---------------- GL 辅助 ---------------- */
+/* Transform a point (w=1) by a column-major mat4, mirroring mult_m4_v4. */
+static void xform_point(const GLfloat *m, GLfloat x, GLfloat y, GLfloat z, GLfloat out[3])
+{
+    out[0] = m[0]*x + m[4]*y + m[8]*z  + m[12];
+    out[1] = m[1]*x + m[5]*y + m[9]*z  + m[13];
+    out[2] = m[2]*x + m[6]*y + m[10]*z + m[14];
+}
+
+/* Exponent-48 power by repeated squaring (48 == 32 + 16), matching the former
+ * vertex shader's fpow and avoiding libm powf on the embedded target. */
+static float fpow48(float x)
+{
+    float x2 = x * x, x4 = x2 * x2, x8 = x4 * x4, x16 = x8 * x8, x32 = x16 * x16;
+    return x32 * x16;
+}
+
+static void norm3(const float *v, float *o)
+{
+    float len = sqrtf(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+    if (len < 1e-8f) { o[0] = 0.0f; o[1] = 0.0f; o[2] = 0.0f; return; }
+    o[0] = v[0]/len; o[1] = v[1]/len; o[2] = v[2]/len;
+}
+
+/* Per-vertex two-sided Blinn-Phong in eye space against a positional light,
+ * reproducing the former GLSL vertex shader exactly (uShade = ambient 0.22,
+ * diffuse 0.78, specular 1.0; material 0.85/0.32/0.20).  The result is written
+ * to teapot.colors as vec4 RGBA and uploaded as a colour attribute, so the
+ * vertex shader becomes a trivial passthrough that libGLESv2 runs natively. */
+static void compute_colors(const GLfloat *model_view, const GLfloat *normal_matrix,
+                           const GLfloat *light_eye)
+{
+    const float mat[3] = { 0.85f, 0.32f, 0.20f };
+    const float amb = 0.22f, dif = 0.78f, spc = 1.0f;
+    int i;
+    if (teapot.vertices == NULL || teapot.colors == NULL) return;
+    for (i = 0; i < teapot.nvertices; ++i) {
+        const GLfloat *v = teapot.vertices + (size_t)i * 6;
+        GLfloat ep[3], ne[3], V[3], Ld[3], L[3], Hv[3], neg[3];
+        float diff, ndoth, ndotv, spec;
+        int c;
+
+        xform_point(model_view, v[0], v[1], v[2], ep);          /* eye position */
+        ne[0] = normal_matrix[0]*v[3] + normal_matrix[4]*v[4] + normal_matrix[8]*v[5];
+        ne[1] = normal_matrix[1]*v[3] + normal_matrix[5]*v[4] + normal_matrix[9]*v[5];
+        ne[2] = normal_matrix[2]*v[3] + normal_matrix[6]*v[4] + normal_matrix[10]*v[5];
+        norm3(ne, ne);                                          /* eye normal */
+
+        neg[0] = -ep[0]; neg[1] = -ep[1]; neg[2] = -ep[2];      /* eye at origin */
+        norm3(neg, V);
+
+        ndotv = ne[0]*V[0] + ne[1]*V[1] + ne[2]*V[2];           /* two-sided flip */
+        if (ndotv < 0.0f) { ne[0] = -ne[0]; ne[1] = -ne[1]; ne[2] = -ne[2]; }
+
+        Ld[0] = light_eye[0] - ep[0];                           /* positional light */
+        Ld[1] = light_eye[1] - ep[1];
+        Ld[2] = light_eye[2] - ep[2];
+        norm3(Ld, L);
+
+        diff = ne[0]*L[0] + ne[1]*L[1] + ne[2]*L[2];
+        if (diff < 0.0f) diff = 0.0f;
+
+        Hv[0] = L[0] + V[0]; Hv[1] = L[1] + V[1]; Hv[2] = L[2] + V[2];
+        norm3(Hv, Hv);
+        ndoth = ne[0]*Hv[0] + ne[1]*Hv[1] + ne[2]*Hv[2];
+        if (ndoth < 0.0f) ndoth = 0.0f;
+        spec = fpow48(ndoth);
+
+        for (c = 0; c < 3; ++c) {
+            float col = mat[c] * (amb + dif * diff) + spc * spec;
+            if (col < 0.0f) col = 0.0f;
+            if (col > 1.0f) col = 1.0f;
+            teapot.colors[(size_t)i * 4 + c] = col;
+        }
+        teapot.colors[(size_t)i * 4 + 3] = 1.0f;
+    }
+}
+
+static void draw_teapot(void)
+{
+    GLfloat view[16];
+    GLfloat model_view[16];
+    GLfloat normal_matrix[16];
+    GLfloat mvp[16];
+
+    /* ImGui leaves its own shader program bound after RenderDrawData (the GLES2
+     * backend restores only the viewport/scissor/buffer/enable-cap state), so the
+     * scene program is re-bound here every frame before drawing the teapot. */
+    glUseProgram(program);
+
+    glClearColor(0.05f, 0.06f, 0.09f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    /* Camera orbits the teapot at a fixed radius, looking at the origin. */
+    float dist = 9.0f;
+    float elev = camera_elev * M_PI / 180.0f;
+    float azim = camera_angle * M_PI / 180.0f;
+    float cam_y = dist * sinf(elev);
+    float r = dist * cosf(elev);
+    float cam_x = r * sinf(azim);
+    float cam_z = r * cosf(azim);
+    look_at(view, cam_x, cam_y, cam_z, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+
+    /* Model transform: spin the teapot about its own up axis, reorient the
+     * data's +Z (lid direction) to world +Y, then drop it to be centred. */
+    memcpy(model_view, view, sizeof(model_view));
+    translate(model_view, 0.0f, -1.3f, 0.0f);
+    rotate(model_view, -90.0f, 1.0f, 0.0f, 0.0f);
+    rotate(model_view, spin_angle, 0.0f, 0.0f, 1.0f);
+
+    memcpy(mvp, projection_matrix, sizeof(mvp));
+    multiply(mvp, model_view);
+
+    memcpy(normal_matrix, model_view, sizeof(normal_matrix));
+    invert(normal_matrix);
+    transpose(normal_matrix);
+
+    /* World-fixed light transformed into eye space so highlights sweep across
+     * the surface as the teapot spins and the camera orbits. */
+    GLfloat le[3];
+    xform_point(view, 6.0f, 8.0f, 10.0f, le);
+
+    if (teapot.pos_vbo == 0 || teapot.color_vbo == 0 ||
+        teapot.vertices == NULL || teapot.colors == NULL)
+        return;
+
+    /* Light every vertex on the CPU (Blinn-Phong, formerly the vertex shader)
+     * and refresh the dynamic colour VBO; the trivial passthrough VS then runs
+     * on libGLESv2's native gouraud fast-path instead of the GLSL interpreter. */
+    compute_colors(model_view, normal_matrix, le);
+
+    glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, mvp);
+
+    glBindBuffer(GL_ARRAY_BUFFER, teapot.color_vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0,
+                    (GLsizeiptr)teapot.nvertices * 4 * sizeof(GLfloat),
+                    teapot.colors);
+
+    glBindBuffer(GL_ARRAY_BUFFER, teapot.pos_vbo);
+    glVertexAttribPointer(attr_pos, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+    glEnableVertexAttribArray(attr_pos);
+    glBindBuffer(GL_ARRAY_BUFFER, teapot.color_vbo);
+    glVertexAttribPointer(attr_color, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+    glEnableVertexAttribArray(attr_color);
+
+    /* One draw call per patch keeps every dispatch small while sharing VBOs. */
+    int p;
+    for (p = 0; p < NPATCH; p++)
+        glDrawArrays(GL_TRIANGLES, teapot.patch_first[p], teapot.patch_count[p]);
+
+    glDisableVertexAttribArray(attr_color);
+    glDisableVertexAttribArray(attr_pos);
+}
+
+
+static void dump_egl_error(const char* where) {
+  printf("%s failed, egl error 0x%x\n", where, eglGetError());
+}
+
 static GLuint compile_shader(GLenum type, const char* src) {
   GLuint s = glCreateShader(type);
   glShaderSource(s, 1, &src, NULL);
@@ -294,8 +688,6 @@ static GLuint link_program(const char* vs_src, const char* fs_src) {
   GLuint p = glCreateProgram();
   glAttachShader(p, vs);
   glAttachShader(p, fs);
-  glBindAttribLocation(p, 0, "a_pos");
-  glBindAttribLocation(p, 1, "a_color");
   glLinkProgram(p);
   GLint ok = 0;
   glGetProgramiv(p, GL_LINK_STATUS, &ok);
@@ -312,41 +704,12 @@ static GLuint link_program(const char* vs_src, const char* fs_src) {
   return p;
 }
 
-static void dump_egl_error(const char* where) {
-  printf("%s failed, egl error 0x%x\n", where, eglGetError());
-}
-
-typedef struct {
-  int nonbg;
-  int minx, maxx, miny, maxy;
-} frame_stats;
-
-static frame_stats analyze_frame(const uint8_t* px) {
-  frame_stats st = {0, W, -1, H, -1};
-  for (int y = 0; y < H; y++) {
-    for (int x = 0; x < W; x++) {
-      const uint8_t* p = px + ((size_t)y * W + x) * 4;
-      int dx = (int)p[0] - 13;
-      int dy = (int)p[1] - 13;
-      int dz = (int)p[2] - 26;
-      if (dx * dx + dy * dy + dz * dz > 900) {
-        st.nonbg++;
-        if (x < st.minx) st.minx = x;
-        if (x > st.maxx) st.maxx = x;
-        if (y < st.miny) st.miny = y;
-        if (y > st.maxy) st.maxy = y;
-      }
-    }
-  }
-  return st;
-}
-
-/* ---------------- 上屏：direct（/dev/fb 直写）/ tfu（离屏 BO + TFU） ---------------- */
+/* ---- 上屏（direct / tfu），RGB565 ---- */
 typedef struct {
   int sw, sh, pitch, cpp, size;
   int ox, oy;
-  unsigned char* fb;      /* direct: /dev/fb 映射 */
-  foot_cap_t cap;         /* tfu: 离屏 BO 的 arena cap */
+  unsigned char* fb;
+  foot_cap_t cap;
   unsigned int bo_va, bo_size, bo;
   client_t* gc;
 } present_t;
@@ -354,27 +717,17 @@ typedef struct {
 static int present_init(present_t* p, const char* mode, int w, int h) {
   memset(p, 0, sizeof(*p));
   p->gc = client_get("gpu");
-  if (p->gc == NULL) {
-    printf("present: client_get(gpu) failed\n");
-    return -1;
-  }
+  if (p->gc == NULL) return -1;
   long v[8];
   for (int i = 0; i < 8; i++) {
     unsigned int param = (unsigned int)i;
     v[i] = (long)client_call_ex(p->gc, (void*)GPU_LOW_SCREEN_PARAM, &param,
                                 sizeof(param), 5000);
   }
-  p->sw = (int)v[2];
-  p->sh = (int)v[3];
-  p->pitch = (int)v[4];
-  p->cpp = (int)v[5];
-  p->size = (int)v[7];
-  if (p->sw <= 0 || p->sh <= 0 || p->pitch <= 0 || p->cpp <= 0 ||
-      p->size <= 0) {
-    printf("present: bad screen info %dx%d pitch=%d cpp=%d size=%d\n", p->sw,
-           p->sh, p->pitch, p->cpp, p->size);
+  p->sw = (int)v[2]; p->sh = (int)v[3]; p->pitch = (int)v[4];
+  p->cpp = (int)v[5]; p->size = (int)v[7];
+  if (p->sw <= 0 || p->sh <= 0 || p->pitch <= 0 || p->cpp <= 0 || p->size <= 0)
     return -1;
-  }
   p->ox = ((p->sw - w) / 2) & ~1;
   p->oy = (p->sh - h) / 2;
   if (p->ox < 0) p->ox = 0;
@@ -382,54 +735,40 @@ static int present_init(present_t* p, const char* mode, int w, int h) {
 
   if (strcmp(mode, "direct") == 0) {
     int fd = open("/dev/fb", O_RDWR);
-    if (fd < 0) {
-      printf("present: open /dev/fb failed\n");
-      return -1;
-    }
+    if (fd < 0) return -1;
     void* base = mmap(NULL, (size_t)p->size, PROT_READ | PROT_WRITE,
                       MAP_SHARED, fd, 0);
     close(fd);
-    if (base == MAP_FAILED) {
-      printf("present: mmap /dev/fb failed\n");
-      return -1;
-    }
+    if (base == MAP_FAILED) return -1;
     p->fb = (unsigned char*)base;
   } else {
     unsigned int sz = 0, pa = 0;
     p->cap = foot_cap_alloc_arena((unsigned long)w * h * 2, 0, 0, &pa, &sz);
-    if (p->cap == FOOT_CAP_NONE) {
-      printf("present: arena alloc failed\n");
-      return -1;
-    }
+    if (p->cap == FOOT_CAP_NONE) return -1;
     void* va = (void*)0x54000000UL;
-    if (foot_cap_map(p->cap, va, 0, sz) != 0) {
-      printf("present: arena map failed\n");
-      return -1;
-    }
+    if (foot_cap_map(p->cap, va, 0, sz) != 0) return -1;
     p->bo_va = (unsigned int)(uintptr_t)va;
     p->bo_size = sz;
     gpu_bo_create_req req;
     memset(&req, 0, sizeof(req));
-    req.pa = pa;
-    req.size = sz;
+    req.pa = pa; req.size = sz;
     long handle = (long)client_call_ex(p->gc, (void*)GPU_LOW_BO_CREATE, &req,
                                        sizeof(req), 60000);
-    if (handle <= 0) {
-      printf("present: BO create failed (%ld)\n", handle);
-      return -1;
-    }
+    if (handle <= 0) return -1;
     p->bo = (unsigned int)handle;
   }
   return 0;
 }
 
 static void present_frame(present_t* p, const uint8_t* rgba, int w, int h) {
+  /* GL 的 FBO 是 +Y 向上，glReadPixels 第 0 行是图像底部；屏幕第 0 行是
+   * 顶部，因此这里按行翻转。 */
   if (p->fb != NULL) {
     uint16_t* base = (uint16_t*)p->fb;
     int pitch_px = p->pitch / p->cpp;
     for (int y = 0; y < h; y++) {
       uint16_t* row = base + (size_t)(p->oy + y) * pitch_px + p->ox;
-      const uint8_t* src = rgba + (size_t)y * w * 4;
+      const uint8_t* src = rgba + (size_t)(h - 1 - y) * w * 4;
       for (int x = 0; x < w; x++) {
         uint8_t r = src[x * 4 + 0], g = src[x * 4 + 1], b = src[x * 4 + 2];
         row[x] = (uint16_t)(((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3));
@@ -439,7 +778,7 @@ static void present_frame(present_t* p, const uint8_t* rgba, int w, int h) {
   } else {
     uint16_t* dst = (uint16_t*)(uintptr_t)p->bo_va;
     for (int y = 0; y < h; y++) {
-      const uint8_t* src = rgba + (size_t)y * w * 4;
+      const uint8_t* src = rgba + (size_t)(h - 1 - y) * w * 4;
       for (int x = 0; x < w; x++) {
         uint8_t r = src[x * 4 + 0], g = src[x * 4 + 1], b = src[x * 4 + 2];
         dst[(size_t)y * w + x] =
@@ -450,68 +789,55 @@ static void present_frame(present_t* p, const uint8_t* rgba, int w, int h) {
     gpu_submit_tfu_req tr;
     memset(&tr, 0, sizeof(tr));
     tr.src_handle = p->bo;
-    tr.dst_handle = 0; /* 屏幕 */
+    tr.dst_handle = 0;
     tr.w = (unsigned int)w;
     tr.h = (unsigned int)h;
-    tr.src_fmt = 6; /* BGR565 */
+    tr.src_fmt = 6;
     tr.dst_fmt = 6;
     tr.dst_offset = (unsigned int)p->oy * (unsigned int)p->pitch +
                     (unsigned int)p->ox * (unsigned int)p->cpp;
     long rc = (long)client_call_ex(p->gc, (void*)GPU_LOW_SUBMIT_TFU, &tr,
                                    sizeof(tr), 10000);
-    if (rc != 0) {
-      printf("present: TFU failed (%ld)\n", rc);
-    }
+    if (rc != 0) printf("present: TFU failed (%ld)\n", rc);
   }
 }
 
 int main(int argc, char** argv) {
+  int present_mode = argc > 1 && (strcmp(argv[1], "direct") == 0 ||
+                                  strcmp(argv[1], "tfu") == 0);
+  int frames = (argc > 2) ? atoi(argv[2]) : 300;
+  if (frames <= 0) frames = 300;
   setvbuf(stdout, NULL, _IONBF, 0);
-  printf("=== test-gles-teapot (EGL/GLES2 glDrawArrays) ===\n");
+  printf("=== test-gles-teapot (%s) ===\n", present_mode ? argv[1] : "selftest");
 
   PFNEGLQUERYDEVICESEXTPROC query_devices =
       (PFNEGLQUERYDEVICESEXTPROC)eglGetProcAddress("eglQueryDevicesEXT");
   PFNEGLGETPLATFORMDISPLAYEXTPROC get_platform_display =
-      (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress(
-          "eglGetPlatformDisplayEXT");
+      (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
   if (query_devices == NULL || get_platform_display == NULL) {
     printf("EGL device entrypoints missing\n");
     return 1;
   }
-
   EGLDeviceEXT devs[8];
   EGLint ndev = 0;
   if (!query_devices(8, devs, &ndev) || ndev < 1) {
-    printf("eglQueryDevicesEXT failed, ndev=%d\n", ndev);
-    dump_egl_error("eglQueryDevicesEXT");
+    printf("eglQueryDevicesEXT failed\n");
     return 1;
   }
-
-  EGLDisplay dpy = get_platform_display(EGL_PLATFORM_DEVICE_EXT,
-                                        (void*)devs[0], NULL);
-  if (dpy == EGL_NO_DISPLAY) {
-    dump_egl_error("eglGetPlatformDisplay");
-    return 1;
-  }
-
+  EGLDisplay dpy = get_platform_display(EGL_PLATFORM_DEVICE_EXT, (void*)devs[0], NULL);
   EGLint major = 0, minor = 0;
-  if (!eglInitialize(dpy, &major, &minor)) {
+  if (dpy == EGL_NO_DISPLAY || !eglInitialize(dpy, &major, &minor)) {
     dump_egl_error("eglInitialize");
     return 1;
   }
-  printf("EGL %d.%d, vendor=%s\n", major, minor,
-         eglQueryString(dpy, EGL_VENDOR));
-
-  if (!eglBindAPI(EGL_OPENGL_ES_API)) {
-    dump_egl_error("eglBindAPI");
-    return 1;
-  }
+  printf("EGL %d.%d, vendor=%s\n", major, minor, eglQueryString(dpy, EGL_VENDOR));
+  if (!eglBindAPI(EGL_OPENGL_ES_API)) { dump_egl_error("eglBindAPI"); return 1; }
 
   EGLint cfg_attribs[] = {
       EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
       EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
       EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8,
-      EGL_ALPHA_SIZE, 8, EGL_NONE,
+      EGL_ALPHA_SIZE, 8, EGL_DEPTH_SIZE, 16, EGL_NONE,
   };
   EGLConfig cfg;
   EGLint ncfg = 0;
@@ -519,13 +845,9 @@ int main(int argc, char** argv) {
     dump_egl_error("eglChooseConfig");
     return 1;
   }
-
   EGLint ctx_attribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
   EGLContext ctx = eglCreateContext(dpy, cfg, EGL_NO_CONTEXT, ctx_attribs);
-  if (ctx == EGL_NO_CONTEXT) {
-    dump_egl_error("eglCreateContext");
-    return 1;
-  }
+  if (ctx == EGL_NO_CONTEXT) { dump_egl_error("eglCreateContext"); return 1; }
   if (!eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, ctx)) {
     dump_egl_error("eglMakeCurrent");
     return 1;
@@ -533,93 +855,124 @@ int main(int argc, char** argv) {
   printf("GL_VERSION=%s\n", glGetString(GL_VERSION));
   printf("GL_RENDERER=%s\n", glGetString(GL_RENDERER));
 
-  GLuint tex = 0, fbo = 0;
+  /* FBO: RGBA8 + DEPTH16 */
+  GLuint tex = 0, fbo = 0, rbo = 0;
   glGenTextures(1, &tex);
   glBindTexture(GL_TEXTURE_2D, tex);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, W, H, 0, GL_RGBA,
-               GL_UNSIGNED_BYTE, NULL);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, W, H, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+  glGenRenderbuffers(1, &rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, W, H);
   glGenFramebuffers(1, &fbo);
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                         tex, 0);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
     printf("FBO incomplete\n");
     return 1;
   }
 
-  static const char* vs_src =
-      "attribute vec3 a_pos;\n"
-      "attribute vec4 a_color;\n"
-      "varying vec4 v_color;\n"
-      "void main() { gl_Position = vec4(a_pos.xy, 0.0, 1.0);"
-      " v_color = a_color; }\n";
-  static const char* fs_src =
-      "precision mediump float;\n"
-      "varying vec4 v_color;\n"
-      "void main() { gl_FragColor = v_color; }\n";
-  GLuint prog = link_program(vs_src, fs_src);
-  if (!prog) return 1;
-  glUseProgram(prog);
+  program = link_program(teapot_vs, teapot_fs);
+  if (!program) return 1;
+  glUseProgram(program);
+  loc_mvp = glGetUniformLocation(program, "uMVP");
+  attr_pos = glGetAttribLocation(program, "aPosition");
+  attr_color = glGetAttribLocation(program, "aColor");
+  if (attr_pos < 0 || attr_color < 0) {
+    printf("attribute location failed (%d/%d)\n", attr_pos, attr_color);
+    return 1;
+  }
 
-  GLuint vbo = 0;
-  glGenBuffers(1, &vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glEnableVertexAttribArray(0);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, VSTRIDE, (void*)0);
-  glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, VSTRIDE, (void*)12);
+  perspective(projection_matrix, 45.0f, (GLfloat)W / (GLfloat)H, 0.5f, 100.0f);
+  glViewport(0, 0, W, H);
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
 
   build_teapot();
-  printf("mesh: %d vertices\n", g_mesh_count);
+  if (teapot.vertices == NULL || teapot.colors == NULL || teapot.pos_vbo == 0) {
+    printf("teapot build failed\n");
+    return 1;
+  }
+  printf("utah teapot: %d vertices\n", teapot.nvertices);
 
-  glViewport(0, 0, W, H);
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_CULL_FACE);
-
-  const float aspect = (float)W / (float)H;
-  frame_stats stats[2];
-  int verts[2] = {0, 0};
-
-  for (int k = 0; k < 2; k++) {
-    float angle = (k == 0) ? 0.0f : 1.15f;
-    int n = build_frame(angle, aspect);
-    verts[k] = n;
-
-    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)n * VSTRIDE, g_vdata,
-                 GL_STREAM_DRAW);
-    glClearColor(0.05f, 0.05f, 0.10f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDrawArrays(GL_TRIANGLES, 0, n);
-    glFinish();
-
-    memset(g_pixels, 0, sizeof(g_pixels));
-    glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, g_pixels);
-    stats[k] = analyze_frame(g_pixels);
-    printf("frame%d angle=%.2f verts=%d nonbg=%d bbox=[%d,%d]-[%d,%d]\n", k,
-           angle, n, stats[k].nonbg, stats[k].minx, stats[k].miny,
-           stats[k].maxx, stats[k].maxy);
+  static uint8_t pixels[W * H * 4];
+  present_t pres;
+  int have_pres = 0;
+  if (present_mode) {
+    if (present_init(&pres, argv[1], W, H) != 0) {
+      printf("present init failed\n");
+      return 1;
+    }
+    have_pres = 1;
+    printf("present: mode=%s screen=%dx%d pitch=%d ox=%d oy=%d\n", argv[1],
+           pres.sw, pres.sh, pres.pitch, pres.ox, pres.oy);
   }
 
-  /* 茶壶中心像素：应落在壶身上（棕色，R > B） */
-  const uint8_t* cpx = g_pixels + ((size_t)(H / 2) * W + W / 2) * 4;
-  printf("center pixel = %u %u %u %u\n", cpx[0], cpx[1], cpx[2], cpx[3]);
-
+  int nframes = present_mode ? frames : 2;
   int fail = 0;
-  if (verts[0] < 1000 || verts[1] < 1000) {
-    printf("too few vertices\n");
-    fail = 1;
+  int nonbg[2] = {0, 0};
+  int c0r = 0, c0g = 0, c0b = 0;
+  for (int f = 0; f < nframes; f++) {
+    if (present_mode) {
+      /* 45 deg/s 自转，20 deg/s 相机环绕，33ms 一帧 */
+      spin_angle += 45.0f * (33.0f / 1000.0f);
+      if (spin_angle >= 360.0f) spin_angle -= 360.0f;
+      camera_angle += 20.0f * (33.0f / 1000.0f);
+      if (camera_angle >= 360.0f) camera_angle -= 360.0f;
+    } else {
+      spin_angle = (f == 0) ? 0.0f : 70.0f;
+      camera_angle = (f == 0) ? 0.0f : 25.0f;
+    }
+
+    draw_teapot();
+    glFinish();
+    glReadPixels(0, 0, W, H, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    if (!present_mode) {
+      for (int y = 0; y < H; y++) {
+        for (int x = 0; x < W; x++) {
+          const uint8_t* p = pixels + ((size_t)y * W + x) * 4;
+          int dx = (int)p[0] - 13, dy = (int)p[1] - 15, dz = (int)p[2] - 23;
+          if (dx * dx + dy * dy + dz * dz > 900) nonbg[f]++;
+        }
+      }
+      const uint8_t* c = pixels + ((size_t)(H / 2) * W + W / 2) * 4;
+      if (f == 0) { c0r = c[0]; c0g = c[1]; c0b = c[2]; }
+      printf("frame%d nonbg=%d center=%u,%u,%u\n", f, nonbg[f], c[0], c[1],
+             c[2]);
+    } else {
+      present_frame(&pres, pixels, W, H);
+      if ((f & 31) == 0) printf("frame %d/%d\n", f, nframes);
+      usleep(33000);
+    }
   }
-  if (stats[0].nonbg < 5000 || stats[1].nonbg < 5000) {
-    printf("teapot coverage too small\n");
-    fail = 1;
+
+  if (!present_mode) {
+    if (nonbg[0] < 5000 || nonbg[1] < 5000) {
+      printf("teapot coverage too small\n");
+      fail = 1;
+    }
+    if (nonbg[0] == nonbg[1]) {
+      printf("rotation did not change coverage\n");
+      fail = 1;
+    }
+    if (!(c0r > 20 && c0r > c0b)) {
+      printf("center pixel is not lit teapot\n");
+      fail = 1;
+    }
   }
-  if (stats[0].minx == stats[1].minx && stats[0].maxx == stats[1].maxx) {
-    printf("rotation did not change silhouette\n");
-    fail = 1;
-  }
-  if (!(cpx[0] > 30 && cpx[0] > cpx[2])) {
-    printf("center pixel is not the teapot body\n");
-    fail = 1;
+
+  if (have_pres) {
+    if (pres.fb != NULL) munmap(pres.fb, (size_t)pres.size);
+    if (pres.cap != FOOT_CAP_NONE) {
+      foot_cap_unmap(pres.cap);
+      foot_cap_revoke(pres.cap);
+    }
+    if (pres.bo != 0) {
+      unsigned int handle = pres.bo;
+      client_call_ex(pres.gc, (void*)GPU_LOW_BO_DESTROY, &handle,
+                     sizeof(handle), 5000);
+    }
   }
 
   eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
