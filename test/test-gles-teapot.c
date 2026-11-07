@@ -23,7 +23,7 @@
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
 
-#include "foot_present.h"
+#include "gpu_client.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -709,15 +709,15 @@ int main(int argc, char** argv) {
   const char* mode = "direct";
   int present_mode = 1;
   int frames = 300;
-  foot_present_mode_t pmode = FOOT_PRESENT_DEFAULT;
+  gpu_present_mode_t pmode = GPU_PRESENT_DEFAULT;
   if (argc > 1) {
     if (strcmp(argv[1], "selftest") == 0) {
       present_mode = 0;
       mode = "selftest";
     } else if (strcmp(argv[1], "direct") == 0 || strcmp(argv[1], "tfu") == 0) {
       mode = argv[1];
-      pmode = (strcmp(argv[1], "tfu") == 0) ? FOOT_PRESENT_TFU
-                                            : FOOT_PRESENT_DIRECT;
+      pmode = (strcmp(argv[1], "tfu") == 0) ? GPU_PRESENT_TFU
+                                            : GPU_PRESENT_DIRECT;
     } else {
       frames = atoi(argv[1]);
     }
@@ -855,7 +855,7 @@ int main(int argc, char** argv) {
       printf("frame%d nonbg=%d center=%u,%u,%u\n", f, nonbg[f], c[0], c[1],
              c[2]);
     } else {
-      foot_present_frame_ex(pixels, W, H, pmode);
+      gpu_present_frame_ex(pixels, W, H, pmode);
       if ((f & 31) == 0) printf("frame %d/%d\n", f, nframes);
       usleep(33000);
     }
@@ -876,7 +876,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (present_mode) foot_present_shutdown();
+  if (present_mode) gpu_present_shutdown();
 
   eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
   eglDestroyContext(dpy, ctx);

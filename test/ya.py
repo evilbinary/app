@@ -523,8 +523,26 @@ add_deps("foot")
 add_deps("EGL")
 add_deps("GLESv2")
 add_deps("drm")
+add_deps("gpuclient")
 add_cflags(' -D__unix__ ')
 add_includedirs("../../eggs/libmesa/include")
 add_files(
    'test-gles-teapot.c'
+)
+
+
+# GBM + EGL_PLATFORM_GBM 验证
+target("test-gbm-egl")
+set_type("cli")
+add_deps("foot")
+add_deps("EGL")
+add_deps("GLESv2")
+add_deps("gbm")
+add_deps("gpuclient")
+add_deps("drm")
+add_cflags(' -D__unix__ ')
+add_includedirs("../../eggs/libmesa/src/gbm/main", "../../eggs/libmesa/include",
+                "../../eggs/libgpu/include", "../../eggs/libdrm/include")
+add_files(
+   'test-gbm-egl.c'
 )
