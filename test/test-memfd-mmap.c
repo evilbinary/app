@@ -117,9 +117,54 @@ static int test_size(size_t size) {
   return (r >= 0 && r > -4096) ? 0 : -1;
 }
 
+#ifndef MREMAP_MAYMOVE
+#define MREMAP_MAYMOVE 1
+#endif
+
+static void test_cursor_resize(void) {
+  int fd = (int)syscall(SYS_memfd_create, "cursor", MFD_CLOEXEC | MFD_ALLOW_SEALING);
+  void *p;
+  void *np;
+  printf("=== cursor resize 4096 -> 8832 ===\n");
+  fflush(stdout);
+  if (fd < 0) {
+    printf("memfd errno=%d\n", errno);
+    return;
+  }
+  printf("fallocate 4096 ret=%d errno=%d\n", posix_fallocate(fd, 0, 4096), errno);
+  p = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  printf("mmap 4096 %p errno=%d\n", p, errno);
+  fflush(stdout);
+  if (p == MAP_FAILED) {
+    close(fd);
+    return;
+  }
+  ((volatile char *)p)[0] = 0x5a;
+  errno = 0;
+  printf("fallocate 8832 ret=%d errno=%d\n", posix_fallocate(fd, 0, 8832), errno);
+  errno = 0;
+  np = mremap(p, 4096, 8832, MREMAP_MAYMOVE);
+  {
+    unsigned long u = (unsigned long)np;
+    printf("libc mremap 0x%lx hi=0x%lx errno=%d\n", u, u >> 32, errno);
+    fflush(stdout);
+    if ((u >> 32) == 0 && u >= 0x1000ul) {
+      printf("byte0=%02x\n", ((volatile unsigned char *)u)[0]);
+      fflush(stdout);
+    }
+  }
+  close(fd);
+}
+
 int main(void) {
-  size_t sizes[] = {4096, 65536, 1048576, 2097152, 4194304, 8294400};
   int i;
+  size_t sizes[] = {4096, 65536, 1048576, 2097152, 4194304, 8294400};
+  (void)i;
+  (void)sizes;
+  test_cursor_resize();
+  printf("=== cursor resize done ===\n");
+  fflush(stdout);
+  return 0;
 
   printf("=== memfd mmap probe ===\n");
   fflush(stdout);
