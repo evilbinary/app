@@ -126,6 +126,13 @@ void modules_init(void) {
   REGISTER_MODULE(rtc);
   /* RP1 Cadence GEM，BAR 在 0x1F00100000。失败只打日志。 */
   REGISTER_MODULE(net);
+  /* RP1 USB（snps,dwc3 / xHCI，USB-A 口）：
+   *   usb    = USB core + HID + usb_mouse（复用 raspi3 的通用实现）
+   *   mouse  = usb_mouse -> DEVICE_MOUSE 桥（bcm2836.c）
+   *   input  = /dev/input/eventN（weston 打开 event0） */
+  REGISTER_MODULE(usb);
+  REGISTER_MODULE(mouse);
+  REGISTER_MODULE(input);
   /* 【BCM2712 显示：走固件 mailbox 申请 framebuffer】
    * 双 HDMI（hdmi0@7c701400 / hdmi1@7c706400）注册 /dev/fb0、/dev/fb1。
    * 注意：Pi5 固件若没开启显示输出（config.txt 无 dtoverlay=vc4-kms-v3d 且
