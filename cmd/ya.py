@@ -9,6 +9,11 @@ set_type("cli")
 
 add_files("cat.c") 
 
+# env：最小环境变量启动器（sh 不支持 VAR=value cmd）。
+target("env")
+set_type("cli")
+add_files("env.c")
+
 target("date")
 set_type("cli")
 add_files("date.c") 

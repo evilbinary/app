@@ -516,6 +516,18 @@ add_files(
    'test-gles-clear.c'
 )
 
+# Mesa EGL/GLES2 纹理路径最小验证：FBO + glTexImage2D + 采样 + glReadPixels
+target("test-gles-texture")
+set_type("cli")
+add_deps("foot")
+add_deps("EGL")
+add_deps("GLESv2")
+add_cflags(' -D__unix__ ')
+add_includedirs("../../eggs/libmesa/include")
+add_files(
+   'test-gles-texture.c'
+)
+
 # Mesa EGL/GLES2 茶壶：GLSL + glDrawArrays + 旋转 + glReadPixels
 target("test-gles-teapot")
 set_type("cli")
@@ -546,3 +558,26 @@ add_includedirs("../../eggs/libmesa/src/gbm/main", "../../eggs/libmesa/include",
 add_files(
    'test-gbm-egl.c'
 )
+
+# memfd + mmap 诊断：定位 wl_shm/desktop-shell 的 "mmap failed: EPERM"。
+# 用原始 svc 取内核返回值，绕过 musl 的 -1/EPERM 转换。
+target("test-memfd-mmap")
+set_type("cli")
+add_files(
+   'test-memfd-mmap.c'
+)
+
+# 读 /dev/fb0 采样：确认 weston 的输出是否真的进了 framebuffer。
+target("fbsample")
+set_type("cli")
+add_files(
+   'fbsample.c'
+)
+
+# timerfd + epoll 验证：weston repaint timer 的底层依赖。
+target("test-timerfd")
+set_type("cli")
+add_files(
+   'test-timerfd.c'
+)
+

@@ -121,7 +121,7 @@ weston_exe("weston-headless", "weston-headless", './weston_variants/headless.c')
 # 本系统的 dlopen 来自 musl 的 ldso（libc.so），所以模块就是普通共享库：
 # 只编 -fPIC 源码、链成 .so，符号（libweston / frontend 的）留给运行期解析，
 # 由 weston 可执行文件的 -export-dynamic 导出。
-def weston_module(name, files, includedirs=None):
+def weston_module(name, files, includedirs=None, deps=None):
     target(name)
     set_kind("shared")
     set_filename(name)
@@ -129,6 +129,8 @@ def weston_module(name, files, includedirs=None):
     add_packages(get_config('default_libc'))
     # include 路径与 NEEDED 都来自这些依赖；libweston.so 就是模块的上游库
     add_deps("weston", "wayland", "pixman", "xkbcommon", "evdev")
+    if deps:
+        add_deps(*deps)
     add_cflags(
         '-fPIC',
         '-DDUCK -DDLIBC_POSIX',
@@ -171,7 +173,30 @@ weston_module(
     [
         '../../eggs/weston/compat/backend-fbdev.c',
     ],
+    ['../../eggs/libmesa/include'],
 )
+
+# GL 渲染器模块：和上游一样是独立的 gl-renderer.so，由 compositor.c 的
+# weston_compositor_init_renderer() 从 LIBWESTON_MODULEDIR dlopen。
+# 本系统不用 GBM（HAVE_GBM 未定义），走 surfaceless EGL + FBO 输出；
+# fbdev 后端把 /dev/fb0 的 mmap 作为 RENDERBUFFER_BUFFER 交给它。
+weston_module(
+    "gl-renderer",
+    [
+        '../../eggs/weston/libweston/renderer-gl/egl-glue.c',
+        '../../eggs/weston/libweston/renderer-gl/gl-renderer.c',
+        '../../eggs/weston/libweston/renderer-gl/gl-shaders.c',
+        '../../eggs/weston/libweston/renderer-gl/gl-shader-config-color-transformation.c',
+        '../../eggs/weston/libweston/renderer-gl/gl-utils.c',
+        # 上游 dep_vertex_clipping：clipper_quad_clip_box32 等符号
+        '../../eggs/weston/libweston/vertex-clipping.c',
+    ],
+    ['../../eggs/libmesa/include'],
+    deps=("EGL", "GLESv2"),
+)
+# gl-renderer 依赖 EGL，目标 include 路径里会混入 Mesa 的 src（config.h /
+# util/u_endian.h），补上裸机架构的端序宏，避免 UTIL_ARCH_* unset。
+add_cflags('-DUTIL_ARCH_LITTLE_ENDIAN=1 -DUTIL_ARCH_BIG_ENDIAN=0')
 
 # ---- 图形套（--wayland-desktop）：desktop-shell 模块 + 桌面客户端 ----
 # 真桌面 shell（多窗口 + 背景/面板）：上游 desktop-shell/shell.c。
@@ -251,6 +276,8 @@ def toytoolkit_client(name, main_src, extra_files=(), install_type="cli",
     # <linux/input.h>。
     add_includedirs(
         '../../eggs/weston',
+        '../../eggs/weston/compat-egl',  # wayland-egl.h 垫片（不包含 compat/cairo.h）
+        '../../eggs/libmesa/include',    # shared/platform.h 的 EGL/egl.h（仅头文件）
         '../../eggs/weston/clients',
         '../../eggs/weston/shared',
         '../../eggs/weston/include',
@@ -384,9 +411,12 @@ if has_config("wayland-desktop"):
         )
 
 # ---- 运行时布局：把共享库/模块摆到镜像里 weston 期望的路径 ----
-#   /lib/libweston.so                       （可执行文件与模块的 NEEDED）
-#   /usr/lib/libweston-16/headless-backend.so   （LIBWESTON_MODULEDIR）
-#   /usr/lib/weston/kiosk-shell.so              （MODULEDIR）
+#   /lib/libweston.so                          （可执行文件与模块的 NEEDED）
+#   /usr/lib/libweston-16/{headless,fbdev}-backend.so  （LIBWESTON_MODULEDIR）
+#   /usr/lib/libweston-16/gl-renderer.so               （LIBWESTON_MODULEDIR）
+#   /usr/lib/weston/kiosk-shell.so                     （MODULEDIR）
+#   /usr/lib/weston/desktop-shell.so                   （MODULEDIR）
+# 目录由镜像提供（app/resource/usr/lib/... 已存在），运行时不 mkdir。
 import os as _os
 import shutil as _shutil
 
@@ -399,6 +429,8 @@ _deploy = [
      'app/resource/usr/lib/libweston-16/headless-backend.so'),
     ('libfbdev-backend.so',
      'app/resource/usr/lib/libweston-16/fbdev-backend.so'),
+    ('libgl-renderer.so',
+     'app/resource/usr/lib/libweston-16/gl-renderer.so'),
 ]
 if has_config("wayland-desktop"):
     # 图形套的模块与客户端：不开 --wayland-desktop 时连编译都没有，别去找文件
