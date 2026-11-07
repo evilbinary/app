@@ -581,3 +581,10 @@ add_files(
    'test-timerfd.c'
 )
 
+# /dev/input/event0 事件读取：确认 USB 鼠标上报是否进了 input 子系统。
+target("evread")
+set_type("cli")
+add_files(
+   'evread.c'
+)
+
