@@ -597,11 +597,19 @@ int demo_run(int (*init)(void), void (*draw)(float t)) {
     return 1;
   }
 
+  /* weston 没带 --socket 时从 wayland-1 开始编号；逐个试。 */
   d.display = wl_display_connect(NULL);
   if (!d.display) {
-    /* weston 的 socket 固定在 /lib/wayland-0；老 shell 可能给 /tmp。 */
     setenv("XDG_RUNTIME_DIR", "/lib", 1);
     d.display = wl_display_connect(NULL);
+  }
+  if (!d.display) {
+    char name[32];
+    int n;
+    for (n = 0; n < 10 && !d.display; n++) {
+      snprintf(name, sizeof(name), "wayland-%d", n);
+      d.display = wl_display_connect(name);
+    }
   }
   if (!d.display) {
     fprintf(stderr, "wl_display_connect failed (XDG_RUNTIME_DIR=%s)\n",
