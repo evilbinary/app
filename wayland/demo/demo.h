@@ -28,6 +28,9 @@ GLuint demo_program(const char *vs, const char *fs);
 void demo_sphere(float radius, int slices, int stacks, float **verts,
                  int *vert_count);
 
+/* 窗口标题（eventdemo 同款 CSD 标题栏用）。 */
+void demo_set_title(const char *title);
+
 /* 运行 Wayland 窗口 + EGL/GLES 渲染循环。
  * init() 返回 0 成功；draw(t) 在每帧被调用，t 单位秒。 */
 int demo_run(int (*init)(void), void (*draw)(float t));

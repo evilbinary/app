@@ -20,10 +20,12 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <cairo.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <wayland-client.h>
 #include "xdg-shell-client-protocol.h"
+#include "shared/cairo-util.h"
 
 #include "demo.h"
 
@@ -49,13 +51,29 @@ struct demo_state {
   struct xdg_toplevel *toplevel;
   struct wl_buffer *buffer[2];
   void *shm_data[2];
+  int busy[2];
   int buf_index;
   int width, height, stride;
   int configured, running;
+  struct wl_seat *seat;
+  struct wl_pointer *pointer;
+  int ptr_x, ptr_y;
+
+  /* eventdemo 同款客户端装饰：theme/frame 来自 eggs/weston/shared。 */
+  struct theme *theme;
+  struct frame *frame;
+  cairo_surface_t *frame_surf;
+  int win_w, win_h;
+  int content_x, content_y;
+  int maximized;
+
   int (*init)(void);
   void (*draw)(float t);
   double start;
 };
+
+static const char *g_title = "mesa demo";
+void demo_set_title(const char *title) { g_title = title; }
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -303,6 +321,102 @@ static int egl_setup(int w, int h) {
   return g_readback ? 0 : -1;
 }
 
+/* --------------------------------------------------------------- CSD */
+/* eventdemo 同款装饰：Weston 的 shared/frame.c 用 cairo 画标题栏、
+ * 关闭/最大化/最小化按钮和阴影，输入命中测试也复用它。 */
+static void frame_repaint_surface(struct demo_state *d) {
+  cairo_t *cr;
+  if (!d->frame || !d->frame_surf) return;
+  cr = cairo_create(d->frame_surf);
+  frame_repaint(d->frame, cr);
+  cairo_destroy(cr);
+  cairo_surface_flush(d->frame_surf);
+}
+
+static void frame_after_input(struct demo_state *d, uint32_t serial,
+                             enum theme_location loc) {
+  uint32_t st = frame_status(d->frame);
+
+  if (st & FRAME_STATUS_CLOSE) {
+    d->running = 0;
+  }
+  if (st & FRAME_STATUS_MAXIMIZE) {
+    d->maximized = !d->maximized;
+    if (d->maximized) {
+      xdg_toplevel_set_maximized(d->toplevel);
+      frame_set_flag(d->frame, FRAME_FLAG_MAXIMIZED);
+    } else {
+      xdg_toplevel_unset_maximized(d->toplevel);
+      frame_unset_flag(d->frame, FRAME_FLAG_MAXIMIZED);
+    }
+  }
+  if (st & FRAME_STATUS_MINIMIZE) {
+    xdg_toplevel_set_minimized(d->toplevel);
+  }
+  if ((st & FRAME_STATUS_MOVE) && d->seat) {
+    xdg_toplevel_move(d->toplevel, d->seat, serial);
+  }
+  if ((st & FRAME_STATUS_RESIZE) && d->seat) {
+    xdg_toplevel_resize(d->toplevel, d->seat, serial, loc);
+  }
+  frame_status_clear(d->frame, st);
+  if (st & FRAME_STATUS_REPAINT) {
+    frame_repaint_surface(d);
+  }
+}
+
+static void ptr_enter(void *data, struct wl_pointer *p, uint32_t serial,
+                      struct wl_surface *s, wl_fixed_t x, wl_fixed_t y) {
+  struct demo_state *d = data;
+  (void)p; (void)serial; (void)s;
+  d->ptr_x = wl_fixed_to_int(x);
+  d->ptr_y = wl_fixed_to_int(y);
+  frame_pointer_enter(d->frame, d, d->ptr_x, d->ptr_y);
+  frame_after_input(d, 0, THEME_LOCATION_INTERIOR);
+}
+static void ptr_leave(void *data, struct wl_pointer *p, uint32_t serial,
+                      struct wl_surface *s) {
+  struct demo_state *d = data;
+  (void)p; (void)serial; (void)s;
+  frame_pointer_leave(d->frame, d);
+  frame_after_input(d, 0, THEME_LOCATION_INTERIOR);
+}
+static void ptr_motion(void *data, struct wl_pointer *p, uint32_t time,
+                       wl_fixed_t x, wl_fixed_t y) {
+  struct demo_state *d = data;
+  (void)p; (void)time;
+  d->ptr_x = wl_fixed_to_int(x);
+  d->ptr_y = wl_fixed_to_int(y);
+  frame_pointer_motion(d->frame, d, d->ptr_x, d->ptr_y);
+  frame_after_input(d, 0, THEME_LOCATION_INTERIOR);
+}
+static void ptr_button(void *data, struct wl_pointer *p, uint32_t serial,
+                       uint32_t time, uint32_t button, uint32_t state) {
+  struct demo_state *d = data;
+  enum wl_pointer_button_state bs =
+      state ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED;
+  (void)p; (void)time;
+  {
+    enum theme_location loc = frame_pointer_button(d->frame, d, button, bs);
+    frame_after_input(d, serial, loc);
+  }
+}
+static void ptr_axis(void *data, struct wl_pointer *p, uint32_t time,
+                     uint32_t axis, wl_fixed_t value) {
+  (void)data; (void)p; (void)time; (void)axis; (void)value;
+}
+static const struct wl_pointer_listener pointer_listener = {
+    ptr_enter, ptr_leave, ptr_motion, ptr_button, ptr_axis};
+
+static void seat_caps(void *data, struct wl_seat *seat, uint32_t caps) {
+  struct demo_state *d = data;
+  if ((caps & WL_SEAT_CAPABILITY_POINTER) && !d->pointer) {
+    d->pointer = wl_seat_get_pointer(seat);
+    wl_pointer_add_listener(d->pointer, &pointer_listener, d);
+  }
+}
+static const struct wl_seat_listener seat_listener = {seat_caps};
+
 /* --------------------------------------------------------------- wayland */
 
 static void registry_global(void *data, struct wl_registry *reg, uint32_t id,
@@ -314,6 +428,9 @@ static void registry_global(void *data, struct wl_registry *reg, uint32_t id,
     d->shm = wl_registry_bind(reg, id, &wl_shm_interface, 1);
   } else if (strcmp(iface, "xdg_wm_base") == 0) {
     d->wm_base = wl_registry_bind(reg, id, &xdg_wm_base_interface, 1);
+  } else if (strcmp(iface, "wl_seat") == 0) {
+    d->seat = wl_registry_bind(reg, id, &wl_seat_interface, 1);
+    wl_seat_add_listener(d->seat, &seat_listener, d);
   }
 }
 static void registry_remove(void *data, struct wl_registry *reg, uint32_t id) {}
@@ -345,8 +462,14 @@ static void toplevel_close(void *data, struct xdg_toplevel *t) {
 static const struct xdg_toplevel_listener toplevel_listener = {
     toplevel_configure, toplevel_close};
 
+static void buf_release(void *data, struct wl_buffer *b) {
+  (void)b;
+  *(int *)data = 0;
+}
+static const struct wl_buffer_listener buf_listener = {buf_release};
+
 static int shm_buffer_create(struct demo_state *d, int idx) {
-  size_t size = (size_t)d->stride * d->height;
+  size_t size = (size_t)d->stride * (size_t)d->win_h;
   struct wl_shm_pool *pool;
   int fd = (int)syscall(SYS_memfd_create, "wl-demo", 1);
   if (fd < 0) {
@@ -366,11 +489,15 @@ static int shm_buffer_create(struct demo_state *d, int idx) {
     return -1;
   }
   pool = wl_shm_create_pool(d->shm, fd, (int)size);
-  d->buffer[idx] = wl_shm_pool_create_buffer(pool, 0, d->width, d->height,
+  d->buffer[idx] = wl_shm_pool_create_buffer(pool, 0, d->win_w, d->win_h,
                                              d->stride,
-                                             WL_SHM_FORMAT_XRGB8888);
+                                             WL_SHM_FORMAT_ARGB8888);
   wl_shm_pool_destroy(pool);
   close(fd);
+  if (d->buffer[idx]) {
+    d->busy[idx] = 0;
+    wl_buffer_add_listener(d->buffer[idx], &buf_listener, &d->busy[idx]);
+  }
   return d->buffer[idx] ? 0 : -1;
 }
 
@@ -384,7 +511,6 @@ static void present(struct demo_state *d) {
   uint32_t *dst = (uint32_t *)d->shm_data[d->buf_index];
   uint8_t *src = g_readback;
   int x, y;
-  int stride_px = d->stride / 4;
 
   glBindFramebuffer(GL_FRAMEBUFFER, g_fbo);
   glViewport(0, 0, d->width, d->height);
@@ -397,22 +523,48 @@ static void present(struct demo_state *d) {
   glReadPixels(0, 0, d->width, d->height, GL_RGBA, GL_UNSIGNED_BYTE,
                g_readback);
 
-  /* GL 原点在左下，Wayland 在左上；顺便把 RGBA 转成 XRGB8888
-   * (little-endian 内存里是 B,G,R,X)。 */
+  /* 【双缓冲】合成器还在读的 buffer 不能覆盖。 */
+  {
+    int pick = -1;
+    if (!d->busy[d->buf_index]) {
+      pick = d->buf_index;
+    } else if (!d->busy[d->buf_index ^ 1]) {
+      pick = d->buf_index ^ 1;
+    }
+    if (pick < 0) {
+      return;
+    }
+    d->busy[pick] = 1;
+    dst = (uint32_t *)d->shm_data[pick];
+
+  /* 先把 cairo 画的 eventdemo 同款 frame（阴影/标题栏/按钮）整块拷进
+   * shm；cairo ARGB32 与 WL_SHM_FORMAT_ARGB8888 的字节序一致。 */
+  {
+    const uint32_t *fs = (const uint32_t *)cairo_image_surface_get_data(
+        d->frame_surf);
+    int fstride = cairo_image_surface_get_stride(d->frame_surf) / 4;
+    for (y = 0; y < d->win_h; y++) {
+      memcpy(dst + (size_t)y * d->win_w, fs + (size_t)y * fstride,
+             (size_t)d->win_w * 4);
+    }
+  }
+  /* GL 内容（原点左下）覆盖到 frame 的 interior 区域。 */
   for (y = 0; y < d->height; y++) {
     const uint8_t *s = src + (size_t)(d->height - 1 - y) * d->width * 4;
-    uint32_t *row = dst + (size_t)y * stride_px;
+    uint32_t *row = dst + (size_t)(d->content_y + y) * d->win_w +
+                    d->content_x;
     for (x = 0; x < d->width; x++) {
       row[x] = 0xff000000u | ((uint32_t)s[x * 4 + 2] << 16) |
                ((uint32_t)s[x * 4 + 1] << 8) | (uint32_t)s[x * 4 + 0];
     }
   }
 
-  wl_surface_attach(d->surface, d->buffer[d->buf_index], 0, 0);
-  wl_surface_damage(d->surface, 0, 0, d->width, d->height);
+  wl_surface_attach(d->surface, d->buffer[pick], 0, 0);
+  wl_surface_damage(d->surface, 0, 0, d->win_w, d->win_h);
   wl_surface_commit(d->surface);
   wl_display_flush(d->display);
-  d->buf_index ^= 1;
+  d->buf_index = pick ^ 1;
+  }
 }
 
 static int timer_cb(void *data) {
@@ -447,6 +599,11 @@ int demo_run(int (*init)(void), void (*draw)(float t)) {
 
   d.display = wl_display_connect(NULL);
   if (!d.display) {
+    /* weston 的 socket 固定在 /lib/wayland-0；老 shell 可能给 /tmp。 */
+    setenv("XDG_RUNTIME_DIR", "/lib", 1);
+    d.display = wl_display_connect(NULL);
+  }
+  if (!d.display) {
     fprintf(stderr, "wl_display_connect failed (XDG_RUNTIME_DIR=%s)\n",
             getenv("XDG_RUNTIME_DIR") ? getenv("XDG_RUNTIME_DIR") : "?");
     return 1;
@@ -461,12 +618,37 @@ int demo_run(int (*init)(void), void (*draw)(float t)) {
   }
   xdg_wm_base_add_listener(d.wm_base, &wm_listener, &d);
 
+  /* eventdemo 同款 CSD：theme/frame 来自 eggs/weston/shared/frame.c。 */
+  d.theme = theme_create();
+  d.frame = frame_create(d.theme, DEMO_W, DEMO_H, FRAME_BUTTON_ALL, g_title,
+                         NULL);
+  if (d.frame) {
+    int iw = DEMO_W, ih = DEMO_H;
+    /* frame_create 的宽高是整个窗口；这里把 interior 调成内容尺寸，
+     * 窗口总尺寸自动加上标题栏/边框/阴影。 */
+    frame_resize_inside(d.frame, DEMO_W, DEMO_H);
+    d.win_w = frame_width(d.frame);
+    d.win_h = frame_height(d.frame);
+    frame_interior(d.frame, &d.content_x, &d.content_y, &iw, &ih);
+    d.width = iw;
+    d.height = ih;
+    d.stride = (uint32_t)d.win_w * 4;
+    d.frame_surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, d.win_w,
+                                              d.win_h);
+    frame_repaint_surface(&d);
+    printf("demo: frame %dx%d content %dx%d at %d,%d\n", d.win_w, d.win_h,
+           d.width, d.height, d.content_x, d.content_y);
+  } else {
+    d.win_w = DEMO_W;
+    d.win_h = DEMO_H;
+  }
+
   d.surface = wl_compositor_create_surface(d.compositor);
   d.xdg_surface = xdg_wm_base_get_xdg_surface(d.wm_base, d.surface);
   xdg_surface_add_listener(d.xdg_surface, &xdg_surface_listener, &d);
   d.toplevel = xdg_surface_get_toplevel(d.xdg_surface);
   xdg_toplevel_add_listener(d.toplevel, &toplevel_listener, &d);
-  xdg_toplevel_set_title(d.toplevel, "mesa-demo");
+  xdg_toplevel_set_title(d.toplevel, g_title);
   xdg_toplevel_set_app_id(d.toplevel, "yiyiya.mesa-demo");
   wl_surface_commit(d.surface);
 

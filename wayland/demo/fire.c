@@ -139,4 +139,4 @@ static void draw(float t) {
   glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-int main(void) { return demo_run(init, draw); }
+int main(void) { demo_set_title("Fire"); return demo_run(init, draw); }

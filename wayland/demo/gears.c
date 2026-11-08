@@ -146,4 +146,4 @@ static void draw(float t) {
   draw_gear(&pv, 2.5f, -0.30f, t * 75.0f, 0.85f, 0.55f, 0.85f, 0.35f);
 }
 
-int main(void) { return demo_run(init, draw); }
+int main(void) { demo_set_title("Gears"); return demo_run(init, draw); }

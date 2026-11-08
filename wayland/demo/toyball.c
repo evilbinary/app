@@ -111,4 +111,4 @@ static void draw(float t) {
   glDrawArrays(GL_TRIANGLES, 0, nverts);
 }
 
-int main(void) { return demo_run(init, draw); }
+int main(void) { demo_set_title("Toyball"); return demo_run(init, draw); }

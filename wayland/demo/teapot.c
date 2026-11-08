@@ -285,4 +285,4 @@ static void draw(float t) {
   glDrawArrays(GL_TRIANGLES, 0, vao_count);
 }
 
-int main(void) { return demo_run(init, draw); }
+int main(void) { demo_set_title("Teapot"); return demo_run(init, draw); }
