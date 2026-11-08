@@ -488,3 +488,7 @@ def _deploy_runtime_layout(target=None):
 
 _deploy_runtime_layout()
 after_build(_deploy_runtime_layout)
+
+# ---- mesa-demos 的 Wayland/GLES2 重写版 ----
+if has_config("wayland"):
+    includes("./demo/ya.py")
