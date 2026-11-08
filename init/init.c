@@ -85,7 +85,12 @@ void build_env(char** env);
 static char* init_env_storage[] = {
     "PATH=/bin:/app/",
     "HOME=/",
-    "XDG_RUNTIME_DIR=/tmp",
+    /* 【必须和 weston 一致】eggs/weston/frontend/main.c 里把
+     * XDG_RUNTIME_DIR 强制成 /lib（根 FAT 上没有 /tmp），监听 socket
+     * 就是 /lib/wayland-0。这里再给 /tmp 的话，shell 里起的客户端会去
+     * 找 /tmp/wayland-0 → ECONNREFUSED。desktop-shell 能连上只是因为
+     * weston 用 WAYLAND_SOCKET fd 把它 fork 出来，没走目录 socket。 */
+    "XDG_RUNTIME_DIR=/lib",
     NULL,
 };
 

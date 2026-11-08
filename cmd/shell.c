@@ -376,7 +376,10 @@ int main(int argc, char* argv[]) {
   /* 本系统没有 logind/session 管理器，XDG_RUNTIME_DIR 由会话（shell）给出：
    * wayland 客户端要用它放 unix socket 与 shm 临时文件（weston 自己的
    * os_create_anonymous_file / wl_display_add_socket 都按 XDG 规范取这个变量）。 */
-  setenv("XDG_RUNTIME_DIR", "/tmp", 1);
+  /* 必须和 weston 一致：web 前端把 XDG_RUNTIME_DIR 强制成 /lib，
+   * socket 就是 /lib/wayland-0。devd 的 `/bin/sh -c` 和 system() 都经过
+   * 这里，写成 /tmp 会让它们起的 wayland 客户端连不上。 */
+  setenv("XDG_RUNTIME_DIR", "/lib", 1);
 
   /* `sh -c "cmd"`：供 system()/popen 等使用，执行完即退出。
    * 退出码必须是命令自身的退出码（调用方 pclose/WEXITSTATUS 判成败）。 */
