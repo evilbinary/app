@@ -22,7 +22,9 @@ static void draw(int frame) {
 int main(void) {
   int frame = 0;
   screen_set_size(640, 480);
-  screen_init_with_mode(SCREEN_MODE_WAYLAND);
+  /* 默认 Wayland，但尊重 YIYIYA_GUI=fb/xwin/xwin_buffer/wayland。 */
+  screen_init_with_mode(screen_mode_from_env(SCREEN_MODE_WAYLAND));
+  screen_set_title("libgui");
   printf("gui-host: canvas %dx%d\n", screen_info()->width,
          screen_info()->height);
   for (;;) {
