@@ -45,3 +45,11 @@ add_includedirs(
     '../../../eggs/libdrm/include',
 )
 add_files('glxinfo.c')
+
+# libgui SCREEN_MODE_WAYLAND 对接验证：应用只调 screen API，
+# Wayland 窗口/wl_shm/提交全部在 libgui 内部完成。
+target("wl-gui-host")
+set_type("cli")
+add_deps("gui", "wayland")
+add_cflags('-D__unix__')
+add_files('gui-host.c')
