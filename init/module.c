@@ -140,6 +140,8 @@ void modules_init(void) {
   REGISTER_MODULE(gpu);
 
   REGISTER_MODULE(gpio);
+  /* 伪终端：weston-terminal 的 forkpty 需要 /dev/ptmx 和 /dev/pts/N。 */
+  REGISTER_MODULE(pty);
 #else
   REGISTER_MODULE(mouse);
   /* /dev/input/event0/event1：Xorg/Weston 的 evdev 直接读它们
@@ -152,6 +154,8 @@ void modules_init(void) {
   REGISTER_MODULE(net);
   REGISTER_MODULE(test);
   REGISTER_MODULE(rtc);
+  /* 伪终端：weston-terminal 的 forkpty 需要 /dev/ptmx 和 /dev/pts/N。 */
+  REGISTER_MODULE(pty);
 #endif
 
 
