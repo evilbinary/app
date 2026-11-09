@@ -50,6 +50,10 @@
 /* dock 离屏幕底边的距离（px）。要调 dock 位置改这里。 */
 #define YIYIYA_DOCK_BOTTOM_MARGIN 4
 
+/* dock 客户端在可视条四周预留的阴影区域（px），
+ * 必须与 yiyiya-desktop-shell.c 的 DOCK_SHADOW_PAD 一致。 */
+#define YIYIYA_DOCK_SHADOW_PAD 40
+
 #define DEFAULT_NUM_WORKSPACES 1
 #define DEFAULT_WORKSPACE_CHANGE_ANIMATION_LENGTH 200
 
@@ -240,11 +244,16 @@ get_output_work_area(struct desktop_shell *shell,
 		unreachable("unknown panel position");
 	}
 
-	/* 底部 dock 占掉工作区底部高度。 */
+	/* 底部 dock 占掉工作区底部高度（用可视条高度，不含阴影预留）。 */
 	if (sh_output->dock_view &&
-	    weston_view_is_mapped(sh_output->dock_view))
-		area->height -= sh_output->dock_surface->height +
-				YIYIYA_DOCK_BOTTOM_MARGIN;
+	    weston_view_is_mapped(sh_output->dock_view)) {
+		int dock_height = sh_output->dock_surface->height -
+				  2 * YIYIYA_DOCK_SHADOW_PAD;
+
+		if (dock_height < 0)
+			dock_height = 0;
+		area->height -= dock_height + YIYIYA_DOCK_BOTTOM_MARGIN;
+	}
 }
 
 static void
@@ -2790,11 +2799,13 @@ dock_committed(struct weston_surface *es,
 	if (!weston_surface_has_content(es))
 		return;
 
-	/* 离底边留一段距离，不贴边（常量见文件顶部）。 */
+	/* 可视条离底边留一段距离；窗口底部留出阴影区，
+	 * 所以整体再减去顶部阴影预留。 */
 	sh_output->dock_offset.c =
 		weston_coord((output->width - es->width) / 2,
 			     output->height - es->height -
-				     YIYIYA_DOCK_BOTTOM_MARGIN);
+				     YIYIYA_DOCK_BOTTOM_MARGIN +
+				     YIYIYA_DOCK_SHADOW_PAD);
 
 	if (!weston_surface_is_mapped(es)) {
 		weston_surface_map(es);

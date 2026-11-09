@@ -60,6 +60,14 @@
 #define DEFAULT_CLOCK_FORMAT CLOCK_FORMAT_MINUTES
 #define DEFAULT_SPACING 10
 
+/* 底部 dock：可视条高度（不含阴影预留边）、阴影四周预留的像素、
+ * 图标间距和左右内边距。阴影预留区要能放下 30px 模糊，
+ * yiyiya-shell/shell.c 里的 YIYIYA_DOCK_SHADOW_PAD 必须与此一致。 */
+#define DOCK_BAR_HEIGHT 52
+#define DOCK_SHADOW_PAD 40
+#define DOCK_ICON_GAP 2
+#define DOCK_EDGE_PADDING 9
+
 enum clock_format {
 	CLOCK_FORMAT_MINUTES,
 	CLOCK_FORMAT_SECONDS,
@@ -423,31 +431,69 @@ panel_redraw_handler(struct widget *widget, void *data)
 	cr = widget_cairo_create(panel->widget);
 	if (panel->is_dock) {
 		struct rectangle allocation;
-		double r = 10;
+		double bar_x, bar_y, bar_w, bar_h;
+		double r = 20;
 		int i;
 
 		widget_get_allocation(panel->widget, &allocation);
-		/* 先清成透明，再画圆角半透明背景；dock 只占中间一条。 */
+		bar_x = allocation.x + DOCK_SHADOW_PAD;
+		bar_y = allocation.y + DOCK_SHADOW_PAD;
+		bar_w = allocation.width - 2 * DOCK_SHADOW_PAD;
+		bar_h = DOCK_BAR_HEIGHT;
+
 		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 		cairo_set_source_rgba(cr, 0, 0, 0, 0);
 		cairo_paint(cr);
 
 		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
-		/* 阴影：多层偏移的圆角矩形，越往外越淡。 */
-		for (i = 6; i >= 1; i--) {
-			cairo_set_source_rgba(cr, 0, 0, 0, 0.035);
-			panel_rounded_rect(cr, allocation.x + 2,
-					   allocation.y + i,
-					   allocation.width - 4,
-					   allocation.height, r + i);
+		/* box-shadow: 0 8px 30px rgba(0,0,0,0.18)。
+		 * 阴影只画在 dock 外侧，避免透过半透明背景显出来。 */
+		cairo_save(cr);
+		cairo_rectangle(cr, allocation.x, allocation.y,
+				allocation.width, allocation.height);
+		panel_rounded_rect(cr, bar_x, bar_y, bar_w, bar_h, r);
+		cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+		cairo_clip(cr);
+
+		for (i = 30; i >= 1; i--) {
+			double grow = i;
+
+			cairo_set_source_rgba(cr, 0, 0, 0, 0.006);
+			panel_rounded_rect(cr, bar_x - grow,
+					   bar_y + 8 - grow,
+					   bar_w + grow * 2,
+					   bar_h + grow * 2,
+					   r + grow);
 			cairo_fill(cr);
 		}
+		cairo_restore(cr);
 
-		cairo_set_source_rgba(cr, 0.10, 0.10, 0.12, 0.82);
-		panel_rounded_rect(cr, allocation.x, allocation.y,
-				   allocation.width, allocation.height, r);
+		/* background: rgba(245,245,247,0.55) */
+		cairo_set_source_rgba(cr, 245.0 / 255.0, 245.0 / 255.0,
+				      247.0 / 255.0, 0.55);
+		panel_rounded_rect(cr, bar_x, bar_y, bar_w, bar_h, r);
 		cairo_fill(cr);
+
+		/* backdrop-filter 的近似：顶部提亮，模拟玻璃反光。 */
+		{
+			cairo_pattern_t *g = cairo_pattern_create_linear(
+				0, bar_y, 0, bar_y + bar_h);
+
+			cairo_pattern_add_color_stop_rgba(g, 0, 1, 1, 1, 0.18);
+			cairo_pattern_add_color_stop_rgba(g, 1, 1, 1, 1, 0.0);
+			cairo_set_source(cr, g);
+			panel_rounded_rect(cr, bar_x, bar_y, bar_w, bar_h, r);
+			cairo_fill(cr);
+			cairo_pattern_destroy(g);
+		}
+
+		/* border: 1px solid rgba(255,255,255,0.25) */
+		cairo_set_source_rgba(cr, 1, 1, 1, 0.25);
+		cairo_set_line_width(cr, 1.0);
+		panel_rounded_rect(cr, bar_x + 0.5, bar_y + 0.5,
+				   bar_w - 1, bar_h - 1, r);
+		cairo_stroke(cr);
 	} else {
 		cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 		set_hex_color(cr, panel->color);
@@ -663,7 +709,7 @@ panel_add_clock(struct panel *panel)
 
 	switch (panel->clock_format) {
 	case CLOCK_FORMAT_MINUTES:
-		clock->format_string = "%a %b %d, %I:%M %p";
+		clock->format_string = "%m-%d %H:%M";
 		clock->refresh_timer = 60;
 		break;
 	case CLOCK_FORMAT_SECONDS:
@@ -706,19 +752,21 @@ panel_resize_handler(struct widget *widget,
 
 	if (panel->is_dock) {
 		int count = 0;
-		int sw = height;
-		int gap = 2;
+		int sw = DOCK_BAR_HEIGHT;
+		int bar_x = DOCK_SHADOW_PAD;
+		int bar_y = DOCK_SHADOW_PAD;
+		int bar_w = width - 2 * DOCK_SHADOW_PAD;
 		int total;
 		int sx;
-		int sy = (height - sw) / 2;
 
 		wl_list_for_each(launcher, &panel->launcher_list, link)
 			count++;
-		total = count * (sw + gap) - gap;
-		sx = (width - total) / 2;
+		total = count * (sw + DOCK_ICON_GAP) - DOCK_ICON_GAP;
+		sx = bar_x + (bar_w - total) / 2;
 		wl_list_for_each(launcher, &panel->launcher_list, link) {
-			widget_set_allocation(launcher->widget, sx, sy, sw, sw);
-			sx += sw + gap;
+			widget_set_allocation(launcher->widget, sx, bar_y,
+					      sw, sw);
+			sx += sw + DOCK_ICON_GAP;
 		}
 		return;
 	}
@@ -733,10 +781,19 @@ panel_resize_handler(struct widget *widget,
 		first_pad_h = first_pad_w = 0;
 	}
 
-	if (panel->clock_format == CLOCK_FORMAT_SECONDS)
+	switch (panel->clock_format) {
+	case CLOCK_FORMAT_SECONDS:
+	case CLOCK_FORMAT_SECONDS_24H:
 		w = 170;
-	else /* CLOCK_FORMAT_MINUTES and 24H versions */
+		break;
+	case CLOCK_FORMAT_MINUTES_24H:
 		w = 150;
+		break;
+	case CLOCK_FORMAT_MINUTES:
+	default:
+		w = 110;
+		break;
+	}
 
 	if (horizontal)
 		x = width - w;
@@ -790,14 +847,19 @@ panel_configure(void *data,
 	if (panel->is_dock) {
 		struct panel_launcher *l;
 		int count = 0;
-		int dw;
+		int bar_w;
+		int win_w;
+		int win_h;
 
 		wl_list_for_each(l, &panel->launcher_list, link)
 			count++;
-		dw = count * 54 + 16;
-		if (dw > width)
-			dw = width;
-		window_schedule_resize(panel->window, dw, 52);
+		bar_w = count * (DOCK_BAR_HEIGHT + DOCK_ICON_GAP) -
+			DOCK_ICON_GAP + 2 * DOCK_EDGE_PADDING;
+		win_w = bar_w + 2 * DOCK_SHADOW_PAD;
+		win_h = DOCK_BAR_HEIGHT + 2 * DOCK_SHADOW_PAD;
+		if (win_w > width)
+			win_w = width;
+		window_schedule_resize(panel->window, win_w, win_h);
 		return;
 	}
 
