@@ -218,6 +218,18 @@ if has_config("wayland-desktop"):
             '../../eggs/wayland-protocols/gen/input-method-unstable-v1-protocol.c',
         ],
     )
+
+    # 自定义 shell：从 desktop-shell 复制出来单独改（双 panel：顶部 bar +
+    # 底部 dock），原版 desktop-shell.so 保留不动。
+    weston_module(
+        "yiyiya-shell",
+        [
+            'yiyiya-shell/shell.c',
+            'yiyiya-shell/input-panel.c',
+            '../../eggs/wayland-protocols/gen/weston-desktop-shell-protocol.c',
+            '../../eggs/wayland-protocols/gen/input-method-unstable-v1-protocol.c',
+        ],
+    )
     weston_exe("weston-desktop", "weston-desktop", './weston_variants/desktop.c')
 
     # ivi-shell：车机式（In-Vehicle Infotainment）布局，图层由 hmi-controller
@@ -330,6 +342,14 @@ if has_config("wayland-desktop"):
         install_type="libexec",
     )
 
+    # 自定义桌面：从 desktop-shell.c 复制出来单独改（顶部 bar + 底部 dock），
+    # 不覆盖上游那份，方便对照/回退。
+    toytoolkit_client(
+        "yiyiya-desktop-shell",
+        'yiyiya-desktop-shell.c',
+        install_type="libexec",
+    )
+
     # 输入法面板：frontend 初始化 input-method 时会按 LIBEXECDIR 把它拉起来
     # （见 main.c 的 launch_input_method / wet_client_start），缺了它只会反复打
     # "Couldn't launch client '/usr/libexec/weston-keyboard'"，不影响桌面本体。
@@ -437,6 +457,7 @@ if has_config("wayland-desktop"):
     # 辅助客户端不在这里：它们用 set_type("libexec") 自己装到 usr/libexec
     _deploy += [
         ('libdesktop-shell.so', 'app/resource/usr/lib/weston/desktop-shell.so'),
+    ('libyiyiya-shell.so', 'app/resource/usr/lib/weston/yiyiya-shell.so'),
         ('libivi-shell.so', 'app/resource/usr/lib/weston/ivi-shell.so'),
     ]
 # ---- weston 运行期数据文件（DATADIR=/usr/share）----
