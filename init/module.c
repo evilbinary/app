@@ -13,6 +13,15 @@ extern int module_ready;
 void modules_init(void) {
   u32 i = 0;
   u32 count = 0;
+  /* 【只允许一次】SMP 下 do_kernel_thread 若被两个核同时调度（或异常路径
+   * 重入），modules_init 会执行两遍：module_regist 重复、pty_init 建出两个
+   * /dev/pts，从端挂在第二个、路径解析取第一个 ⇒ forkpty ENOENT / PTYBAD。
+   * 用原子标志把第二次直接挡掉，比在每个模块里各自防重更可靠。 */
+  static volatile int modules_inited = 0;
+  if (__sync_lock_test_and_set(&modules_inited, 1)) {
+    log_error("modules_init: already running/done, skip duplicate\n");
+    return;
+  }
 
   log_info("module regist\n");
 
