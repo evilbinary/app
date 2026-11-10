@@ -52,6 +52,7 @@
 #include "shared/timespec-util.h"
 
 #include "window.h"
+#include "yiyiya-font.h"
 
 #include "single-pixel-buffer-v1-client-protocol.h"
 #include "tablet-unstable-v2-client-protocol.h"
@@ -60,13 +61,21 @@
 #define DEFAULT_CLOCK_FORMAT CLOCK_FORMAT_MINUTES
 #define DEFAULT_SPACING 10
 
-/* 底部 dock：可视条高度（不含阴影预留边）、阴影四周预留的像素、
- * 图标间距和左右内边距。阴影预留区要能放下 30px 模糊，
- * yiyiya-shell/shell.c 里的 YIYIYA_DOCK_SHADOW_PAD 必须与此一致。 */
-#define DOCK_BAR_HEIGHT 52
+/* 底部 dock：可视条高度（不含阴影预留边）、图标绘制尺寸、
+ * 圆角度数、阴影四周预留的像素、图标间距和左右内边距。阴影预留区
+ * 要能放下 30px 模糊，yiyiya-shell/shell.c 里的
+ * YIYIYA_DOCK_SHADOW_PAD 必须与此一致。 */
+#define DOCK_BAR_HEIGHT 48
+#define DOCK_ICON_SIZE 34
+#define DOCK_RADIUS 15
 #define DOCK_SHADOW_PAD 40
 #define DOCK_ICON_GAP 2
 #define DOCK_EDGE_PADDING 9
+
+/* 顶部 panel 字体。空字符串 = 用共享默认字体；填 /font/xxx.ttf
+ * 这样的绝对路径 = panel 单独使用这个字体。 */
+#define PANEL_FONT_PATH ""
+#define PANEL_FONT_SIZE 14
 
 enum clock_format {
 	CLOCK_FORMAT_MINUTES,
@@ -280,13 +289,17 @@ panel_launcher_redraw_handler(struct widget *widget, void *data)
 
 	widget_get_allocation(widget, &allocation);
 
-	/* dock 图标放大到接近格子的高度（原 png 是 24x24，直接画太小）。 */
+	/* dock 图标大小由 DOCK_ICON_SIZE 控制。 */
 	if (launcher->panel->is_dock) {
 		int iw = cairo_image_surface_get_width(launcher->icon);
 		int ih = cairo_image_surface_get_height(launcher->icon);
-		int target = allocation.height - 8;
+		int target = DOCK_ICON_SIZE;
 		double sx, sy;
 
+		if (target > allocation.width)
+			target = allocation.width;
+		if (target > allocation.height)
+			target = allocation.height;
 		if (target < 8)
 			target = allocation.height;
 		sx = (double)target / iw;
@@ -359,23 +372,6 @@ panel_status_redraw_handler(struct widget *widget, void *data)
 	cairo_destroy(cr);
 }
 
-static int
-panel_status_motion_handler(struct widget *widget, struct input *input,
-			    uint32_t time, float x, float y, void *data)
-{
-	struct panel_status *status = data;
-	const char *tip = "Status";
-
-	switch (status->action) {
-	case STATUS_WIFI: tip = "Wi-Fi (placeholder)"; break;
-	case STATUS_VOLUME: tip = "Volume (placeholder)"; break;
-	case STATUS_BATTERY: tip = "Battery (placeholder)"; break;
-	case STATUS_INPUT: tip = "Input method / on-screen keyboard"; break;
-	}
-	widget_set_tooltip(widget, tip, x, y);
-	return CURSOR_LEFT_PTR;
-}
-
 static void
 panel_status_button_handler(struct widget *widget,
 			    struct input *input, uint32_t time,
@@ -432,7 +428,7 @@ panel_redraw_handler(struct widget *widget, void *data)
 	if (panel->is_dock) {
 		struct rectangle allocation;
 		double bar_x, bar_y, bar_w, bar_h;
-		double r = 20;
+		double r = DOCK_RADIUS;
 		int i;
 
 		widget_get_allocation(panel->widget, &allocation);
@@ -652,7 +648,8 @@ panel_clock_redraw_handler(struct widget *widget, void *data)
 		return;
 
 	cr = widget_cairo_create(clock->panel->widget);
-	cairo_set_font_size(cr, 14);
+	yiyiya_font_apply(cr, PANEL_FONT_PATH);
+	cairo_set_font_size(cr, PANEL_FONT_SIZE);
 	cairo_text_extents(cr, string, &extents);
 	if (allocation.x > 0)
 		allocation.x +=
@@ -934,7 +931,6 @@ panel_add_status_icon(struct panel *panel, const char *icon,
 	status->icon = load_icon_or_fallback(icon);
 	status->widget = widget_add_widget(panel->widget, status);
 	widget_set_redraw_handler(status->widget, panel_status_redraw_handler);
-	widget_set_motion_handler(status->widget, panel_status_motion_handler);
 	widget_set_button_handler(status->widget, panel_status_button_handler);
 	wl_list_insert(&panel->status_list, &status->link);
 }
@@ -969,7 +965,7 @@ panel_create(struct desktop *desktop, struct output *output, int is_dock)
 
 	s = weston_config_get_section(desktop->config, "shell", NULL, NULL);
 	weston_config_section_get_color(s, "panel-color",
-					&panel->color, 0xaa000000);
+					&panel->color, 0x8cf5f5f7);
 
 	panel_add_launchers(panel, desktop, is_dock ? "dock" : "launcher");
 

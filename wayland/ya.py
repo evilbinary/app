@@ -275,7 +275,7 @@ def toytoolkit_client(name, main_src, extra_files=(), install_type="cli",
     set_type(install_type)
     # pixman：cairo 静态链已经带进来了，这里显式列出来只为拿到它的
     # include 路径（desktop-shell.c 的诊断探针直接调 pixman）。
-    add_deps("wayland", "cairo", "pixman", "evdev", "xkbcommon")
+    add_deps("wayland", "cairo", "pixman", "evdev", "xkbcommon", "freetype")
     # 【必须 -fPIC】这里编的 shared/config-parser.c / file-util.c /
     # process-util.c / matrix.c 与 libweston.so 共用同一份 .o（见 wl-simple-shm
     # 处的说明）。不加 -fPIC 时这些 .o 会被本目标覆盖成非 PIC 版，下一次
@@ -298,6 +298,7 @@ def toytoolkit_client(name, main_src, extra_files=(), install_type="cli",
     )
     add_files(
         main_src,
+        'yiyiya-font.c',
         *extra_files,
         # toytoolkit：这些客户端都是拿它搭的（window/widget/cairo 绘制）
         '../../eggs/weston/clients/window.c',

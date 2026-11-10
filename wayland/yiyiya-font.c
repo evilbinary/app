@@ -1,0 +1,139 @@
+/*
+ * 共享字体 + 客户端字体覆盖。
+ *
+ * cairo 的 toy 字体 API 在没有 fontconfig 时会退回内置 twin 字体。
+ * 各客户端在自己的 cairo 上下文里显式调用 yiyiya_font_apply()：
+ *   - family 为空 / "sans-serif" / "serif" 等通用名 -> 共用默认字体
+ *   - family 是 /font/xxx.ttf 这样的路径 -> 用调用方指定的字体
+ *   - "monospace" -> 共用等宽字体
+ *
+ * 默认字体可以用环境变量覆盖：
+ *   YIYIYA_FONT=/font/Roboto-Light.ttf
+ *   YIYIYA_FONT_MONO=/font/RobotoMono-Regular.ttf
+ */
+
+#include "yiyiya-font.h"
+
+#include <cairo.h>
+#include <cairo-ft.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define YIYIYA_DEFAULT_FONT      "/font/font.ttf"
+#define YIYIYA_DEFAULT_MONO_FONT "/font/RobotoMono-Regular.ttf"
+
+struct font_entry {
+	char *path;
+	cairo_font_face_t *face;
+	struct font_entry *next;
+};
+
+static FT_Library font_library;
+static int font_library_state;
+static struct font_entry *font_cache;
+
+static const char *
+font_env_or(const char *name, const char *fallback)
+{
+	const char *value = getenv(name);
+
+	if (value != NULL && *value != '\0' && access(value, R_OK) == 0)
+		return value;
+	return fallback;
+}
+
+static const char *
+font_default_path(void)
+{
+	return font_env_or("YIYIYA_FONT", YIYIYA_DEFAULT_FONT);
+}
+
+static const char *
+font_mono_path(void)
+{
+	return font_env_or("YIYIYA_FONT_MONO", YIYIYA_DEFAULT_MONO_FONT);
+}
+
+static const char *
+font_resolve(const char *family)
+{
+	if (family != NULL && *family != '\0') {
+		if ((strchr(family, '/') != NULL ||
+		     strstr(family, ".ttf") != NULL) &&
+		    access(family, R_OK) == 0)
+			return family;
+		if (strcmp(family, "monospace") == 0)
+			return font_mono_path();
+	}
+
+	return font_default_path();
+}
+
+static cairo_font_face_t *
+font_load(const char *path)
+{
+	struct font_entry *entry;
+	cairo_font_face_t *face;
+	cairo_status_t status;
+	FT_Face ft_face;
+
+	for (entry = font_cache; entry != NULL; entry = entry->next) {
+		if (strcmp(entry->path, path) == 0)
+			return entry->face;
+	}
+
+	if (font_library_state == 0) {
+		font_library_state = FT_Init_FreeType(&font_library) == 0 ? 1 : -1;
+	}
+	if (font_library_state < 0)
+		return NULL;
+
+	if (FT_New_Face(font_library, path, 0, &ft_face) != 0)
+		return NULL;
+
+	face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
+	status = cairo_font_face_status(face);
+	if (status != CAIRO_STATUS_SUCCESS) {
+		cairo_font_face_destroy(face);
+		FT_Done_Face(ft_face);
+		return NULL;
+	}
+
+	entry = calloc(1, sizeof(*entry));
+	if (entry == NULL) {
+		cairo_font_face_destroy(face);
+		FT_Done_Face(ft_face);
+		return NULL;
+	}
+	entry->path = strdup(path);
+	if (entry->path == NULL) {
+		free(entry);
+		cairo_font_face_destroy(face);
+		FT_Done_Face(ft_face);
+		return NULL;
+	}
+	entry->face = face;
+	entry->next = font_cache;
+	font_cache = entry;
+
+	return face;
+}
+
+cairo_font_face_t *
+yiyiya_font_face(const char *family)
+{
+	return font_load(font_resolve(family));
+}
+
+void
+yiyiya_font_apply(cairo_t *cr, const char *family)
+{
+	cairo_font_face_t *face = yiyiya_font_face(family);
+
+	if (face != NULL)
+		cairo_set_font_face(cr, face);
+}
