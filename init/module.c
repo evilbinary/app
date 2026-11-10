@@ -1,7 +1,7 @@
 
 #include "kernel/kernel.h"
 
-extern int module_ready;
+extern volatile int module_ready;
 
 // 定义模块注册宏
 #define REGISTER_MODULE(module_name)      \

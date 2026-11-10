@@ -5,7 +5,7 @@
  ********************************************************************/
 #include "main.h"
 
-int module_ready = 0;
+volatile int module_ready = 0;
 
 /* 看门狗由 watchdog 模块提供（duck/modules/watchdog/）。用 weak 引用：
  * 模块没编进内核时这里是 NULL，判空即可，不产生链接依赖。 */

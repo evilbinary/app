@@ -103,7 +103,7 @@ void build_env(char** env) {
   env[i] = NULL;
 }
 
-extern int module_ready;
+extern volatile int module_ready;
 
 // STM32F4XX不使用fork，使用线程
 #ifdef STM32F4XX
