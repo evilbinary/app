@@ -10,14 +10,15 @@ def wl_demo(name, src, extra=()):
     target(name)
     set_type("cli")
     add_deps("wayland", "EGL", "GLESv2", "gpuclient", "foot",
-             "cairo", "png", "pixman")
-    add_cflags('-D__unix__', '-include', 'eggs/weston/weston-config.h')
+             "cairo", "png", "pixman", "evdev")
+    add_cflags('-D__unix__', '-include eggs/weston/weston-config.h')
     add_includedirs(
         '../../../eggs/libmesa/include',
         '../../../eggs/libgpu/include',
         '../../../eggs/libdrm/include',
         '../../../eggs/wayland-protocols/gen',
         '../../../eggs/weston',
+        '../../../eggs/weston/include',
         '../../../eggs/weston/shared',
         '.',
     )
