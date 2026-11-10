@@ -86,6 +86,8 @@ def weston_exe(name, filename, main_src='../../eggs/weston/frontend/main.c'):
     add_deps("input", "evdev")
     # frontend 里到处 #include "config.h"，必须先把 weston 自己的配置顶进去
     add_cflags('-include eggs/weston/weston-config.h')
+    # 启动速度优先：debug 构建也按 -O2 编 weston 前端。
+    add_cflags('-O2')
     add_includedirs(
         '../../eggs/weston/frontend',
         '../../eggs/weston/shared',
@@ -132,6 +134,7 @@ def weston_module(name, files, includedirs=None, deps=None):
     if deps:
         add_deps(*deps)
     add_cflags(
+        '-O2',
         '-fPIC',
         '-DDUCK -DDLIBC_POSIX',
         '-D__LIB_MUSL__',
