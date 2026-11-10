@@ -9,9 +9,8 @@ import sys
 target("kernel.elf")
 set_kind("binary")
 
-# 【内核禁用浮点/SIMD】统一在 duck/libs/include/types.h 里用
-# #pragma GCC target("general-regs-only") 处理，不在这里重复加
-# -mgeneral-regs-only。
+# 【内核禁用浮点/SIMD】统一在项目根 ya.py 的 kernel-opt rule 里给
+# kernel.elf/kernel/mod-* 等内核 target 加 -mgeneral-regs-only。
 
 arch=get_arch()
 arch_type=get_arch_type()
