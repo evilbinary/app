@@ -575,10 +575,52 @@ static int timer_cb(void *data) {
   return 1;
 }
 
+/* 【客户端事件循环】demo 用的是 wl_display_connect() 的 client display，
+ * 不能调 server 的 wl_display_get_event_loop()/wl_event_loop_add_timer()
+ * —— 两者 struct wl_display 布局不同，会把 client display 当 server
+ * display 解析，timer heap 直接是垃圾（实测 data=0x100000001）。
+ * 这里用标准的 prepare_read/read_events/dispatch_pending + poll 超时
+ * 自己驱动 16ms 动画定时。 */
+static int demo_dispatch(struct wl_display *display, int timeout_ms) {
+  struct pollfd pfd;
+
+  wl_display_dispatch_pending(display);
+  if (wl_display_flush(display) < 0 && errno != EAGAIN) {
+    return -1;
+  }
+  while (wl_display_prepare_read(display) != 0) {
+    if (wl_display_dispatch_pending(display) < 0) {
+      return -1;
+    }
+  }
+
+  pfd.fd = wl_display_get_fd(display);
+  pfd.events = POLLIN;
+  pfd.revents = 0;
+  {
+    int ret = poll(&pfd, 1, timeout_ms);
+    if (ret > 0 && (pfd.revents & POLLIN)) {
+      if (wl_display_read_events(display) < 0) {
+        return -1;
+      }
+      if (wl_display_dispatch_pending(display) < 0) {
+        return -1;
+      }
+    } else {
+      wl_display_cancel_read(display);
+      if (ret < 0 && errno != EINTR) {
+        return -1;
+      }
+      if (ret > 0 && (pfd.revents & (POLLERR | POLLHUP))) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 int demo_run(int (*init)(void), void (*draw)(float t)) {
   struct demo_state d;
-  struct wl_event_loop *loop;
-  struct wl_event_source *timer;
 
   memset(&d, 0, sizeof(d));
   d.width = DEMO_W;
@@ -665,17 +707,13 @@ int demo_run(int (*init)(void), void (*draw)(float t)) {
     return 1;
   }
 
-  loop = wl_display_get_event_loop(d.display);
-  timer = wl_event_loop_add_timer(loop, timer_cb, &d);
-  wl_event_source_timer_update(timer, FRAME_MS);
-
   while (d.running) {
-    if (wl_display_dispatch(d.display) < 0) {
+    if (demo_dispatch(d.display, FRAME_MS) < 0) {
       break;
     }
+    timer_cb(&d);
   }
 
-  wl_event_source_remove(timer);
   xdg_toplevel_destroy(d.toplevel);
   xdg_surface_destroy(d.xdg_surface);
   wl_surface_destroy(d.surface);
