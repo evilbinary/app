@@ -141,6 +141,138 @@ static void dump_hdr(const char *hdr, int hlen) {
 }
 
 /* read 封装：EAGAIN 就短睡重试，连续 idle_max 次无进展返回 0 */
+
+/* ================= MD5（RFC 1321，自包含实现） ================= */
+typedef struct {
+    unsigned int state[4];
+    unsigned long long count;
+    unsigned char buf[64];
+} md5_ctx_t;
+
+static const unsigned int md5_k[64] = {
+    0xd76aa478,0xe8c7b756,0x242070db,0xc1bdceee,0xf57c0faf,0x4787c62a,
+    0xa8304613,0xfd469501,0x698098d8,0x8b44f7af,0xffff5bb1,0x895cd7be,
+    0x6b901122,0xfd987193,0xa679438e,0x49b40821,0xf61e2562,0xc040b340,
+    0x265e5a51,0xe9b6c7aa,0xd62f105d,0x02441453,0xd8a1e681,0xe7d3fbc8,
+    0x21e1cde6,0xc33707d6,0xf4d50d87,0x455a14ed,0xa9e3e905,0xfcefa3f8,
+    0x676f02d9,0x8d2a4c8a,0xfffa3942,0x8771f681,0x6d9d6122,0xfde5380c,
+    0xa4beea44,0x4bdecfa9,0xf6bb4b60,0xbebfbc70,0x289b7ec6,0xeaa127fa,
+    0xd4ef3085,0x04881d05,0xd9d4d039,0xe6db99e5,0x1fa27cf8,0xc4ac5665,
+    0xf4292244,0x432aff97,0xab9423a7,0xfc93a039,0x655b59c3,0x8f0ccc92,
+    0xffeff47d,0x85845dd1,0x6fa87e4f,0xfe2ce6e0,0xa3014314,0x4e0811a1,
+    0xf7537e82,0xbd3af235,0x2ad7d2bb,0xeb86d391
+};
+static const unsigned char md5_s[64] = {
+    7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+    5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+    4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+    6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21
+};
+#define MD5_ROTL(x,c) (((x) << (c)) | ((x) >> (32 - (c))))
+
+static void md5_transform(unsigned int st[4], const unsigned char blk[64]) {
+    unsigned int a = st[0], b = st[1], c = st[2], d = st[3];
+    unsigned int m[16];
+    int i;
+    for (i = 0; i < 16; i++) {
+        m[i] = (unsigned int)blk[i * 4] |
+               ((unsigned int)blk[i * 4 + 1] << 8) |
+               ((unsigned int)blk[i * 4 + 2] << 16) |
+               ((unsigned int)blk[i * 4 + 3] << 24);
+    }
+    for (i = 0; i < 64; i++) {
+        unsigned int f, g, tmp;
+        if (i < 16) {
+            f = (b & c) | (~b & d);
+            g = (unsigned int)i;
+        } else if (i < 32) {
+            f = (d & b) | (~d & c);
+            g = (unsigned int)(5 * i + 1) & 15;
+        } else if (i < 48) {
+            f = b ^ c ^ d;
+            g = (unsigned int)(3 * i + 5) & 15;
+        } else {
+            f = c ^ (b | ~d);
+            g = (unsigned int)(7 * i) & 15;
+        }
+        tmp = d;
+        d = c;
+        c = b;
+        b = b + MD5_ROTL(a + f + md5_k[i] + m[g], md5_s[i]);
+        a = tmp;
+    }
+    st[0] += a;
+    st[1] += b;
+    st[2] += c;
+    st[3] += d;
+}
+
+static void md5_init(md5_ctx_t *c) {
+    c->state[0] = 0x67452301;
+    c->state[1] = 0xefcdab89;
+    c->state[2] = 0x98badcfe;
+    c->state[3] = 0x10325476;
+    c->count = 0;
+}
+
+static void md5_update(md5_ctx_t *c, const void *data, int len) {
+    const unsigned char *p = (const unsigned char *)data;
+    unsigned int used = (unsigned int)(c->count & 63);
+    c->count += (unsigned long long)len;
+    if (used) {
+        unsigned int need = 64 - used;
+        if ((unsigned int)len < need) {
+            memcpy(c->buf + used, p, (size_t)len);
+            return;
+        }
+        memcpy(c->buf + used, p, need);
+        md5_transform(c->state, c->buf);
+        p += need;
+        len -= (int)need;
+    }
+    while (len >= 64) {
+        md5_transform(c->state, p);
+        p += 64;
+        len -= 64;
+    }
+    if (len > 0) {
+        memcpy(c->buf, p, (size_t)len);
+    }
+}
+
+static void md5_final(md5_ctx_t *c, unsigned char out[16]) {
+    unsigned long long bits = c->count * 8;
+    unsigned int used = (unsigned int)(c->count & 63);
+    unsigned int i;
+    c->buf[used++] = 0x80;
+    if (used > 56) {
+        memset(c->buf + used, 0, 64 - used);
+        md5_transform(c->state, c->buf);
+        used = 0;
+    }
+    memset(c->buf + used, 0, 56 - used);
+    for (i = 0; i < 8; i++) {
+        c->buf[56 + i] = (unsigned char)(bits >> (8 * i));
+    }
+    md5_transform(c->state, c->buf);
+    for (i = 0; i < 4; i++) {
+        out[i * 4] = (unsigned char)c->state[i];
+        out[i * 4 + 1] = (unsigned char)(c->state[i] >> 8);
+        out[i * 4 + 2] = (unsigned char)(c->state[i] >> 16);
+        out[i * 4 + 3] = (unsigned char)(c->state[i] >> 24);
+    }
+}
+
+static void md5_hex(const unsigned char d[16], char out[33]) {
+    static const char h[] = "0123456789abcdef";
+    int i;
+    for (i = 0; i < 16; i++) {
+        out[i * 2] = h[d[i] >> 4];
+        out[i * 2 + 1] = h[d[i] & 15];
+    }
+    out[32] = '\0';
+}
+
 static int read_wait(int fd, char *buf, int want, int *idle, int idle_max) {
     for (;;) {
         int r = (int)read(fd, buf, (size_t)want);
@@ -201,13 +333,17 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
      * （280 秒才发出 2.2MB）。线程栈只有 4KB，大数组必须放静态区。 */
     static char buf[16384];
     char err[160];
+    char okbody[96];
     int out;
     int content_len = find_content_length(hdr, hlen);
     int total = 0;
     int body_in_hdr = 0;
     int idle = 0;
+    md5_ctx_t md5;
     const char *sep = find_bytes(hdr, hlen, "\r\n\r\n", 4);
     int sep_len = 4;
+
+    md5_init(&md5);
 
     if (sep == NULL) {
         sep = find_bytes(hdr, hlen, "\n\n", 2);
@@ -254,6 +390,7 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
     }
 
     if (body_in_hdr > 0) {
+        md5_update(&md5, sep + sep_len, body_in_hdr);
         if (write_full(out, sep + sep_len, body_in_hdr) == 0) {
             total += body_in_hdr;
         }
@@ -272,6 +409,7 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
         if (r <= 0) {
             break;
         }
+        md5_update(&md5, buf, r);
         if (write_full(out, buf, r) < 0) {
             break;
         }
@@ -293,10 +431,17 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
         return;
     }
 
+    {
+        unsigned char md5d[16];
+        char md5h[33];
+        md5_final(&md5, md5d);
+        md5_hex(md5d, md5h);
+        snprintf(okbody, sizeof(okbody), "OK\nmd5=%s\nsize=%d\n", md5h, total);
+    }
     if (strcmp(tmp, path) == 0) {
         /* direct 模式：写的就是目标文件本身，没有 tmp 需要改名 */
         printf("devd: wrote %s (%d bytes, direct)\n", path, total);
-        reply_status(fd, "200 OK", "OK\n");
+        reply_status(fd, "200 OK", okbody);
         return;
     }
 
@@ -308,7 +453,37 @@ static void do_put(int fd, const char *path, char *hdr, int hlen) {
         return;
     }
     printf("devd: wrote %s (%d bytes)\n", path, total);
-    reply_status(fd, "200 OK", "OK\n");
+    reply_status(fd, "200 OK", okbody);
+}
+
+static void do_md5(int fd, const char *path) {
+    static char buf[16384];
+    md5_ctx_t md5;
+    unsigned char digest[16];
+    char hex[33];
+    char body[96];
+    int in = open(path, O_RDONLY);
+    int total = 0;
+    int r;
+
+    if (in < 0) {
+        reply_status(fd, "404 Not Found", "no such file");
+        return;
+    }
+    md5_init(&md5);
+    while ((r = (int)read(in, buf, sizeof(buf))) > 0) {
+        md5_update(&md5, buf, r);
+        total += r;
+    }
+    close(in);
+    if (r < 0) {
+        reply_status(fd, "500 Read Error", "read failed");
+        return;
+    }
+    md5_final(&md5, digest);
+    md5_hex(digest, hex);
+    snprintf(body, sizeof(body), "md5=%s\nsize=%d\n", hex, total);
+    reply_status(fd, "200 OK", body);
 }
 
 static void do_get(int fd, const char *path) {
@@ -490,6 +665,13 @@ static void handle(int fd) {
             *p = '\0';
         }
         do_put(fd, path, hdr, hlen);
+    } else if (strncmp(hdr, "GET /md5/", 9) == 0) {
+        path = hdr + 9;
+        p = strchr(path, ' ');
+        if (p != NULL) {
+            *p = '\0';
+        }
+        do_md5(fd, path);
     } else if (strncmp(hdr, "GET ", 4) == 0) {
         path = hdr + 4;
         p = strchr(path, ' ');
