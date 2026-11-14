@@ -1,7 +1,10 @@
 /*
  * fbshot：把 /dev/fb0 当前画面 dump 成 PPM (P6)。
  *
- *   fbshot [输出文件]        默认 /tmp/shot.ppm
+ *   fbshot [输出文件] [缩放倍数]
+ *
+ * 默认输出 /shot.ppm（设备上没有 /tmp）。缩放倍数默认 1（原始分辨率），
+ * 每 N 个像素取一个，写到 PPM；devd 下行慢，验证时可传 4。
  *
  * fbdev 是 RGB565；转成 RGB888 写 PPM。Mac 端 tools/screenshot.sh
  * 会拉回来并转 PNG。
@@ -79,15 +82,18 @@ struct fb_fix_screeninfo {
 };
 
 int main(int argc, char** argv) {
-  const char* out = (argc > 1) ? argv[1] : "/tmp/shot.ppm";
+  const char* out = (argc > 1) ? argv[1] : "/shot.ppm";
+  unsigned int scale = (argc > 2) ? (unsigned int)atoi(argv[2]) : 1;
   struct fb_var_screeninfo var;
   struct fb_fix_screeninfo fix;
   const unsigned short* fb;
   unsigned char* row;
-  unsigned int x, y;
+  unsigned int x, y, w, h;
   size_t maplen;
   int fd;
   FILE* f;
+
+  if (scale == 0) scale = 1;
 
   fd = open("/dev/fb0", O_RDWR);
   if (fd < 0) {
@@ -117,7 +123,9 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  row = malloc((size_t)var.xres * 3);
+  w = (var.xres + scale - 1) / scale;
+  h = (var.yres + scale - 1) / scale;
+  row = malloc((size_t)w * 3);
   if (row == NULL) {
     fprintf(stderr, "out of memory\n");
     munmap((void*)fb, maplen);
@@ -133,13 +141,13 @@ int main(int argc, char** argv) {
     close(fd);
     return 1;
   }
-  fprintf(f, "P6\n%u %u\n255\n", var.xres, var.yres);
+  fprintf(f, "P6\n%u %u\n255\n", w, h);
 
-  for (y = 0; y < var.yres; y++) {
+  for (y = 0; y < h; y++) {
     const unsigned short* src =
-        fb + (size_t)y * (fix.line_length / 2) + var.xoffset;
-    for (x = 0; x < var.xres; x++) {
-      unsigned short p = src[x];
+        fb + (size_t)(y * scale) * (fix.line_length / 2) + var.xoffset;
+    for (x = 0; x < w; x++) {
+      unsigned short p = src[x * scale];
       unsigned int r = (p >> 11) & 0x1f;
       unsigned int g = (p >> 5) & 0x3f;
       unsigned int b = p & 0x1f;
@@ -150,7 +158,7 @@ int main(int argc, char** argv) {
     fwrite(row, 1, (size_t)var.xres * 3, f);
   }
   fclose(f);
-  printf("saved %ux%u -> %s\n", var.xres, var.yres, out);
+  printf("saved %ux%u (scale %u) -> %s\n", w, h, scale, out);
 
   free(row);
   munmap((void*)fb, maplen);
