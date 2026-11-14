@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
       row[x * 3 + 1] = (unsigned char)((g << 2) | (g >> 4));
       row[x * 3 + 2] = (unsigned char)((b << 3) | (b >> 2));
     }
-    fwrite(row, 1, (size_t)var.xres * 3, f);
+    fwrite(row, 1, (size_t)w * 3, f);
   }
   fclose(f);
   printf("saved %ux%u (scale %u) -> %s\n", w, h, scale, out);
