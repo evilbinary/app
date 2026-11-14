@@ -41,6 +41,7 @@
 #include <assert.h>
 
 #include <wayland-client.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
 
 #include <libweston/config-parser.h>
 #include <libweston/zalloc.h>
@@ -88,7 +89,7 @@ enum clock_format {
 struct desktop {
 	struct display *display;
 	struct weston_desktop_shell *shell;
-	struct unlock_dialog *unlock_dialog;
+	struct lock_screen *lock_screen;
 	struct task unlock_task;
 	struct wl_list outputs;
 
@@ -101,6 +102,7 @@ struct desktop {
 
 	struct weston_config *config;
 	bool locking;
+	char *lock_password;
 
 	enum cursor_type grab_cursor;
 
@@ -155,6 +157,8 @@ struct output {
 
 	int x;
 	int y;
+	int width;
+	int height;
 	struct panel *panel;
 	struct panel *dock;
 	struct background *background;
@@ -200,13 +204,22 @@ struct panel_status {
 static cairo_surface_t *
 load_icon_or_fallback(const char *icon);
 
-struct unlock_dialog {
+struct lock_screen {
+	struct desktop *desktop;
 	struct window *window;
 	struct widget *widget;
-	struct widget *button;
-	int button_focused;
+	struct toytimer timer;
+
+	char password[64];
+	size_t password_len;
+
+	struct rectangle field;
+	struct rectangle button;
+
+	int caret;
+	int error;
+	int hover_button;
 	int closing;
-	struct desktop *desktop;
 };
 
 static void
@@ -1242,180 +1255,409 @@ background_configure(void *data,
 	widget_schedule_resize(background->widget, width, height);
 }
 
+/* ------------------------------------------------------------- 锁屏页 */
+
+/* /font/font.ttf 不一定覆盖中文；锁屏页优先用带 CJK 的 fallback，
+ * 加载失败时 yiyiya_font_apply() 会保持当前字体。 */
+#define LOCK_FONT_PATH "/font/DroidSansFallbackFull.ttf"
+#define LOCK_USER_NAME "yiyiya"
+
 static void
-unlock_dialog_redraw_handler(struct widget *widget, void *data)
+lock_screen_text(cairo_t *cr, const char *text, double x, double y,
+		 double size, int center,
+		 double r, double g, double b, double a)
 {
-	struct unlock_dialog *dialog = data;
-	struct rectangle allocation;
-	cairo_surface_t *surface;
-	cairo_t *cr;
-	cairo_pattern_t *pat;
-	double cx, cy, r, f;
+	cairo_text_extents_t extents;
 
-	cr = widget_cairo_create(widget);
-
-	widget_get_allocation(dialog->widget, &allocation);
-	cairo_rectangle(cr, allocation.x, allocation.y,
-			allocation.width, allocation.height);
-	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-	cairo_set_source_rgba(cr, 0, 0, 0, 0.6);
-	cairo_fill(cr);
-
-	cairo_translate(cr, allocation.x, allocation.y);
-	if (dialog->button_focused)
-		f = 1.0;
-	else
-		f = 0.7;
-
-	cx = allocation.width / 2.0;
-	cy = allocation.height / 2.0;
-	r = (cx < cy ? cx : cy) * 0.4;
-	pat = cairo_pattern_create_radial(cx, cy, r * 0.7, cx, cy, r);
-	cairo_pattern_add_color_stop_rgb(pat, 0.0, 0, 0.86 * f, 0);
-	cairo_pattern_add_color_stop_rgb(pat, 0.85, 0.2 * f, f, 0.2 * f);
-	cairo_pattern_add_color_stop_rgb(pat, 1.0, 0, 0.86 * f, 0);
-	cairo_set_source(cr, pat);
-	cairo_pattern_destroy(pat);
-	cairo_arc(cr, cx, cy, r, 0.0, 2.0 * M_PI);
-	cairo_fill(cr);
-
-	widget_set_allocation(dialog->button,
-			      allocation.x + cx - r,
-			      allocation.y + cy - r, 2 * r, 2 * r);
-
-	cairo_destroy(cr);
-
-	surface = window_get_surface(dialog->window);
-	cairo_surface_destroy(surface);
+	yiyiya_font_apply(cr, LOCK_FONT_PATH);
+	cairo_set_font_size(cr, size);
+	cairo_text_extents(cr, text, &extents);
+	if (center)
+		x -= extents.width / 2.0 + extents.x_bearing;
+	cairo_move_to(cr, x, y);
+	cairo_set_source_rgba(cr, r, g, b, a);
+	cairo_show_text(cr, text);
 }
 
 static void
-unlock_dialog_button_handler(struct widget *widget,
-			     struct input *input, uint32_t time,
-			     uint32_t button,
-			     enum wl_pointer_button_state state, void *data)
+lock_screen_redraw_handler(struct widget *widget, void *data)
 {
-	struct unlock_dialog *dialog = data;
-	struct desktop *desktop = dialog->desktop;
+	struct lock_screen *screen = data;
+	struct rectangle allocation;
+	cairo_pattern_t *pattern;
+	cairo_t *cr;
+	double cx, cy, avatar_cy, field_w, field_h, field_x, field_y;
+	double arrow_cx, arrow_cy, arrow_r = 15.0;
+	size_t i;
 
-	if (button == BTN_LEFT) {
-		if (state == WL_POINTER_BUTTON_STATE_RELEASED &&
-		    !dialog->closing) {
-			display_defer(desktop->display, &desktop->unlock_task);
-			dialog->closing = 1;
+	cr = widget_cairo_create(widget);
+	widget_get_allocation(widget, &allocation);
+	if (allocation.width < 2 || allocation.height < 2) {
+		cairo_destroy(cr);
+		return;
+	}
+
+	/* 全屏压暗壁纸，不做对话框/卡片。 */
+	pattern = cairo_pattern_create_linear(0, 0, 0, allocation.height);
+	cairo_pattern_add_color_stop_rgba(pattern, 0.0,
+					  0.02, 0.03, 0.06, 0.62);
+	cairo_pattern_add_color_stop_rgba(pattern, 1.0,
+					  0.0, 0.0, 0.0, 0.52);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+	cairo_set_source(cr, pattern);
+	cairo_paint(cr);
+	cairo_pattern_destroy(pattern);
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+	cx = allocation.width / 2.0;
+	cy = allocation.height / 2.0;
+	avatar_cy = cy - 110.0;
+
+	field_w = 300.0;
+	field_h = 38.0;
+	field_x = cx - field_w / 2.0;
+	field_y = cy + 14.0;
+	arrow_cx = field_x + field_w - 22.0;
+	arrow_cy = field_y + field_h / 2.0;
+
+	screen->field = (struct rectangle){
+		.x = (int)field_x, .y = (int)field_y,
+		.width = (int)field_w, .height = (int)field_h
+	};
+	/* 箭头按钮的点击区域比图形略大，鼠标/触摸都好点。 */
+	screen->button = (struct rectangle){
+		.x = (int)(arrow_cx - 18.0),
+		.y = (int)(arrow_cy - 18.0),
+		.width = 36, .height = 36
+	};
+
+	/* 头像 */
+	cairo_arc(cr, cx, avatar_cy, 46.0, 0.0, 2.0 * M_PI);
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.10);
+	cairo_fill_preserve(cr);
+	cairo_set_line_width(cr, 1.5);
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.42);
+	cairo_stroke(cr);
+	lock_screen_text(cr, "Y", cx, avatar_cy + 13.0, 36.0, 1,
+			 1.0, 1.0, 1.0, 0.92);
+
+	/* 用户名 */
+	lock_screen_text(cr, LOCK_USER_NAME, cx, avatar_cy + 80.0, 20.0, 1,
+			 1.0, 1.0, 1.0, 0.92);
+
+	/* 密码框（胶囊形，右侧内嵌箭头按钮） */
+	panel_rounded_rect(cr, field_x, field_y, field_w, field_h,
+			   field_h / 2.0);
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.13);
+	cairo_fill_preserve(cr);
+	cairo_set_line_width(cr, 1.0);
+	if (screen->error)
+		cairo_set_source_rgba(cr, 0.95, 0.30, 0.30, 0.90);
+	else
+		cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.32);
+	cairo_stroke(cr);
+
+	{
+		double text_x = field_x + 20.0;
+		double text_y = arrow_cy;
+
+		if (screen->password_len == 0) {
+			lock_screen_text(cr, "Password", text_x,
+					 text_y + 5.0, 15.0, 0,
+					 1.0, 1.0, 1.0, 0.50);
+		} else {
+			for (i = 0; i < screen->password_len; i++) {
+				cairo_arc(cr, text_x + 4.0 + i * 14.0,
+					  text_y, 3.2, 0.0, 2.0 * M_PI);
+				cairo_set_source_rgba(cr, 1.0, 1.0, 1.0,
+						      0.92);
+				cairo_fill(cr);
+			}
 		}
+
+		if (screen->caret && !screen->closing) {
+			double caret_x = text_x +
+				screen->password_len * 14.0 + 2.0;
+
+			cairo_set_line_width(cr, 1.5);
+			cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.85);
+			cairo_move_to(cr, caret_x, text_y - 9.0);
+			cairo_line_to(cr, caret_x, text_y + 9.0);
+			cairo_stroke(cr);
+		}
+	}
+
+	/* 圆形箭头按钮 */
+	cairo_arc(cr, arrow_cx, arrow_cy, arrow_r, 0.0, 2.0 * M_PI);
+	cairo_set_source_rgba(cr, 0.0, 0.478, 1.0,
+			      screen->hover_button ? 1.0 : 0.88);
+	cairo_fill(cr);
+	cairo_set_line_width(cr, 2.0);
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+	cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+	cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+	cairo_move_to(cr, arrow_cx - 6.0, arrow_cy);
+	cairo_line_to(cr, arrow_cx + 1.5, arrow_cy);
+	cairo_move_to(cr, arrow_cx - 2.5, arrow_cy - 4.5);
+	cairo_line_to(cr, arrow_cx + 2.0, arrow_cy);
+	cairo_line_to(cr, arrow_cx - 2.5, arrow_cy + 4.5);
+	cairo_stroke(cr);
+
+	if (screen->error)
+		lock_screen_text(cr, "Incorrect password",
+				 cx, field_y + field_h + 28.0, 13.0, 1,
+				 0.95, 0.35, 0.35, 0.95);
+
+	cairo_destroy(cr);
+}
+
+static void
+lock_screen_timer_reset(struct lock_screen *screen)
+{
+	struct itimerspec its = { 0 };
+
+	its.it_value.tv_nsec = 500 * 1000 * 1000;
+	toytimer_arm(&screen->timer, &its);
+}
+
+static void
+lock_screen_timer_func(struct toytimer *tt)
+{
+	struct lock_screen *screen =
+		container_of(tt, struct lock_screen, timer);
+
+	screen->caret = !screen->caret;
+	widget_schedule_redraw(screen->widget);
+	lock_screen_timer_reset(screen);
+}
+
+static void
+lock_screen_submit(struct lock_screen *screen)
+{
+	const char *expected = screen->desktop->lock_password;
+
+	if (expected == NULL)
+		expected = "";
+
+	if (strcmp(screen->password, expected) == 0) {
+		if (screen->closing)
+			return;
+		screen->closing = 1;
+		display_defer(screen->desktop->display,
+			      &screen->desktop->unlock_task);
+		return;
+	}
+
+	screen->error = 1;
+	screen->password_len = 0;
+	screen->password[0] = '\0';
+	screen->caret = 1;
+	widget_schedule_redraw(screen->widget);
+}
+
+static int
+lock_screen_update_hover(struct widget *widget, struct lock_screen *screen,
+			 double x, double y)
+{
+	int hover;
+
+	hover = x >= screen->button.x &&
+		x < screen->button.x + screen->button.width &&
+		y >= screen->button.y &&
+		y < screen->button.y + screen->button.height;
+
+	if (hover != screen->hover_button) {
+		screen->hover_button = hover;
+		widget_schedule_redraw(widget);
+	}
+
+	return hover ? CURSOR_HAND1 : CURSOR_LEFT_PTR;
+}
+
+static int
+lock_screen_motion_handler(struct widget *widget, struct input *input,
+			   uint32_t time, float x, float y, void *data)
+{
+	return lock_screen_update_hover(widget, data, x, y);
+}
+
+static int
+lock_screen_enter_handler(struct widget *widget, struct input *input,
+			  float x, float y, void *data)
+{
+	return lock_screen_update_hover(widget, data, x, y);
+}
+
+static void
+lock_screen_leave_handler(struct widget *widget, struct input *input,
+			  void *data)
+{
+	struct lock_screen *screen = data;
+
+	if (screen->hover_button) {
+		screen->hover_button = 0;
+		widget_schedule_redraw(widget);
 	}
 }
 
 static void
-unlock_dialog_touch_down_handler(struct widget *widget, struct input *input,
-		   uint32_t serial, uint32_t time, int32_t id,
-		   float x, float y, void *data)
+lock_screen_button_handler(struct widget *widget, struct input *input,
+			   uint32_t time, uint32_t button,
+			   enum wl_pointer_button_state state, void *data)
 {
-	struct unlock_dialog *dialog = data;
+	struct lock_screen *screen = data;
 
-	dialog->button_focused = 1;
+	if (button != BTN_LEFT ||
+	    state != WL_POINTER_BUTTON_STATE_RELEASED)
+		return;
+
+	if (screen->hover_button)
+		lock_screen_submit(screen);
+}
+
+static void
+lock_screen_touch_down_handler(struct widget *widget, struct input *input,
+			       uint32_t serial, uint32_t time, int32_t id,
+			       float x, float y, void *data)
+{
+	struct lock_screen *screen = data;
+
+	if (x >= screen->button.x &&
+	    x < screen->button.x + screen->button.width &&
+	    y >= screen->button.y &&
+	    y < screen->button.y + screen->button.height)
+		screen->hover_button = 1;
+}
+
+static void
+lock_screen_touch_up_handler(struct widget *widget, struct input *input,
+			     uint32_t serial, uint32_t time, int32_t id,
+			     void *data)
+{
+	struct lock_screen *screen = data;
+
+	if (screen->hover_button)
+		lock_screen_submit(screen);
+	screen->hover_button = 0;
 	widget_schedule_redraw(widget);
 }
 
 static void
-unlock_dialog_touch_up_handler(struct widget *widget, struct input *input,
-				uint32_t serial, uint32_t time, int32_t id,
-				void *data)
+lock_screen_keyboard_focus_handler(struct window *window,
+				   struct input *device, void *data)
 {
-	struct unlock_dialog *dialog = data;
-	struct desktop *desktop = dialog->desktop;
+	struct lock_screen *screen = data;
 
-	dialog->button_focused = 0;
-	widget_schedule_redraw(widget);
-	display_defer(desktop->display, &desktop->unlock_task);
-	dialog->closing = 1;
+	screen->caret = 1;
+	lock_screen_timer_reset(screen);
+	widget_schedule_redraw(screen->widget);
 }
 
 static void
-unlock_dialog_keyboard_focus_handler(struct window *window,
-				     struct input *device, void *data)
+lock_screen_key_handler(struct window *window, struct input *input,
+			uint32_t time, uint32_t key, uint32_t sym,
+			enum wl_keyboard_key_state state, void *data)
 {
-	window_schedule_redraw(window);
+	struct lock_screen *screen = data;
+
+	if (state != WL_KEYBOARD_KEY_STATE_PRESSED)
+		return;
+
+	if (sym == XKB_KEY_Return || sym == XKB_KEY_KP_Enter) {
+		lock_screen_submit(screen);
+	} else if (sym == XKB_KEY_BackSpace) {
+		if (screen->password_len > 0) {
+			screen->password_len--;
+			screen->password[screen->password_len] = '\0';
+			screen->error = 0;
+			screen->caret = 1;
+			widget_schedule_redraw(screen->widget);
+		}
+	} else if (sym >= 0x20 && sym <= 0x7e &&
+		   screen->password_len < sizeof(screen->password) - 1) {
+		screen->password[screen->password_len++] = (char)sym;
+		screen->password[screen->password_len] = '\0';
+		screen->error = 0;
+		screen->caret = 1;
+		widget_schedule_redraw(screen->widget);
+	}
 }
 
-static int
-unlock_dialog_widget_enter_handler(struct widget *widget,
-				   struct input *input,
-				   float x, float y, void *data)
+static struct lock_screen *
+lock_screen_create(struct desktop *desktop)
 {
-	struct unlock_dialog *dialog = data;
-
-	dialog->button_focused = 1;
-	widget_schedule_redraw(widget);
-
-	return CURSOR_LEFT_PTR;
-}
-
-static void
-unlock_dialog_widget_leave_handler(struct widget *widget,
-				   struct input *input, void *data)
-{
-	struct unlock_dialog *dialog = data;
-
-	dialog->button_focused = 0;
-	widget_schedule_redraw(widget);
-}
-
-static struct unlock_dialog *
-unlock_dialog_create(struct desktop *desktop)
-{
-	struct display *display = desktop->display;
-	struct unlock_dialog *dialog;
+	struct lock_screen *screen;
+	struct output *output;
 	struct wl_surface *surface;
+	int width = 1920, height = 1080;
 
-	dialog = xzalloc(sizeof *dialog);
+	wl_list_for_each(output, &desktop->outputs, link) {
+		if (output->width <= 0 || output->height <= 0)
+			continue;
+		width = output->width;
+		height = output->height;
+		if (output->x == 0 && output->y == 0)
+			break;
+	}
 
-	dialog->window = window_create_custom(display);
-	dialog->widget = window_frame_create(dialog->window, dialog);
-	window_set_title(dialog->window, "Unlock your desktop");
+	screen = xzalloc(sizeof *screen);
+	screen->desktop = desktop;
 
-	window_set_user_data(dialog->window, dialog);
-	window_set_keyboard_focus_handler(dialog->window,
-					  unlock_dialog_keyboard_focus_handler);
-	dialog->button = widget_add_widget(dialog->widget, dialog);
-	widget_set_redraw_handler(dialog->widget,
-				  unlock_dialog_redraw_handler);
-	widget_set_enter_handler(dialog->button,
-				 unlock_dialog_widget_enter_handler);
-	widget_set_leave_handler(dialog->button,
-				 unlock_dialog_widget_leave_handler);
-	widget_set_button_handler(dialog->button,
-				  unlock_dialog_button_handler);
-	widget_set_touch_down_handler(dialog->button,
-				      unlock_dialog_touch_down_handler);
-	widget_set_touch_up_handler(dialog->button,
-				      unlock_dialog_touch_up_handler);
+	screen->window = window_create_custom(desktop->display);
+	window_set_title(screen->window, "Lock screen");
+	window_set_user_data(screen->window, screen);
+	window_set_key_handler(screen->window, lock_screen_key_handler);
+	window_set_keyboard_focus_handler(screen->window,
+					  lock_screen_keyboard_focus_handler);
 
-	surface = window_get_wl_surface(dialog->window);
+	screen->widget = window_add_widget(screen->window, screen);
+	widget_set_redraw_handler(screen->widget,
+				  lock_screen_redraw_handler);
+	widget_set_motion_handler(screen->widget,
+				  lock_screen_motion_handler);
+	widget_set_enter_handler(screen->widget,
+				 lock_screen_enter_handler);
+	widget_set_leave_handler(screen->widget,
+				 lock_screen_leave_handler);
+	widget_set_button_handler(screen->widget,
+				  lock_screen_button_handler);
+	widget_set_touch_down_handler(screen->widget,
+				      lock_screen_touch_down_handler);
+	widget_set_touch_up_handler(screen->widget,
+				    lock_screen_touch_up_handler);
+
+	toytimer_init(&screen->timer, CLOCK_MONOTONIC, desktop->display,
+		      lock_screen_timer_func);
+	lock_screen_timer_reset(screen);
+
+	surface = window_get_wl_surface(screen->window);
 	weston_desktop_shell_set_lock_surface(desktop->shell, surface);
+	window_schedule_resize(screen->window, width, height);
 
-	window_schedule_resize(dialog->window, 260, 230);
-
-	return dialog;
+	return screen;
 }
 
 static void
-unlock_dialog_destroy(struct unlock_dialog *dialog)
+lock_screen_destroy(struct lock_screen *screen)
 {
-	window_destroy(dialog->window);
-	free(dialog);
+	if (screen == NULL)
+		return;
+
+	toytimer_fini(&screen->timer);
+	widget_destroy(screen->widget);
+	window_destroy(screen->window);
+	free(screen);
 }
 
 static void
-unlock_dialog_finish(struct task *task, uint32_t events)
+lock_screen_finish(struct task *task, uint32_t events)
 {
 	struct desktop *desktop =
 		container_of(task, struct desktop, unlock_task);
 
 	weston_desktop_shell_unlock(desktop->shell);
-	unlock_dialog_destroy(desktop->unlock_dialog);
-	desktop->unlock_dialog = NULL;
+	lock_screen_destroy(desktop->lock_screen);
+	desktop->lock_screen = NULL;
 }
 
 static void
@@ -1442,10 +1684,8 @@ desktop_shell_prepare_lock_surface(void *data,
 		return;
 	}
 
-	if (!desktop->unlock_dialog) {
-		desktop->unlock_dialog = unlock_dialog_create(desktop);
-		desktop->unlock_dialog->desktop = desktop;
-	}
+	if (!desktop->lock_screen)
+		desktop->lock_screen = lock_screen_create(desktop);
 }
 
 static void
@@ -1655,6 +1895,10 @@ output_handle_mode(void *data,
 		   int height,
 		   int refresh)
 {
+	struct output *output = data;
+
+	output->width = width;
+	output->height = height;
 }
 
 static void
@@ -1919,13 +2163,15 @@ int main(int argc, char *argv[])
 	struct weston_config_section *s;
 	const char *config_file;
 
-	desktop.unlock_task.run = unlock_dialog_finish;
+	desktop.unlock_task.run = lock_screen_finish;
 	wl_list_init(&desktop.outputs);
 
 	config_file = weston_config_get_name_from_env();
 	desktop.config = weston_config_parse(config_file);
 	s = weston_config_get_section(desktop.config, "shell", NULL, NULL);
 	weston_config_section_get_bool(s, "locking", &desktop.locking, true);
+	weston_config_section_get_string(s, "lock-password",
+					 &desktop.lock_password, "");
 	parse_panel_position(&desktop, s);
 	parse_clock_format(&desktop, s);
 
@@ -1958,10 +2204,10 @@ int main(int argc, char *argv[])
 	/* Cleanup */
 	grab_surface_destroy(&desktop);
 	desktop_destroy_outputs(&desktop);
-	if (desktop.unlock_dialog)
-		unlock_dialog_destroy(desktop.unlock_dialog);
+	lock_screen_destroy(desktop.lock_screen);
 	weston_desktop_shell_destroy(desktop.shell);
 	display_destroy(desktop.display);
+	free(desktop.lock_password);
 	weston_config_destroy(desktop.config);
 
 	return 0;

@@ -287,6 +287,7 @@ struct desktop_shell {
 	} child;
 
 	bool locked;
+	bool lock_on_start;
 	bool showing_input_panels;
 	bool prepare_event_sent;
 

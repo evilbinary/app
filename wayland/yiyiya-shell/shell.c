@@ -73,6 +73,12 @@ shell_fade_startup(struct desktop_shell *shell);
 static void
 shell_fade(struct desktop_shell *shell, enum fade_type type);
 
+static void
+lock(struct desktop_shell *shell);
+
+static void
+unlock(struct desktop_shell *shell);
+
 static struct shell_seat *
 get_shell_seat(struct weston_seat *seat);
 
@@ -378,6 +384,10 @@ shell_configuration(struct desktop_shell *shell)
 	weston_config_section_get_bool(section,
 				       "allow-zap", &allow_zap, true);
 	shell->allow_zap = allow_zap;
+
+	weston_config_section_get_bool(section,
+				       "lock-on-start", &shell->lock_on_start,
+				       false);
 
 	weston_config_section_get_bool(section,
 				       "disallow-output-changed-move",
@@ -2910,6 +2920,7 @@ lock_surface_committed(struct weston_surface *surface,
 		       struct weston_coord_surface new_origin)
 {
 	struct desktop_shell *shell = surface->committed_private;
+	struct weston_seat *seat;
 
 	if (!weston_surface_has_content(surface))
 		return;
@@ -2925,6 +2936,12 @@ lock_surface_committed(struct weston_surface *surface,
 		weston_shell_utils_get_default_output(shell->compositor));
 	weston_view_move_to_layer(shell->lock_view,
 				  &shell->lock_layer.view_list);
+
+	/* 锁屏页是当前唯一的键盘焦点，否则密码输不进去。
+	 * lock() 里的 unfocus_all_seats() 会清掉之前的焦点。 */
+	wl_list_for_each(seat, &shell->compositor->seat_list, link)
+		weston_seat_set_keyboard_focus(seat, surface);
+
 	shell_fade(shell, FADE_IN);
 }
 
@@ -3021,7 +3038,12 @@ desktop_shell_desktop_ready(struct wl_client *client,
 {
 	struct desktop_shell *shell = wl_resource_get_user_data(resource);
 
+	/* 先取消启动淡入定时器，避免 15 秒后再补一次淡入把锁屏页刷黑。 */
 	shell_fade_startup(shell);
+
+	/* 开机登录：第一帧桌面画好后立刻上锁，由锁屏页取代淡入。 */
+	if (shell->lock_on_start)
+		lock(shell);
 }
 
 static void
@@ -3676,15 +3698,25 @@ unfocus_all_seats(struct desktop_shell *shell)
 	}
 }
 
+/* 请求 desktop-shell 客户端创建锁屏 surface。 */
+static void
+request_lock_surface(struct desktop_shell *shell)
+{
+	if (!shell->child.desktop_shell || shell->prepare_event_sent)
+		return;
+
+	weston_desktop_shell_send_prepare_lock_surface(
+		shell->child.desktop_shell);
+	shell->prepare_event_sent = true;
+}
+
 static void
 lock(struct desktop_shell *shell)
 {
 	struct workspace *ws = get_current_workspace(shell);
 
-	if (shell->locked) {
-		weston_compositor_sleep(shell->compositor);
+	if (shell->locked)
 		return;
-	}
 
 	shell->locked = true;
 
@@ -3701,12 +3733,17 @@ lock(struct desktop_shell *shell)
 	weston_layer_set_position(&shell->lock_layer,
 				  WESTON_LAYER_POSITION_LOCK);
 
-	weston_compositor_sleep(shell->compositor);
+	/* 这里不调用 weston_compositor_sleep()：锁屏页要立刻可见。
+	 * 上游是在 sleep + 输入唤醒后才让客户端建锁屏 surface，
+	 * 对“开机登录”来说会先黑屏，体验不好。 */
 
 	/* Remove the keyboard focus on all seats. This will be
 	 * restored to the workspace's saved state via
 	 * restore_focus_state when the compositor is unlocked */
 	unfocus_all_seats(shell);
+
+	/* 立即让客户端显示登录页，而不是等一次输入唤醒。 */
+	request_lock_surface(shell);
 
 	/* TODO: disable bindings that should not work while locked. */
 
@@ -3716,8 +3753,6 @@ lock(struct desktop_shell *shell)
 static void
 unlock(struct desktop_shell *shell)
 {
-	struct wl_resource *shell_resource;
-
 	if (!shell->locked || shell->lock_surface) {
 		shell_fade(shell, FADE_IN);
 		return;
@@ -3729,12 +3764,7 @@ unlock(struct desktop_shell *shell)
 		return;
 	}
 
-	if (shell->prepare_event_sent)
-		return;
-
-	shell_resource = shell->child.desktop_shell;
-	weston_desktop_shell_send_prepare_lock_surface(shell_resource);
-	shell->prepare_event_sent = true;
+	request_lock_surface(shell);
 }
 
 static void
@@ -3915,6 +3945,9 @@ idle_handler(struct wl_listener *listener, void *data)
 		container_of(listener, struct desktop_shell, idle_listener);
 
 	struct weston_seat *seat;
+
+	if (shell->locked)
+		return;
 
 	wl_list_for_each(seat, &shell->compositor->seat_list, link)
 		weston_seat_break_desktop_grabs(seat);
