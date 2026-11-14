@@ -269,9 +269,13 @@ static void draw(float t) {
   mat4_translate(&view, 0.0f, 0.0f, -8.0f);
   mat4_mul(&pv, &proj, &view);
   mat4_identity(&model);
-  mat4_translate(&model, 0.0f, 0.0f, -1.5f);
-  mat4_rotate(&model, t * 40.0f, 0.0f, 0.0f, 1.0f);
-  mat4_rotate(&model, 90.0f, 1.0f, 0.0f, 0.0f);
+  /* 网格是 Z 轴向上、底面在 z=0：
+   * 先绕 X 轴 -90° 立起来（+90° 会倒立），
+   * 再上移半个高度把壶身放到视口中心。 */
+  mat4_translate(&model, 0.0f, -1.575f, -1.5f);
+  /* 绕自身中心的世界 Y 轴自转（不是公转）。 */
+  mat4_rotate(&model, t * 40.0f, 0.0f, 1.0f, 0.0f);
+  mat4_rotate(&model, -90.0f, 1.0f, 0.0f, 0.0f);
   glUseProgram(prog);
   glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, pv.m);
   glUniformMatrix4fv(loc_model, 1, GL_FALSE, model.m);

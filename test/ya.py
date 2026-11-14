@@ -587,6 +587,13 @@ add_files(
    'fbsample.c'
 )
 
+# 把 /dev/fb0 当前画面 dump 成 PPM（Mac 端 tools/screenshot.sh 再转 PNG）。
+target("fbshot")
+set_type("cli")
+add_files(
+   'fbshot.c'
+)
+
 # timerfd + epoll 验证：weston repaint timer 的底层依赖。
 target("test-timerfd")
 set_type("cli")
