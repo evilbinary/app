@@ -89,12 +89,12 @@ static int init(void) {
   static const char *fs =
       "precision mediump float;\n"
       "varying vec3 vN;\n"
-      "uniform vec3 uColor;\n"
+      "uniform vec4 uColor;\n"
       "void main() {\n"
       "  vec3 N = normalize(vN);\n"
       "  vec3 L = normalize(vec3(0.4, 0.6, 0.8));\n"
       "  float d = max(dot(N, L), 0.0);\n"
-      "  vec3 c = uColor * (0.22 + 0.85 * d);\n"
+      "  vec3 c = uColor.rgb * (0.22 + 0.85 * d);\n"
       "  c += vec3(0.35) * pow(max(dot(reflect(-L, N), vec3(0,0,1)), 0.0), 20.0);\n"
       "  gl_FragColor = vec4(c, 1.0);\n"
       "}\n";
@@ -119,7 +119,7 @@ static void draw_gear(mat4 *pv, float x, float y, float angle, float scale,
   mat4_scale(&model, scale, scale, 1.0f);
   glUniformMatrix4fv(loc_mvp, 1, GL_FALSE, pv->m);
   glUniformMatrix4fv(loc_model, 1, GL_FALSE, model.m);
-  glUniform3f(loc_color, r, g, b);
+  glUniform4f(loc_color, r, g, b, 1.0f);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glEnableVertexAttribArray(loc_pos);
   glEnableVertexAttribArray(loc_nrm);
@@ -136,6 +136,7 @@ static void draw(float t) {
   mat4_perspective(&proj, 45.0f, 640.0f / 480.0f, 0.5f, 100.0f);
   mat4_identity(&view);
   mat4_translate(&view, 0.0f, 0.0f, -7.0f);
+  mat4_identity(&tilt);
   mat4_rotate(&tilt, 18.0f, 1.0f, 0.0f, 0.0f);
   mat4_mul(&view, &view, &tilt);
   mat4_mul(&pv, &proj, &view);
