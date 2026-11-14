@@ -516,6 +516,19 @@ add_files(
    'test-gles-clear.c'
 )
 
+# V3D 局部绘制/回读压力测试：FBO + 移动 scissor 小矩形 + partial glReadPixels。
+# 用于在不依赖 weston 的情况下复现拖窗口时的局部 GL 路径问题。
+target("partial-draw-test")
+set_type("cli")
+add_deps("foot")
+add_deps("EGL")
+add_deps("GLESv2")
+add_cflags(' -D__unix__ ')
+add_includedirs("../../eggs/libmesa/include")
+add_files(
+   'partial-draw-test.c'
+)
+
 # Mesa EGL/GLES2 纹理路径最小验证：FBO + glTexImage2D + 采样 + glReadPixels
 target("test-gles-texture")
 set_type("cli")
