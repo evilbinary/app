@@ -155,6 +155,7 @@ void modules_init(void) {
   /* Z96A：eMMC 在分区和 fatfs 之前注册，整卡名字是 sata。 */
   REGISTER_MODULE(sdhci);
   REGISTER_MODULE(net);
+  REGISTER_MODULE(gpu);
   REGISTER_MODULE(test);
   REGISTER_MODULE(rtc);
   REGISTER_MODULE(pty);
