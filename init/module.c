@@ -151,6 +151,11 @@ void modules_init(void) {
   REGISTER_MODULE(gpio);
   /* 伪终端：weston-terminal 的 forkpty 需要 /dev/ptmx 和 /dev/pts/N。 */
   REGISTER_MODULE(pty);
+#elif defined(RK3568)
+  /* Z96A bring-up：串口、时钟、测试。显示、USB、网卡、eMMC 还没有驱动。 */
+  REGISTER_MODULE(test);
+  REGISTER_MODULE(rtc);
+  REGISTER_MODULE(pty);
 #else
   REGISTER_MODULE(mouse);
   /* /dev/input/event0/event1：Xorg/Weston 的 evdev 直接读它们
