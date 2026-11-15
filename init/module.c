@@ -158,6 +158,12 @@ void modules_init(void) {
   REGISTER_MODULE(gpu);
   REGISTER_MODULE(test);
   REGISTER_MODULE(rtc);
+  /* 内置键盘和触摸板是 USB HID。usb 枚举，mouse/keyboard 接到
+   * DEVICE_MOUSE / DEVICE_KEYBOARD，input 建 /dev/input/event0 和 event1。 */
+  REGISTER_MODULE(usb);
+  REGISTER_MODULE(mouse);
+  REGISTER_MODULE(keyboard);
+  REGISTER_MODULE(input);
   REGISTER_MODULE(pty);
 #else
   REGISTER_MODULE(mouse);
