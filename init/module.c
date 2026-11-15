@@ -152,7 +152,8 @@ void modules_init(void) {
   /* 伪终端：weston-terminal 的 forkpty 需要 /dev/ptmx 和 /dev/pts/N。 */
   REGISTER_MODULE(pty);
 #elif defined(RK3568)
-  /* Z96A bring-up：串口、时钟、测试。显示、USB、网卡、eMMC 还没有驱动。 */
+  /* Z96A：eMMC 在分区和 fatfs 之前注册，整卡名字是 sata。 */
+  REGISTER_MODULE(sdhci);
   REGISTER_MODULE(test);
   REGISTER_MODULE(rtc);
   REGISTER_MODULE(pty);
