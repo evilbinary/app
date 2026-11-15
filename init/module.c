@@ -154,6 +154,7 @@ void modules_init(void) {
 #elif defined(RK3568)
   /* Z96A：eMMC 在分区和 fatfs 之前注册，整卡名字是 sata。 */
   REGISTER_MODULE(sdhci);
+  REGISTER_MODULE(net);
   REGISTER_MODULE(test);
   REGISTER_MODULE(rtc);
   REGISTER_MODULE(pty);
