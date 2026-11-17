@@ -222,6 +222,10 @@ struct lock_screen {
 	int closing;
 };
 
+/* 输入框宽 300px，圆点间距 14px，右侧还要留箭头按钮的位置；
+ * 16 个字符时最后一个圆点/光标仍在按钮左侧。 */
+#define LOCK_PASSWORD_MAX 16
+
 static void
 panel_add_launchers(struct panel *panel, struct desktop *desktop,
 		    const char *section);
@@ -1426,6 +1430,15 @@ lock_screen_timer_func(struct toytimer *tt)
 	struct lock_screen *screen =
 		container_of(tt, struct lock_screen, timer);
 
+	/* 密码框为空时不要每 500ms 重绘整张 1920x1080 锁屏：
+	 * 软件渲染下这会和鼠标移动抢带宽，表现为登录页指针一跳一跳。
+	 * 只有正在输入密码时才闪光标。 */
+	if (screen->password_len == 0) {
+		screen->caret = 1;
+		widget_schedule_redraw(screen->widget);
+		return;
+	}
+
 	screen->caret = !screen->caret;
 	widget_schedule_redraw(screen->widget);
 	lock_screen_timer_reset(screen);
@@ -1549,7 +1562,9 @@ lock_screen_keyboard_focus_handler(struct window *window,
 	struct lock_screen *screen = data;
 
 	screen->caret = 1;
-	lock_screen_timer_reset(screen);
+	if (screen->password_len > 0) {
+		lock_screen_timer_reset(screen);
+	}
 	widget_schedule_redraw(screen->widget);
 }
 
@@ -1571,14 +1586,18 @@ lock_screen_key_handler(struct window *window, struct input *input,
 			screen->password[screen->password_len] = '\0';
 			screen->error = 0;
 			screen->caret = 1;
+			if (screen->password_len > 0) {
+				lock_screen_timer_reset(screen);
+			}
 			widget_schedule_redraw(screen->widget);
 		}
 	} else if (sym >= 0x20 && sym <= 0x7e &&
-		   screen->password_len < sizeof(screen->password) - 1) {
+		   screen->password_len < LOCK_PASSWORD_MAX) {
 		screen->password[screen->password_len++] = (char)sym;
 		screen->password[screen->password_len] = '\0';
 		screen->error = 0;
 		screen->caret = 1;
+		lock_screen_timer_reset(screen);
 		widget_schedule_redraw(screen->widget);
 	}
 }
@@ -1628,7 +1647,8 @@ lock_screen_create(struct desktop *desktop)
 
 	toytimer_init(&screen->timer, CLOCK_MONOTONIC, desktop->display,
 		      lock_screen_timer_func);
-	lock_screen_timer_reset(screen);
+	/* 密码为空时先不启动闪烁定时器：避免登录页空闲时反复全屏重绘。 */
+	screen->caret = 1;
 
 	surface = window_get_wl_surface(screen->window);
 	weston_desktop_shell_set_lock_surface(desktop->shell, surface);
