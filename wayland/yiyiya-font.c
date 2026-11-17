@@ -29,12 +29,43 @@
 struct font_entry {
 	char *path;
 	cairo_font_face_t *face;
+	FT_Face ft_face;
 	struct font_entry *next;
 };
 
 static FT_Library font_library;
 static int font_library_state;
 static struct font_entry *font_cache;
+static int font_atexit_registered;
+
+/* 退出前先销毁 cairo font face，再 FT_Done_Face。
+ * cairo 的 unscaled font 对 from_face 字体有一个断言：fini 时 face 必须
+ * 已经是 NULL。如果进程退出时字体还挂在 cairo 的全局 font map 里，
+ * cairo_debug_reset_static_data()/退出清理会直接 assert 并 abort。 */
+static void
+yiyiya_font_fini(void)
+{
+	struct font_entry *entry;
+
+	entry = font_cache;
+	while (entry != NULL) {
+		struct font_entry *next = entry->next;
+
+		if (entry->face != NULL)
+			cairo_font_face_destroy(entry->face);
+		if (entry->ft_face != NULL)
+			FT_Done_Face(entry->ft_face);
+		free(entry->path);
+		free(entry);
+		entry = next;
+	}
+	font_cache = NULL;
+
+	if (font_library_state > 0) {
+		FT_Done_FreeType(font_library);
+		font_library_state = 0;
+	}
+}
 
 static const char *
 font_env_or(const char *name, const char *fallback)
@@ -86,6 +117,11 @@ font_load(const char *path)
 			return entry->face;
 	}
 
+	if (!font_atexit_registered) {
+		atexit(yiyiya_font_fini);
+		font_atexit_registered = 1;
+	}
+
 	if (font_library_state == 0) {
 		font_library_state = FT_Init_FreeType(&font_library) == 0 ? 1 : -1;
 	}
@@ -117,6 +153,7 @@ font_load(const char *path)
 		return NULL;
 	}
 	entry->face = face;
+	entry->ft_face = ft_face;
 	entry->next = font_cache;
 	font_cache = entry;
 
