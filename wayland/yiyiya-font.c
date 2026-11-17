@@ -28,7 +28,6 @@
 
 struct font_entry {
 	char *path;
-	cairo_font_face_t *face;
 	FT_Face ft_face;
 	struct font_entry *next;
 };
@@ -38,11 +37,12 @@ static int font_library_state;
 static struct font_entry *font_cache;
 static int font_atexit_registered;
 
-/* 退出前先销毁 cairo font face，再 FT_Done_Face。
- * cairo 的 unscaled font 对 from_face 字体有一个断言：fini 时 face 必须
- * 已经是 NULL。如果进程退出时字体还挂在 cairo 的全局 font map 里，
- * cairo_debug_reset_static_data()/退出清理会直接 assert 并 abort。 */
-static void
+/* 退出时只销毁 FT_Face/FT_Library。cairo font face 不再跨帧缓存：
+ * 每次 yiyiya_font_apply() 创建一个 face，交给 cairo context 持有，
+ * context 销毁时 face 会一起销毁，unscaled font 也会从 cairo 的全局
+ * font map 里摘掉。这样 toytoolkit 的 cleanup_after_cairo() 不会在
+ * cairo_debug_reset_static_data() 时命中 from_face 字体的断言。 */
+void
 yiyiya_font_fini(void)
 {
 	struct font_entry *entry;
@@ -51,8 +51,6 @@ yiyiya_font_fini(void)
 	while (entry != NULL) {
 		struct font_entry *next = entry->next;
 
-		if (entry->face != NULL)
-			cairo_font_face_destroy(entry->face);
 		if (entry->ft_face != NULL)
 			FT_Done_Face(entry->ft_face);
 		free(entry->path);
@@ -104,17 +102,15 @@ font_resolve(const char *family)
 	return font_default_path();
 }
 
-static cairo_font_face_t *
+static FT_Face
 font_load(const char *path)
 {
 	struct font_entry *entry;
-	cairo_font_face_t *face;
-	cairo_status_t status;
 	FT_Face ft_face;
 
 	for (entry = font_cache; entry != NULL; entry = entry->next) {
 		if (strcmp(entry->path, path) == 0)
-			return entry->face;
+			return entry->ft_face;
 	}
 
 	if (!font_atexit_registered) {
@@ -131,39 +127,41 @@ font_load(const char *path)
 	if (FT_New_Face(font_library, path, 0, &ft_face) != 0)
 		return NULL;
 
-	face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
-	status = cairo_font_face_status(face);
-	if (status != CAIRO_STATUS_SUCCESS) {
-		cairo_font_face_destroy(face);
-		FT_Done_Face(ft_face);
-		return NULL;
-	}
-
 	entry = calloc(1, sizeof(*entry));
 	if (entry == NULL) {
-		cairo_font_face_destroy(face);
 		FT_Done_Face(ft_face);
 		return NULL;
 	}
 	entry->path = strdup(path);
 	if (entry->path == NULL) {
 		free(entry);
-		cairo_font_face_destroy(face);
 		FT_Done_Face(ft_face);
 		return NULL;
 	}
-	entry->face = face;
 	entry->ft_face = ft_face;
 	entry->next = font_cache;
 	font_cache = entry;
 
-	return face;
+	return ft_face;
 }
 
 cairo_font_face_t *
 yiyiya_font_face(const char *family)
 {
-	return font_load(font_resolve(family));
+	FT_Face ft_face = font_load(font_resolve(family));
+	cairo_font_face_t *face;
+	cairo_status_t status;
+
+	if (ft_face == NULL)
+		return NULL;
+
+	face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
+	status = cairo_font_face_status(face);
+	if (status != CAIRO_STATUS_SUCCESS) {
+		cairo_font_face_destroy(face);
+		return NULL;
+	}
+	return face;
 }
 
 void
@@ -171,6 +169,10 @@ yiyiya_font_apply(cairo_t *cr, const char *family)
 {
 	cairo_font_face_t *face = yiyiya_font_face(family);
 
-	if (face != NULL)
+	if (face != NULL) {
 		cairo_set_font_face(cr, face);
+		/* context 已持有引用；这里松开我们的引用，等 context 销毁时
+		 * cairo font face / unscaled font 一并摘掉。 */
+		cairo_font_face_destroy(face);
+	}
 }
